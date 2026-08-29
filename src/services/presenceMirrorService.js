@@ -2,6 +2,18 @@ import config from '../config/application.js';
 import { logger } from '../utils/logger.js';
 import { GatewayOpcodes } from 'discord.js';
 
+function getFallbackPresence(client) {
+  const guildName = client.guilds?.cache?.first?.()?.name;
+  return {
+    status: config.bot.presence.status,
+    activities: [{
+      name: 'Custom Status',
+      state: guildName ? `Helping out in ${guildName}` : 'Ready to help',
+      type: 4,
+    }],
+  };
+}
+
 function getMirroredActivity(presence) {
   const activities = presence?.activities || [];
   const customStatus = activities.find((activity) => activity.type === 4 && activity.state);
@@ -26,7 +38,7 @@ export function applyMirroredPresence(client, presence) {
   const mirroredActivity = getMirroredActivity(presence);
 
   if (!mirroredActivity) {
-    client.user.setPresence(config.bot.presence);
+    client.user.setPresence(getFallbackPresence(client));
     return false;
   }
 
