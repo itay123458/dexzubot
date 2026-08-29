@@ -24,7 +24,7 @@ export default {
         }
 
         if (!permissionContext.canManageTicket) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Channels` permission or the configured `Ticket Staff Role` to claim tickets.' });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Channels` permission or one of the configured `Ticket Staff Roles` to claim tickets.' });
         }
 
         await claimTicket(interaction.channel, interaction.user);

@@ -5,6 +5,7 @@ import { getGuildConfig, setGuildConfig } from '../../services/config/guildConfi
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+import { setTicketStaffRoleIds } from '../../utils/ticket/ticketStaffRoles.js';
 
 import ticketConfig from './modules/ticket_dashboard.js';
 
@@ -160,7 +161,7 @@ description: panelMessage,
                     const currentConfig = existingConfig;
                     currentConfig.ticketCategoryId = categoryChannel ? categoryChannel.id : null;
                     currentConfig.ticketClosedCategoryId = closedCategoryChannel ? closedCategoryChannel.id : null;
-                    currentConfig.ticketStaffRoleId = staffRole ? staffRole.id : null;
+                    setTicketStaffRoleIds(currentConfig, staffRole ? [staffRole.id] : []);
                     currentConfig.ticketPanelChannelId = panelChannel.id;
                     currentConfig.ticketPanelMessageId = sentPanel?.id || null;
                     currentConfig.ticketPanelMessage = panelMessage;

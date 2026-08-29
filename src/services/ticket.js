@@ -12,6 +12,7 @@ import { buildStandardLogEmbed, formatLogLine } from '../utils/logging/logEmbeds
 import { getGuildConfig } from './config/guildConfig.js';
 import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser, incrementTicketCounter } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
+import { getTicketStaffRoleIds } from '../utils/ticket/ticketStaffRoles.js';
 import { createEmbed, errorEmbed } from '../utils/embeds.js';
 import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
 import { createError, ErrorTypes } from '../utils/errorHandler.js';
@@ -145,15 +146,15 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
             PermissionFlagsBits.ReadMessageHistory,
           ],
         },
-        ...(config.ticketStaffRoleId ? [{
-          id: config.ticketStaffRoleId,
+        ...getTicketStaffRoleIds(config).map(roleId => ({
+          id: roleId,
           allow: [
             PermissionFlagsBits.ViewChannel,
             PermissionFlagsBits.SendMessages,
             PermissionFlagsBits.AttachFiles,
             PermissionFlagsBits.ReadMessageHistory,
           ],
-        }] : []),
+        })),
       ],
     });
     
@@ -200,7 +201,9 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       );
     }
     
-    const staffMention = config.ticketStaffRoleId ? ` <@&${config.ticketStaffRoleId}>` : '';
+    const staffMention = getTicketStaffRoleIds(config)
+      .map(roleId => ` <@&${roleId}>`)
+      .join('');
     const messageContent = `${member.toString()}${staffMention}`;
     
     const ticketMessage = await channel.send({ 

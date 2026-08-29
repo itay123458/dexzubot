@@ -39,7 +39,7 @@ export default {
         }
 
         if (!permissionContext.canManageTicket) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Channels` permission or the configured `Ticket Staff Role` to change ticket priority.' });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Channels` permission or one of the configured `Ticket Staff Roles` to change ticket priority.' });
         }
 
         const priorityLevel = interaction.options.getString("level");

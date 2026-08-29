@@ -67,8 +67,8 @@ async function assertTicketPermission(interaction, client, actionLabel, options 
   const allowed = allowTicketCreator ? context.canCloseTicket : context.canManageTicket;
   if (!allowed) {
     const permissionMessage = allowTicketCreator
-      ? 'You must have **Manage Channels**, the configured **Ticket Staff Role**, or be the **ticket creator**.'
-      : 'You must have **Manage Channels** or the configured **Ticket Staff Role**.';
+      ? 'You must have **Manage Channels**, one of the configured **Ticket Staff Roles**, or be the **ticket creator**.'
+      : 'You must have **Manage Channels** or one of the configured **Ticket Staff Roles**.';
     throw createError(
       'Ticket permission denied',
       ErrorTypes.PERMISSION,
@@ -92,8 +92,8 @@ async function ensureTicketPermission(interaction, client, actionLabel, options 
   const allowed = allowTicketCreator ? context.canCloseTicket : context.canManageTicket;
   if (!allowed) {
     const permissionMessage = allowTicketCreator
-      ? 'You must have **Manage Channels**, the configured **Ticket Staff Role**, or be the **ticket creator**.'
-      : 'You must have **Manage Channels** or the configured **Ticket Staff Role**.';
+      ? 'You must have **Manage Channels**, one of the configured **Ticket Staff Roles**, or be the **ticket creator**.'
+      : 'You must have **Manage Channels** or one of the configured **Ticket Staff Roles**.';
 
     await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: `${permissionMessage}\n\nYou cannot ${actionLabel}.` });
     return null;

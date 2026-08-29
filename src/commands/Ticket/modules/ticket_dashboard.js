@@ -29,6 +29,7 @@ import {
     formatPanelStatusField,
 } from '../../../utils/panelStatus.js';
 import { startDashboardSession } from '../../../utils/dashboardSession.js';
+import { getTicketStaffRoleIds, setTicketStaffRoleIds } from '../../../utils/ticket/ticketStaffRoles.js';
 
 function buildButtonRow(guildConfig, guildId, disabled = false, panelStatus = null) {
     const dmEnabled = guildConfig.dmOnClose !== false;
@@ -56,7 +57,7 @@ function buildButtonRow(guildConfig, guildId, disabled = false, panelStatus = nu
             .setDisabled(disabled),
         new ButtonBuilder()
             .setCustomId(`ticket_cfg_staff_role_btn_${guildId}`)
-            .setLabel('Staff Role')
+            .setLabel('Staff Roles')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🛡️')
             .setDisabled(disabled),
@@ -125,7 +126,10 @@ function formatCloseDuration(ms) {
 
 function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = null) {
     const panelChannel = config.ticketPanelChannelId ? `<#${config.ticketPanelChannelId}>` : '`Not set`';
-    const staffRole = config.ticketStaffRoleId ? `<@&${config.ticketStaffRoleId}>` : '`Not set`';
+    const staffRoleIds = getTicketStaffRoleIds(config);
+    const staffRoles = staffRoleIds.length > 0
+        ? staffRoleIds.map(roleId => `<@&${roleId}>`).join('\n')
+        : '`Not set`';
     const ticketLogsChannel = config.ticketLogsChannelId ? `<#${config.ticketLogsChannelId}>` : '`Not set`';
     const transcriptChannel = config.ticketTranscriptChannelId ? `<#${config.ticketTranscriptChannelId}>` : '`Not set`';
 
@@ -154,7 +158,7 @@ function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = nu
         .addFields(
             { name: 'Panel Status', value: panelStatusValue, inline: false },
             { name: 'Panel Channel', value: panelChannel, inline: true },
-            { name: 'Staff Role', value: staffRole, inline: true },
+            { name: 'Staff Roles', value: staffRoles, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
             { name: 'Open Tickets Category', value: openCategory, inline: true },
             { name: 'Closed Tickets Category', value: closedCategory, inline: true },
@@ -457,17 +461,18 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
 
     const roleSelect = new RoleSelectMenuBuilder()
         .setCustomId('ticket_cfg_staff_role')
-        .setPlaceholder('Select the staff role...')
-        .setMaxValues(1);
+        .setPlaceholder('Select up to 10 staff roles...')
+        .setMinValues(1)
+        .setMaxValues(10);
 
     const row = new ActionRowBuilder().addComponents(roleSelect);
 
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('🛡️ Change Staff Role')
+                .setTitle('🛡️ Change Staff Roles')
                 .setDescription(
-                    `**Current:** ${guildConfig.ticketStaffRoleId ? `<@&${guildConfig.ticketStaffRoleId}>` : '`Not set`'}\n\nSelect the role that should have staff access to manage tickets.`,
+                    `**Current:** ${getTicketStaffRoleIds(guildConfig).map(roleId => `<@&${roleId}>`).join(', ') || '`Not set`'}\n\nSelect all roles that should have staff access to manage tickets. This selection replaces the current list.`,
                 )
                 .setColor(getColor('info')),
         ],
@@ -485,13 +490,23 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
 
     roleCollector.on('collect', async roleInteraction => {
         await roleInteraction.deferUpdate();
-        const role = roleInteraction.roles.first();
+        const roles = [...roleInteraction.roles.values()].filter(role =>
+            role.id !== guildId && !role.managed
+        );
 
-        guildConfig.ticketStaffRoleId = role.id;
+        if (roles.length === 0) {
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.VALIDATION,
+                message: 'Select at least one assignable staff role.',
+            });
+            return;
+        }
+
+        setTicketStaffRoleIds(guildConfig, roles.map(role => role.id));
         await setGuildConfig(client, guildId, guildConfig);
 
         await roleInteraction.followUp({
-            embeds: [successEmbed('Staff Role Updated', `Staff role set to ${role}.`)],
+            embeds: [successEmbed('Staff Roles Updated', `Ticket staff roles set to ${roles.join(', ')}.`)],
             flags: MessageFlags.Ephemeral,
         });
 
@@ -502,7 +517,7 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
         if (reason === 'time' && collected.size === 0) {
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
-                message: 'No role was selected. The staff role was not changed.',
+                message: 'No roles were selected. The staff roles were not changed.',
             }).catch(() => {});
         }
     });
@@ -949,6 +964,7 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
         'ticketPanelChannelId',
         'ticketPanelMessageId',
         'ticketStaffRoleId',
+        'ticketStaffRoleIds',
         'ticketCategoryId',
         'ticketClosedCategoryId',
         'ticketPanelMessage',
