@@ -15,8 +15,10 @@ import {
   enableCommand,
   resolveCategoryChoice,
   buildCommandRegistry,
+  getCommandAccessSnapshot,
   isProtectedCommand,
 } from '../../services/commandAccessService.js';
+import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
 import {
   buildDashboardView,
   handleDashboardComponent,
@@ -28,13 +30,21 @@ const DASHBOARD_TIMEOUT_MS = 10 * 60 * 1000;
 const SUBCOMMAND_TYPE = 1;
 const SUBCOMMAND_GROUP_TYPE = 2;
 
-function getCommandLines(client) {
+function getCommandLines(client, guildConfig) {
   const lines = [];
+  const accessByCategory = new Map(
+    getCommandAccessSnapshot(client, guildConfig).categories.map(category => [category.folder, category]),
+  );
   const commands = [...client.commands.values()].sort((a, b) =>
     String(a.category).localeCompare(String(b.category)) || a.data.name.localeCompare(b.data.name),
   );
 
   for (const command of commands) {
+    if (!isSlashCommandCategoryEnabled(command.category)) continue;
+
+    const categoryAccess = accessByCategory.get(command.category);
+    if (!categoryAccess || categoryAccess.categoryDisabled) continue;
+
     const data = command.data.toJSON();
     const access = command.ownerOnly ? 'Owner' : data.default_member_permissions != null ? 'Staff' : 'Everyone';
     const options = data.options || [];
@@ -51,6 +61,7 @@ function getCommandLines(client) {
 
     if (paths.length === 0) paths.push(data.name);
     for (const path of paths) {
+      if (!categoryAccess.enabledCommands.includes(path)) continue;
       const ownerSubcommand = command.ownerOnlySubcommands?.includes(path.slice(data.name.length + 1));
       lines.push(`**/${path}** · ${ownerSubcommand ? 'Owner' : access} · ${command.category}`);
     }
@@ -219,7 +230,7 @@ export default {
       }
 
       await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
-      const lines = getCommandLines(client);
+      const lines = getCommandLines(client, config);
       const pages = paginateLines(lines);
       const embeds = pages.map((description, index) => createEmbed({
         title: `All Bot Commands · ${index + 1}/${pages.length}`,
