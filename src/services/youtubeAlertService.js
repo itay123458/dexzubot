@@ -45,7 +45,6 @@ export async function fetchLatestYouTubeVideo() {
         id: match[1],
         url: `https://www.youtube.com/watch?v=${match[1]}`,
         title: readEntryValue(entry, 'title') || 'New Dexzu video',
-        description: readEntryValue(entry, 'media:description'),
         publishedAt: readEntryValue(entry, 'published'),
         thumbnailUrl: entry.match(/<media:thumbnail\s+url="([^"]+)"/)?.[1]
             || `https://i.ytimg.com/vi/${match[1]}/maxresdefault.jpg`,
@@ -53,7 +52,6 @@ export async function fetchLatestYouTubeVideo() {
 }
 
 export async function sendYouTubeAlert(channel, video, { test = false } = {}) {
-    const description = video.description?.trim() || 'Dexzu published a video on YouTube!';
     const embed = new EmbedBuilder()
         .setColor(0xff0000)
         .setAuthor({
@@ -63,7 +61,7 @@ export async function sendYouTubeAlert(channel, video, { test = false } = {}) {
         })
         .setTitle(video.title || 'New Dexzu video')
         .setURL(video.url)
-        .setDescription(`Dexzu published a video on YouTube!\n\n**Description**\n${description.slice(0, 3500)}`)
+        .setDescription('Dexzu published a new video on YouTube!')
         .setImage(video.thumbnailUrl || `https://i.ytimg.com/vi/${video.id}/maxresdefault.jpg`)
         .setFooter({ text: test ? 'YouTube • Test alert' : 'YouTube' });
 
