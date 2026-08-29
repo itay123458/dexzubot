@@ -4,7 +4,8 @@ import {
   MessageFlags,
 } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { successEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed } from '../../utils/embeds.js';
+import { isBotOwner } from '../../config/bot.js';
 import { logger } from '../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import {
@@ -24,6 +25,53 @@ import {
 } from './modules/commands_dashboard.js';
 
 const DASHBOARD_TIMEOUT_MS = 10 * 60 * 1000;
+const SUBCOMMAND_TYPE = 1;
+const SUBCOMMAND_GROUP_TYPE = 2;
+
+function getCommandLines(client) {
+  const lines = [];
+  const commands = [...client.commands.values()].sort((a, b) =>
+    String(a.category).localeCompare(String(b.category)) || a.data.name.localeCompare(b.data.name),
+  );
+
+  for (const command of commands) {
+    const data = command.data.toJSON();
+    const access = command.ownerOnly ? 'Owner' : data.default_member_permissions != null ? 'Staff' : 'Everyone';
+    const options = data.options || [];
+    const paths = [];
+
+    for (const option of options) {
+      if (option.type === SUBCOMMAND_TYPE) paths.push(`${data.name} ${option.name}`);
+      if (option.type === SUBCOMMAND_GROUP_TYPE) {
+        for (const nested of option.options || []) {
+          if (nested.type === SUBCOMMAND_TYPE) paths.push(`${data.name} ${option.name} ${nested.name}`);
+        }
+      }
+    }
+
+    if (paths.length === 0) paths.push(data.name);
+    for (const path of paths) {
+      const ownerSubcommand = command.ownerOnlySubcommands?.includes(path.slice(data.name.length + 1));
+      lines.push(`**/${path}** · ${ownerSubcommand ? 'Owner' : access} · ${command.category}`);
+    }
+  }
+
+  return lines;
+}
+
+function paginateLines(lines, maxLength = 3800) {
+  const pages = [];
+  let page = '';
+  for (const line of lines) {
+    if (page && page.length + line.length + 1 > maxLength) {
+      pages.push(page);
+      page = '';
+    }
+    page += `${page ? '\n' : ''}${line}`;
+  }
+  if (page) pages.push(page);
+  return pages;
+}
 
 function buildCategoryChoices(client) {
   const registry = buildCommandRegistry(client);
@@ -99,8 +147,14 @@ export default {
             .setRequired(true)
             .setAutocomplete(true),
         ),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('list-all')
+        .setDescription('List every loaded bot command (owner only)'),
     ),
   category: 'Core',
+  ownerOnlySubcommands: ['list-all'],
 
   async autocomplete(interaction) {
     const focused = interaction.options.getFocused(true);
@@ -154,11 +208,36 @@ export default {
   },
 
   async execute(interaction, config, client) {
-    if (!(await ensureManageGuild(interaction))) {
+    const subcommand = interaction.options.getSubcommand();
+
+    if (subcommand === 'list-all') {
+      if (!isBotOwner(interaction.user.id)) {
+        return replyUserError(interaction, {
+          type: ErrorTypes.PERMISSION,
+          message: 'Only a configured DexzuBot owner can view the complete command list.',
+        });
+      }
+
+      await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+      const lines = getCommandLines(client);
+      const pages = paginateLines(lines);
+      const embeds = pages.map((description, index) => createEmbed({
+        title: `All Bot Commands · ${index + 1}/${pages.length}`,
+        description,
+        color: 'primary',
+        footer: `${lines.length} command paths loaded`,
+      }));
+
+      await InteractionHelper.safeEditReply(interaction, { embeds: [embeds[0]] });
+      for (const embed of embeds.slice(1)) {
+        await interaction.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      }
       return;
     }
 
-    const subcommand = interaction.options.getSubcommand();
+    if (!(await ensureManageGuild(interaction))) {
+      return;
+    }
 
     if (subcommand === 'dashboard') {
       const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });

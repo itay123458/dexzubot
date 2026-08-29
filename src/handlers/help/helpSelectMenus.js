@@ -64,6 +64,7 @@ function buildHelpEntries(command, category) {
     const options = commandData.options || [];
     const staffOnly = commandData.default_member_permissions != null;
     const ownerOnly = command?.ownerOnly === true;
+    const ownerOnlySubcommands = new Set(command?.ownerOnlySubcommands || []);
 
     const entries = [];
 
@@ -77,7 +78,7 @@ function buildHelpEntries(command, category) {
                 description: option.description || baseDescription,
                 category,
                 staffOnly,
-                ownerOnly,
+                ownerOnly: ownerOnly || ownerOnlySubcommands.has(option.name),
             });
             continue;
         }
@@ -93,7 +94,7 @@ function buildHelpEntries(command, category) {
                     description: nested.description || option.description || baseDescription,
                     category,
                     staffOnly,
-                    ownerOnly,
+                    ownerOnly: ownerOnly || ownerOnlySubcommands.has(`${option.name} ${nested.name}`),
                 });
             }
         }
@@ -254,7 +255,8 @@ async function createCategoryCommandsMenu(category, client, interaction) {
 
                 categoryCommands.push(
                     ...buildHelpEntries(command, categoryName).filter(entry =>
-                        !guildConfig || isCommandEnabledInConfig(guildConfig, entry.displayName, category)
+                        (!entry.ownerOnly || isBotOwner(interaction?.user?.id))
+                        && (!guildConfig || isCommandEnabledInConfig(guildConfig, entry.displayName, category))
                     ),
                 );
             }
@@ -347,7 +349,8 @@ export async function createAllCommandsMenu(page = 1, client, interaction = null
 
                     allCommands.push(
                         ...buildHelpEntries(command, categoryName).filter(entry =>
-                            !guildConfig || isCommandEnabledInConfig(guildConfig, entry.displayName, category)
+                            (!entry.ownerOnly || isBotOwner(interaction?.user?.id))
+                            && (!guildConfig || isCommandEnabledInConfig(guildConfig, entry.displayName, category))
                         ),
                     );
                 }
