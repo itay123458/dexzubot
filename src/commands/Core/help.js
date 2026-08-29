@@ -73,28 +73,9 @@ export async function createInitialHelpMenu(client) {
     const botName = client?.user?.username || "Bot";
     const embed = createEmbed({
         title: `📖 ${botName} Help`,
-        description: 'Set up your server, pick what to enable, then browse commands below.',
+        description: 'Select a category below.',
         color: 'primary',
         thumbnail: client.user?.displayAvatarURL?.({ size: 1024 }),
-        fields: [
-            {
-                name: '🚀 Getting Started',
-                value: [
-                    '**1. Launch setup** — Run `/configwizard` to configure prefix, mod role, and logs.',
-                    '**2. Enable systems** — Use `/commands dashboard` to turn categories on or off.',                    '**3. Browse commands** — Use the menu below to view categories and commands.',
-                ].join('\n'),
-                inline: false,
-            },
-            {
-                name: 'ℹ️ How It Works',
-                value: [
-                    '• Dashboard commands manage each feature visually',
-                    '• Settings are saved per server',
-                    '• Slash commands and prefixes both work once enabled',
-                ].join('\n'),
-                inline: false,
-            },
-        ],
     });
 
     embed.setFooter({ 
