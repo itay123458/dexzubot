@@ -112,7 +112,9 @@ TitanBot is fully containerized for easy deployment.
    ```bash
    cp .env.example .env
    ```
-   Set at minimum `DISCORD_TOKEN`, `CLIENT_ID`, and `GUILD_ID`. Docker Compose also reads `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `.env` (defaults: `titanbot` / `password` / `titanbot`).
+Set at minimum `DISCORD_TOKEN`, `CLIENT_ID`, `GUILD_ID`, and a strong unique
+`POSTGRES_PASSWORD`. Docker Compose also reads `POSTGRES_USER` and `POSTGRES_DB`
+from `.env` (both default to `titanbot`).
 
 3. **Build and start the containers:**
    ```bash
@@ -122,10 +124,16 @@ TitanBot is fully containerized for easy deployment.
 4. **Check status:**
    ```bash
    docker compose ps
-   curl http://localhost:3000/health
+   curl http://127.0.0.1:3001/health
    ```
 
-This starts the bot and PostgreSQL. The compose file sets `POSTGRES_SSL=false` and `AUTO_MIGRATE=true` for the bundled database. Music uses public Lavalink v4 nodes from `lavalink/nodes.json` by default.
+This starts an isolated `dexzubot` Compose project containing the bot and
+PostgreSQL. The bot listens on Pi/host loopback port `3001` by default (override
+with `BOT_HOST_PORT`) while continuing to use port `3000` inside its container.
+The compose file sets `POSTGRES_SSL=false` and `AUTO_MIGRATE=true` for the bundled
+database. Music uses public Lavalink v4 nodes from `lavalink/nodes.json` by
+default. See [`DEPLOYMENT-PI.md`](DEPLOYMENT-PI.md) for side-by-side Raspberry Pi
+deployment and update instructions.
 
 ### Music
 

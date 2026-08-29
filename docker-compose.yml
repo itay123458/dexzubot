@@ -1,7 +1,8 @@
+name: dexzubot
+
 services:
   bot:
     build: .
-    container_name: titanbot
     restart: unless-stopped
     env_file:
       - .env
@@ -16,7 +17,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB:-titanbot}
       - POSTGRES_USER=${POSTGRES_USER:-titanbot}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       - POSTGRES_SSL=false
       - AUTO_MIGRATE=true
       - LOG_LEVEL=${LOG_LEVEL:-warn}
@@ -24,7 +25,8 @@ services:
       - PORT=3000
       - WEB_HOST=0.0.0.0
     ports:
-      - "${PORT:-3000}:3000"
+      # Keep the container on 3000, but avoid the old bot's host port.
+      - "127.0.0.1:${BOT_HOST_PORT:-3001}:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -41,7 +43,6 @@ services:
     profiles:
       - local-lavalink
     image: ghcr.io/lavalink-devs/lavalink:4
-    container_name: titanbot-lavalink
     restart: unless-stopped
     environment:
       - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
@@ -52,11 +53,10 @@ services:
 
   db:
     image: postgres:15-alpine
-    container_name: titanbot-db
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-titanbot}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       - POSTGRES_DB=${POSTGRES_DB:-titanbot}
     volumes:
       - postgres_data:/var/lib/postgresql/data
