@@ -1,5 +1,6 @@
 export const ENABLED_SLASH_COMMAND_CATEGORIES = new Set([
     'Core',
+    'Economy',
     'Logging',
     'Moderation',
     'Music',
