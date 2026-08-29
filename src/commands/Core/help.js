@@ -72,20 +72,23 @@ export async function createInitialHelpMenu(client) {
 
     const botName = client?.user?.username || "Bot";
     const embed = createEmbed({
-        title: `📖 ${botName} Help`,
-        description: 'Select a category below.',
+        title: `✨ ${botName} Command Center`,
+        description: [
+            '**Find the command you need.**',
+            'Choose a category below to explore the available commands.',
+        ].join('\n'),
         color: 'primary',
         thumbnail: client.user?.displayAvatarURL?.({ size: 1024 }),
     });
 
-    embed.setFooter({ 
-        text: "Made with ❤️" 
+    embed.setFooter({
+        text: `${botName} • Help Menu`,
+        iconURL: client.user?.displayAvatarURL?.(),
     });
-    embed.setTimestamp();
 
     const selectRow = createSelectMenu(
         CATEGORY_SELECT_ID,
-        "Select to view the commands",
+        "Choose a command category…",
         options,
     );
 
