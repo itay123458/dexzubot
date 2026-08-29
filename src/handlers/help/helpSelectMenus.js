@@ -57,6 +57,7 @@ function buildHelpEntries(command, category) {
     const baseName = commandData.name;
     const baseDescription = commandData.description || "No description";
     const options = commandData.options || [];
+    const staffOnly = commandData.default_member_permissions != null;
 
     const entries = [];
 
@@ -69,6 +70,7 @@ function buildHelpEntries(command, category) {
                 displayName: `${baseName} ${option.name}`,
                 description: option.description || baseDescription,
                 category,
+                staffOnly,
             });
             continue;
         }
@@ -83,6 +85,7 @@ function buildHelpEntries(command, category) {
                     displayName: `${baseName} ${option.name} ${nested.name}`,
                     description: nested.description || option.description || baseDescription,
                     category,
+                    staffOnly,
                 });
             }
         }
@@ -94,6 +97,7 @@ function buildHelpEntries(command, category) {
             displayName: baseName,
             description: baseDescription,
             category,
+            staffOnly,
         });
     }
 
@@ -196,9 +200,9 @@ async function createCategoryCommandsMenu(category, client) {
             .map((cmd) => {
                 const registeredCmd = registeredCommands.get(cmd.baseName);
                 if (registeredCmd && registeredCmd.id) {
-                    return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.description}`;
+                    return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.description}${cmd.staffOnly ? ' · 🔒 **Staff only**' : ''}`;
                 }
-                return `\`/${cmd.displayName}\` · ${cmd.description}`;
+                return `\`/${cmd.displayName}\` · ${cmd.description}${cmd.staffOnly ? ' · 🔒 **Staff only**' : ''}`;
             })
             .join("\n");
 
@@ -323,9 +327,9 @@ export async function createAllCommandsMenu(page = 1, client) {
         const commandMentions = pageCommands.map((cmd) => {
             const registeredCmd = registeredCommands.get(cmd.baseName);
             if (registeredCmd && registeredCmd.id) {
-                return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.category}`;
+                return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.category}${cmd.staffOnly ? ' · 🔒 **Staff only**' : ''}`;
             }
-            return `\`/${cmd.displayName}\` · ${cmd.category}`;
+            return `\`/${cmd.displayName}\` · ${cmd.category}${cmd.staffOnly ? ' · 🔒 **Staff only**' : ''}`;
         });
 
         const columnCount = pageCommands.length > 20 ? 3 : (pageCommands.length > 10 ? 2 : 1);
