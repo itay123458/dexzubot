@@ -1,34 +1,60 @@
 import config from '../config/application.js';
 import { logger } from '../utils/logger.js';
+import { GatewayOpcodes } from 'discord.js';
 
-function getActivityText(presence) {
+function getMirroredActivity(presence) {
   const activities = presence?.activities || [];
   const customStatus = activities.find((activity) => activity.type === 4 && activity.state);
 
   if (customStatus) {
-    return customStatus.state;
+    return {
+      text: customStatus.state,
+      emoji: customStatus.emoji ? {
+        name: customStatus.emoji.name,
+        ...(customStatus.emoji.id ? { id: customStatus.emoji.id } : {}),
+        ...(customStatus.emoji.animated != null ? { animated: customStatus.emoji.animated } : {}),
+      } : null,
+    };
   }
 
   const activity = activities.find((item) => item.details || item.name);
-  return activity?.details || activity?.name || null;
+  const text = activity?.details || activity?.name || null;
+  return text ? { text, emoji: null } : null;
 }
 
 export function applyMirroredPresence(client, presence) {
-  const activityText = getActivityText(presence);
+  const mirroredActivity = getMirroredActivity(presence);
 
-  if (!activityText) {
+  if (!mirroredActivity) {
     client.user.setPresence(config.bot.presence);
     return false;
   }
 
+  const activity = {
+    name: 'Custom Status',
+    state: mirroredActivity.text,
+    type: 4,
+  };
+
   client.user.setPresence({
     status: config.bot.presence.status,
-    activities: [{
-      name: 'Custom Status',
-      state: activityText,
-      type: 4,
-    }],
+    activities: [activity],
   });
+
+  if (mirroredActivity.emoji) {
+    client.ws.broadcast({
+      op: GatewayOpcodes.PresenceUpdate,
+      d: {
+        since: null,
+        status: config.bot.presence.status,
+        afk: false,
+        activities: [{
+          ...activity,
+          emoji: mirroredActivity.emoji,
+        }],
+      },
+    });
+  }
 
   return true;
 }
