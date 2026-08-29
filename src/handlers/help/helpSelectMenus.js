@@ -3,7 +3,7 @@ import { createButton, getPaginationRow } from '../../utils/components.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Collection, ActionRowBuilder, MessageFlags } from 'discord.js';
+import { Collection, ActionRowBuilder, MessageFlags, Routes } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
 import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
@@ -121,6 +121,26 @@ function normalizeCommandData(command) {
     };
 }
 
+async function fetchRegisteredCommands(client) {
+    const registeredCommands = new Collection();
+    const applicationId = client?.application?.id || client?.user?.id;
+
+    if (!client?.rest || !applicationId) {
+        return registeredCommands;
+    }
+
+    try {
+        const commands = await client.rest.get(Routes.applicationCommands(applicationId));
+        for (const command of commands) {
+            registeredCommands.set(command.name, command);
+        }
+    } catch (error) {
+        logger.error('Error fetching registered commands:', error);
+    }
+
+    return registeredCommands;
+}
+
 async function createCategoryCommandsMenu(category, client) {
     if (!isSlashCommandCategoryEnabled(category)) {
         return createAllCommandsMenu(1, client);
@@ -162,17 +182,7 @@ async function createCategoryCommandsMenu(category, client) {
 
     categoryCommands.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-    let registeredCommands = new Collection();
-    try {
-        if (client?.application?.commands?.fetch) {
-            const commands = await client.application.commands.fetch();
-            for (const cmd of commands.values()) {
-                registeredCommands.set(cmd.name, cmd);
-            }
-        }
-    } catch (error) {
-        logger.error('Error fetching registered commands:', error);
-    }
+    const registeredCommands = await fetchRegisteredCommands(client);
 
     const embed = createEmbed({
         title: `${icon} ${categoryName} Commands`,
@@ -294,17 +304,7 @@ export async function createAllCommandsMenu(page = 1, client) {
 
     allCommands.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-    let registeredCommands = new Collection();
-    try {
-        if (client?.application?.commands?.fetch) {
-            const commands = await client.application.commands.fetch();
-            for (const cmd of commands.values()) {
-                registeredCommands.set(cmd.name, cmd);
-            }
-        }
-    } catch (error) {
-        logger.error('Error fetching registered commands:', error);
-    }
+    const registeredCommands = await fetchRegisteredCommands(client);
 
     const totalPages = Math.ceil(allCommands.length / commandsPerPage);
     const startIndex = (page - 1) * commandsPerPage;
