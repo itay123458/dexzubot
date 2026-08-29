@@ -1,0 +1,11 @@
+export const ENABLED_SLASH_COMMAND_CATEGORIES = new Set([
+    'Core',
+    'Logging',
+    'Moderation',
+    'Music',
+    'ServerStats',
+]);
+
+export function isSlashCommandCategoryEnabled(category) {
+    return ENABLED_SLASH_COMMAND_CATEGORIES.has(category);
+}

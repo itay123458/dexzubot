@@ -1,0 +1,6 @@
+services:
+  bot:
+    environment:
+      LAVALINK_NODES: >-
+        [{"host":"lavalink","port":2333,"password":"${LAVALINK_PASSWORD:-youshallnotpass}","secure":false,"name":"Local Lavalink"}]
+      LAVALINK_SEARCH_PLATFORM: scsearch

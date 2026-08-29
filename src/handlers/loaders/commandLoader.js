@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { Collection } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import botConfig from '../../config/bot.js';
+import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -132,6 +133,12 @@ function collectCommandPayloads(client) {
         }
 
         const commandName = command.data.name;
+
+        if (!isSlashCommandCategoryEnabled(command.category)) {
+            logger.debug(`Skipping slash command registration for disabled category: ${command.category}/${commandName}`);
+            continue;
+        }
+
         logger.debug(`Processing command for registration: ${commandName}`);
 
         if (registeredNames.has(commandName)) {

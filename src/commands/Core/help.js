@@ -12,6 +12,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,7 +55,7 @@ export async function createInitialHelpMenu(client) {
     const categoryDirs = (
         await fs.readdir(commandsPath, { withFileTypes: true })
     )
-        .filter((dirent) => dirent.isDirectory())
+        .filter((dirent) => dirent.isDirectory() && isSlashCommandCategoryEnabled(dirent.name))
         .map((dirent) => dirent.name)
         .sort();
 

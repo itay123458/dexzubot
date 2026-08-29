@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { Collection, ActionRowBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
+import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -121,6 +122,10 @@ function normalizeCommandData(command) {
 }
 
 async function createCategoryCommandsMenu(category, client) {
+    if (!isSlashCommandCategoryEnabled(category)) {
+        return createAllCommandsMenu(1, client);
+    }
+
     const categoryName = formatCategoryName(category);
     const icon = CATEGORY_ICONS[categoryName] || "🔍";
 
@@ -246,7 +251,7 @@ export async function createAllCommandsMenu(page = 1, client) {
     const categoryDirs = (
         await fs.readdir(commandsPath, { withFileTypes: true })
     )
-        .filter((dirent) => dirent.isDirectory())
+        .filter((dirent) => dirent.isDirectory() && isSlashCommandCategoryEnabled(dirent.name))
         .map((dirent) => dirent.name)
         .sort();
 
