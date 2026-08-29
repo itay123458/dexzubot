@@ -28,6 +28,7 @@ export const botConfig = {
         type: 4,               // Custom
       },
     ],
+    mirrorUserId: "1360170120953204878",
   },
 
   // =========================
