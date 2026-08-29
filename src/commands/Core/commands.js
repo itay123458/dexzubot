@@ -30,8 +30,8 @@ const DASHBOARD_TIMEOUT_MS = 10 * 60 * 1000;
 const SUBCOMMAND_TYPE = 1;
 const SUBCOMMAND_GROUP_TYPE = 2;
 
-function getCommandLines(client, guildConfig) {
-  const lines = [];
+function getCommandGroups(client, guildConfig) {
+  const groups = new Map();
   const accessByCategory = new Map(
     getCommandAccessSnapshot(client, guildConfig).categories.map(category => [category.folder, category]),
   );
@@ -63,25 +63,58 @@ function getCommandLines(client, guildConfig) {
     for (const path of paths) {
       if (!categoryAccess.enabledCommands.includes(path)) continue;
       const ownerSubcommand = command.ownerOnlySubcommands?.includes(path.slice(data.name.length + 1));
-      lines.push(`**/${path}** · ${ownerSubcommand ? 'Owner' : access} · ${command.category}`);
+      const commandAccess = ownerSubcommand ? 'Owner' : access;
+      if (!groups.has(command.category)) {
+        groups.set(command.category, { Everyone: [], Staff: [], Owner: [] });
+      }
+      groups.get(command.category)[commandAccess].push(`• \`/${path}\``);
     }
   }
 
-  return lines;
+  return groups;
 }
 
-function paginateLines(lines, maxLength = 3800) {
-  const pages = [];
-  let page = '';
+function chunkLines(lines, maxLength = 1000) {
+  const chunks = [];
+  let chunk = '';
   for (const line of lines) {
-    if (page && page.length + line.length + 1 > maxLength) {
-      pages.push(page);
-      page = '';
+    if (chunk && chunk.length + line.length + 1 > maxLength) {
+      chunks.push(chunk);
+      chunk = '';
     }
-    page += `${page ? '\n' : ''}${line}`;
+    chunk += `${chunk ? '\n' : ''}${line}`;
   }
-  if (page) pages.push(page);
-  return pages;
+  if (chunk) chunks.push(chunk);
+  return chunks;
+}
+
+function buildCommandListEmbeds(client, guildConfig) {
+  const groups = getCommandGroups(client, guildConfig);
+  const totalCommands = [...groups.values()].reduce(
+    (total, group) => total + group.Everyone.length + group.Staff.length + group.Owner.length,
+    0,
+  );
+  const categoryEntries = [...groups.entries()];
+
+  return categoryEntries.map(([category, group], categoryIndex) => {
+    const fields = [];
+    for (const access of ['Everyone', 'Staff', 'Owner']) {
+      const chunks = chunkLines(group[access]);
+      chunks.forEach((value, index) => fields.push({
+        name: `${access} Commands${chunks.length > 1 ? ` (${index + 1}/${chunks.length})` : ''}`,
+        value,
+        inline: false,
+      }));
+    }
+
+    return createEmbed({
+      title: `${category} Commands`,
+      description: `Category ${categoryIndex + 1} of ${categoryEntries.length}`,
+      fields,
+      color: 'primary',
+      footer: `Page ${categoryIndex + 1}/${categoryEntries.length} - ${totalCommands} enabled command paths`,
+    });
+  });
 }
 
 function buildCategoryChoices(client) {
@@ -230,14 +263,7 @@ export default {
       }
 
       await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
-      const lines = getCommandLines(client, config);
-      const pages = paginateLines(lines);
-      const embeds = pages.map((description, index) => createEmbed({
-        title: `All Bot Commands · ${index + 1}/${pages.length}`,
-        description,
-        color: 'primary',
-        footer: `${lines.length} command paths loaded`,
-      }));
+      const embeds = buildCommandListEmbeds(client, config);
 
       await InteractionHelper.safeEditReply(interaction, { embeds: [embeds[0]] });
       for (const embed of embeds.slice(1)) {
