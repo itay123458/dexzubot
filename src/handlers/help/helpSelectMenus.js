@@ -112,10 +112,50 @@ function buildHelpEntries(command, category) {
     return entries;
 }
 
-function formatAccessLabel(command) {
-    if (command.ownerOnly) return ' · 🔐 **Owner only**';
-    if (command.staffOnly) return ' · 🔒 **Staff only**';
-    return '';
+function commandAccessRank(command) {
+    if (command.ownerOnly) return 2;
+    if (command.staffOnly) return 1;
+    return 0;
+}
+
+function compareHelpEntries(a, b) {
+    return commandAccessRank(a) - commandAccessRank(b)
+        || a.displayName.localeCompare(b.displayName);
+}
+
+function addGroupedCommandFields(embed, commands, formatLine, page = null) {
+    const sections = [
+        { name: 'Commands', commands: commands.filter(command => commandAccessRank(command) === 0) },
+        { name: '🔒 Staff Commands', commands: commands.filter(command => commandAccessRank(command) === 1) },
+        { name: '🔐 Owner Commands', commands: commands.filter(command => commandAccessRank(command) === 2) },
+    ];
+
+    for (const section of sections) {
+        if (section.commands.length === 0) continue;
+
+        const chunks = [];
+        let currentChunk = '';
+        for (const command of section.commands) {
+            const line = formatLine(command);
+            if ((currentChunk + '\n' + line).length > 1000) {
+                if (currentChunk) chunks.push(currentChunk);
+                currentChunk = line;
+            } else {
+                currentChunk += (currentChunk ? '\n' : '') + line;
+            }
+        }
+        if (currentChunk) chunks.push(currentChunk);
+
+        chunks.forEach((chunk, index) => {
+            const suffix = chunks.length > 1 ? ` (Part ${index + 1})` : '';
+            const pageSuffix = page == null ? '' : ` · Page ${page}`;
+            embed.addFields({
+                name: `${section.name}${suffix}${pageSuffix}`,
+                value: chunk,
+                inline: false,
+            });
+        });
+    }
 }
 
 function userCanUseCommand(command, category, interaction, guildConfig) {
@@ -225,7 +265,7 @@ async function createCategoryCommandsMenu(category, client, interaction) {
         );
     }
 
-    categoryCommands.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    categoryCommands.sort(compareHelpEntries);
 
     const registeredCommands = await fetchRegisteredCommands(client);
 
@@ -237,46 +277,13 @@ async function createCategoryCommandsMenu(category, client, interaction) {
     });
 
     if (categoryCommands.length > 0) {
-        const commandMentions = categoryCommands
-            .map((cmd) => {
-                const registeredCmd = registeredCommands.get(cmd.baseName);
-                if (registeredCmd && registeredCmd.id) {
-                    return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.description}${formatAccessLabel(cmd)}`;
-                }
-                return `\`/${cmd.displayName}\` · ${cmd.description}${formatAccessLabel(cmd)}`;
-            })
-            .join("\n");
-
-        const maxLength = 1000;
-        if (commandMentions.length <= maxLength) {
-            embed.addFields({
-                name: "Commands",
-                value: commandMentions,
-                inline: false,
-            });
-        } else {
-            const chunks = [];
-            let currentChunk = "";
-            const lines = commandMentions.split("\n");
-
-            for (const line of lines) {
-                if ((currentChunk + "\n" + line).length > maxLength) {
-                    if (currentChunk) chunks.push(currentChunk);
-                    currentChunk = line;
-                } else {
-                    currentChunk += (currentChunk ? "\n" : "") + line;
-                }
-            }
-            if (currentChunk) chunks.push(currentChunk);
-
-            chunks.forEach((chunk, index) => {
-                embed.addFields({
-                    name: `Commands (Part ${index + 1})`,
-                    value: chunk,
-                    inline: false,
-                });
-            });
-        }
+        addGroupedCommandFields(embed, categoryCommands, cmd => {
+            const registeredCmd = registeredCommands.get(cmd.baseName);
+            const mention = registeredCmd?.id
+                ? `</${cmd.displayName}:${registeredCmd.id}>`
+                : `\`/${cmd.displayName}\``;
+            return `${mention} · ${cmd.description}`;
+        });
     }
 
     embed.setFooter({ text: FOOTER_TEXT });
@@ -352,7 +359,7 @@ export async function createAllCommandsMenu(page = 1, client, interaction = null
         }
     }
 
-    allCommands.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    allCommands.sort(compareHelpEntries);
 
     const registeredCommands = await fetchRegisteredCommands(client);
 
@@ -370,30 +377,13 @@ export async function createAllCommandsMenu(page = 1, client, interaction = null
     embed.setTimestamp();
 
     if (pageCommands.length > 0) {
-        const commandMentions = pageCommands.map((cmd) => {
+        addGroupedCommandFields(embed, pageCommands, cmd => {
             const registeredCmd = registeredCommands.get(cmd.baseName);
-            if (registeredCmd && registeredCmd.id) {
-                return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.category}${formatAccessLabel(cmd)}`;
-            }
-            return `\`/${cmd.displayName}\` · ${cmd.category}${formatAccessLabel(cmd)}`;
-        });
-
-        const columnCount = pageCommands.length > 20 ? 3 : (pageCommands.length > 10 ? 2 : 1);
-        const chunkSize = Math.ceil(commandMentions.length / columnCount);
-
-        for (let i = 0; i < columnCount; i++) {
-            const chunk = commandMentions
-                .slice(i * chunkSize, (i + 1) * chunkSize)
-                .join("\n");
-
-            if (!chunk) continue;
-
-            embed.addFields({
-                name: i === 0 ? `Commands (Page ${page})` : "Commands (cont.)",
-                value: chunk,
-                inline: columnCount > 1,
-            });
-        }
+            const mention = registeredCmd?.id
+                ? `</${cmd.displayName}:${registeredCmd.id}>`
+                : `\`/${cmd.displayName}\``;
+            return `${mention} · ${cmd.category}`;
+        }, page);
     }
 
     const components = [];
