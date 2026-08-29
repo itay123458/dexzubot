@@ -6,6 +6,7 @@ import { reconcileTicketPanels, reconcileVerificationPanels, reconcileReactionRo
 import { reconcileLevelRoles } from "../services/leveling/levelRoleSyncService.js";
 import { initRiffyAfterReady } from "../services/music/riffySetup.js";
 import { initializePresenceMirror } from "../services/presenceMirrorService.js";
+import { initializeYouTubeAlerts } from "../services/youtubeAlertService.js";
 
 export default {
   name: Events.ClientReady,
@@ -14,6 +15,7 @@ export default {
   async execute(client) {
     try {
       await initializePresenceMirror(client);
+      initializeYouTubeAlerts(client);
 
       startupLog(`Ready! Logged in as ${client.user.tag}`);
       startupLog(`Serving ${client.guilds.cache.size} guild(s)`);
