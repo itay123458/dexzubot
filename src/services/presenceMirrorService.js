@@ -1,6 +1,5 @@
 import config from '../config/application.js';
 import { logger } from '../utils/logger.js';
-import { GatewayOpcodes } from 'discord.js';
 
 function getFallbackPresence(client) {
   const guildName = client.guilds?.cache?.first?.()?.name;
@@ -42,9 +41,14 @@ export function applyMirroredPresence(client, presence) {
     return false;
   }
 
+  const unicodeEmoji = mirroredActivity.emoji && !mirroredActivity.emoji.id
+    ? mirroredActivity.emoji.name
+    : null;
   const activity = {
     name: 'Custom Status',
-    state: mirroredActivity.text,
+    state: unicodeEmoji
+      ? `${unicodeEmoji} ${mirroredActivity.text}`
+      : mirroredActivity.text,
     type: 4,
   };
 
@@ -52,21 +56,6 @@ export function applyMirroredPresence(client, presence) {
     status: config.bot.presence.status,
     activities: [activity],
   });
-
-  if (mirroredActivity.emoji) {
-    client.ws.broadcast({
-      op: GatewayOpcodes.PresenceUpdate,
-      d: {
-        since: null,
-        status: config.bot.presence.status,
-        afk: false,
-        activities: [{
-          ...activity,
-          emoji: mirroredActivity.emoji,
-        }],
-      },
-    });
-  }
 
   return true;
 }
