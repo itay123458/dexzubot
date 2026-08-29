@@ -3,7 +3,7 @@ import { createEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-const SUPPORT_SERVER_URL = "https://discord.gg/QnWNz2dKCE";
+const SUPPORT_SERVER_URL = "https://discord.gg/bRWS3gVE74";
 export default {
     data: new SlashCommandBuilder()
     .setName("support")
@@ -20,7 +20,10 @@ export default {
 
       await InteractionHelper.safeReply(interaction, {
         embeds: [
-          createEmbed({ title: "Need Help?", description: "Join our official support server for assistance, report bugs, or suggest features. If you are customizing this bot, remember to change the link in the code!" }),
+          createEmbed({
+            title: "Need Help?",
+            description: "Join the official DexzuBot support server for assistance, bug reports, and suggestions.",
+          }),
         ],
         components: [actionRow],
         flags: MessageFlags.Ephemeral,
