@@ -84,6 +84,15 @@ export default {
               );
             }
 
+            if (command.ownerOnly && !isBotOwner(interaction.user.id)) {
+              throw createError(
+                `Owner-only command denied: ${interaction.commandName}`,
+                ErrorTypes.PERMISSION,
+                'Only a configured DexzuBot owner can use this command.',
+                withTraceContext({ commandName: interaction.commandName }, interactionTraceContext)
+              );
+            }
+
             if (isMaintenanceMode() && !isBotOwner(interaction.user.id)) {
               throw createError(
                 'Bot is in maintenance mode',

@@ -7,6 +7,10 @@ import { Collection, ActionRowBuilder, MessageFlags, Routes } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
 import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
+import { isBotOwner } from '../../config/bot.js';
+import { getGuildConfig } from '../../services/config/guildConfig.js';
+import { isCommandEnabledInConfig } from '../../services/commandAccessService.js';
+import { getCommandDefaultPermissions, memberMeetsCommandPermissions } from '../../utils/permissionGuard.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,6 +62,7 @@ function buildHelpEntries(command, category) {
     const baseDescription = commandData.description || "No description";
     const options = commandData.options || [];
     const staffOnly = commandData.default_member_permissions != null;
+    const ownerOnly = command?.ownerOnly === true;
 
     const entries = [];
 
@@ -71,6 +76,7 @@ function buildHelpEntries(command, category) {
                 description: option.description || baseDescription,
                 category,
                 staffOnly,
+                ownerOnly,
             });
             continue;
         }
@@ -86,6 +92,7 @@ function buildHelpEntries(command, category) {
                     description: nested.description || option.description || baseDescription,
                     category,
                     staffOnly,
+                    ownerOnly,
                 });
             }
         }
@@ -98,10 +105,39 @@ function buildHelpEntries(command, category) {
             description: baseDescription,
             category,
             staffOnly,
+            ownerOnly,
         });
     }
 
     return entries;
+}
+
+function formatAccessLabel(command) {
+    if (command.ownerOnly) return ' · 🔐 **Owner only**';
+    if (command.staffOnly) return ' · 🔒 **Staff only**';
+    return '';
+}
+
+function userCanUseCommand(command, category, interaction, guildConfig) {
+    const userId = interaction?.user?.id;
+    if (userId && isBotOwner(userId)) {
+        return true;
+    }
+
+    if (command?.ownerOnly) {
+        return false;
+    }
+
+    const requiredPermissions = getCommandDefaultPermissions(command?.data);
+    return memberMeetsCommandPermissions(interaction?.member, requiredPermissions, {
+        guildConfig,
+        commandCategory: category,
+    });
+}
+
+async function getHelpGuildConfig(client, interaction) {
+    if (!interaction?.guildId) return null;
+    return getGuildConfig(client, interaction.guildId);
 }
 
 function normalizeCommandData(command) {
@@ -145,15 +181,16 @@ async function fetchRegisteredCommands(client) {
     return registeredCommands;
 }
 
-async function createCategoryCommandsMenu(category, client) {
+async function createCategoryCommandsMenu(category, client, interaction) {
     if (!isSlashCommandCategoryEnabled(category)) {
-        return createAllCommandsMenu(1, client);
+        return createAllCommandsMenu(1, client, interaction);
     }
 
     const categoryName = formatCategoryName(category);
     const icon = CATEGORY_ICONS[categoryName] || "🔍";
 
     const categoryCommands = [];
+    const guildConfig = await getHelpGuildConfig(client, interaction);
 
     try {
         const categoryPath = path.join(__dirname, "../../commands", category);
@@ -167,14 +204,18 @@ async function createCategoryCommandsMenu(category, client) {
             const command = commandModule.default;
             const commandData = normalizeCommandData(command);
 
-            if (commandData) {
+            if (commandData && userCanUseCommand(command, category, interaction, guildConfig)) {
                 if (
                     commandData.name === "help" ||
                     commandData.name === "commandlist"
                 )
                     continue;
 
-                categoryCommands.push(...buildHelpEntries(command, categoryName));
+                categoryCommands.push(
+                    ...buildHelpEntries(command, categoryName).filter(entry =>
+                        !guildConfig || isCommandEnabledInConfig(guildConfig, entry.displayName, category)
+                    ),
+                );
             }
         }
     } catch (error) {
@@ -200,9 +241,9 @@ async function createCategoryCommandsMenu(category, client) {
             .map((cmd) => {
                 const registeredCmd = registeredCommands.get(cmd.baseName);
                 if (registeredCmd && registeredCmd.id) {
-                    return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.description}${cmd.staffOnly ? ' · 🔒 **Staff only**' : ''}`;
+                    return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.description}${formatAccessLabel(cmd)}`;
                 }
-                return `\`/${cmd.displayName}\` · ${cmd.description}${cmd.staffOnly ? ' · 🔒 **Staff only**' : ''}`;
+                return `\`/${cmd.displayName}\` · ${cmd.description}${formatAccessLabel(cmd)}`;
             })
             .join("\n");
 
@@ -257,11 +298,12 @@ async function createCategoryCommandsMenu(category, client) {
     };
 }
 
-export async function createAllCommandsMenu(page = 1, client) {
+export async function createAllCommandsMenu(page = 1, client, interaction = null) {
     const commandsPerPage = 45;
     const allCommands = [];
 
     const commandsPath = path.join(__dirname, "../../commands");
+    const guildConfig = await getHelpGuildConfig(client, interaction);
     const categoryDirs = (
         await fs.readdir(commandsPath, { withFileTypes: true })
     )
@@ -286,7 +328,7 @@ export async function createAllCommandsMenu(page = 1, client) {
                 const command = commandModule.default;
                 const commandData = normalizeCommandData(command);
 
-                if (commandData) {
+                if (commandData && userCanUseCommand(command, category, interaction, guildConfig)) {
                     if (
                         commandData.name === "help" ||
                         commandData.name === "commandlist"
@@ -295,7 +337,11 @@ export async function createAllCommandsMenu(page = 1, client) {
 
                     const categoryName = formatCategoryName(category);
 
-                    allCommands.push(...buildHelpEntries(command, categoryName));
+                    allCommands.push(
+                        ...buildHelpEntries(command, categoryName).filter(entry =>
+                            !guildConfig || isCommandEnabledInConfig(guildConfig, entry.displayName, category)
+                        ),
+                    );
                 }
             }
         } catch (error) {
@@ -327,9 +373,9 @@ export async function createAllCommandsMenu(page = 1, client) {
         const commandMentions = pageCommands.map((cmd) => {
             const registeredCmd = registeredCommands.get(cmd.baseName);
             if (registeredCmd && registeredCmd.id) {
-                return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.category}${cmd.staffOnly ? ' · 🔒 **Staff only**' : ''}`;
+                return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.category}${formatAccessLabel(cmd)}`;
             }
-            return `\`/${cmd.displayName}\` · ${cmd.category}${cmd.staffOnly ? ' · 🔒 **Staff only**' : ''}`;
+            return `\`/${cmd.displayName}\` · ${cmd.category}${formatAccessLabel(cmd)}`;
         });
 
         const columnCount = pageCommands.length > 20 ? 3 : (pageCommands.length > 10 ? 2 : 1);
@@ -391,13 +437,13 @@ export const helpCategorySelectMenu = {
             const selectedCategory = interaction.values[0];
 
             if (selectedCategory === ALL_COMMANDS_ID) {
-                const { embeds, components } = await createAllCommandsMenu(1, client);
+                const { embeds, components } = await createAllCommandsMenu(1, client, interaction);
                 await interaction.editReply({
                     embeds,
                     components,
                 });
             } else {
-                const { embeds, components } = await createCategoryCommandsMenu(selectedCategory, client);
+                const { embeds, components } = await createCategoryCommandsMenu(selectedCategory, client, interaction);
                 await interaction.editReply({
                     embeds,
                     components,

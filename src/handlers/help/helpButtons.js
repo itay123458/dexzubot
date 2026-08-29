@@ -120,7 +120,7 @@ export const helpPaginationButton = {
                     break;
             }
 
-            const { embeds, components } = await createAllCommandsMenu(nextPage, client);
+            const { embeds, components } = await createAllCommandsMenu(nextPage, client, interaction);
             await interaction.editReply({ embeds, components });
         } catch (error) {
             if (error?.code === 40060 || error?.code === 10062) {

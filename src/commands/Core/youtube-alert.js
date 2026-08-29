@@ -12,6 +12,7 @@ import { createEmbed, successEmbed } from '../../utils/embeds.js';
 
 export default {
     slashOnly: true,
+    ownerOnly: true,
     data: new SlashCommandBuilder()
         .setName('youtube-alert')
         .setDescription('Configure automatic Dexzu YouTube upload alerts (owner only)')
