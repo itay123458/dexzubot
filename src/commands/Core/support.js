@@ -22,7 +22,8 @@ export default {
         embeds: [
           createEmbed({
             title: "Need Help?",
-            description: "Join the official DexzuBot support server for assistance, bug reports, and suggestions.",
+            description: "Join the official DexzuBot support server for assistance and bug reports.",
+            thumbnail: interaction.guild?.iconURL({ size: 1024 }),
           }),
         ],
         components: [actionRow],
