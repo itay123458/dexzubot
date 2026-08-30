@@ -11,6 +11,29 @@ const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${YOUTUBE_
 const POLL_INTERVAL_MS = 2 * 60 * 1000;
 const VIDEO_ID_PATTERN = /<yt:videoId>([A-Za-z0-9_-]{11})<\/yt:videoId>/;
 const activePollers = new WeakMap();
+const activeGuildChecks = new WeakMap();
+const MAX_POSTED_VIDEO_HISTORY = 50;
+
+function getHistoryKey(guildId) {
+    return `temp:youtube-alert-history:${guildId}`;
+}
+
+async function getPostedVideoIds(client, guildId) {
+    const history = await client.db?.get?.(getHistoryKey(guildId), { videoIds: [] });
+    return Array.isArray(history?.videoIds) ? history.videoIds : [];
+}
+
+async function rememberPostedVideo(client, guildId, videoId, existingIds = []) {
+    const videoIds = [videoId, ...existingIds.filter(id => id !== videoId)]
+        .slice(0, MAX_POSTED_VIDEO_HISTORY);
+    const saved = await client.db?.set?.(getHistoryKey(guildId), {
+        videoIds,
+        updatedAt: new Date().toISOString(),
+    });
+    if (!saved) {
+        logger.warn('[YOUTUBE_ALERT] Could not persist posted-video history', { guildId, videoId });
+    }
+}
 
 function decodeXml(value = '') {
     return value
@@ -75,19 +98,41 @@ export async function sendYouTubeAlert(channel, video, { test = false } = {}) {
     });
 }
 
-async function checkGuild(client, guild, latestVideo) {
+export async function checkGuild(client, guild, latestVideo) {
+    let checks = activeGuildChecks.get(client);
+    if (!checks) {
+        checks = new Set();
+        activeGuildChecks.set(client, checks);
+    }
+    if (checks.has(guild.id)) return;
+    checks.add(guild.id);
+
+    try {
     const config = await getGuildConfig(client, guild.id);
     const alert = config.youtubeAlert;
     if (!alert?.enabled || !alert.channelId) return;
 
-    if (!alert.lastVideoId) {
-        await patchGuildConfig(client, guild.id, {
-            youtubeAlert: { ...alert, lastVideoId: latestVideo.id },
-        });
+    const postedVideoIds = await getPostedVideoIds(client, guild.id);
+
+    // Seed the durable history without posting when upgrading from the old
+    // single-ID tracker. This prevents the current upload from being repeated
+    // during the first restart after deployment.
+    if (postedVideoIds.length === 0) {
+        await rememberPostedVideo(client, guild.id, latestVideo.id, postedVideoIds);
+        if (alert.lastVideoId !== latestVideo.id) {
+            await patchGuildConfig(client, guild.id, {
+                youtubeAlert: { ...alert, lastVideoId: latestVideo.id },
+            });
+        }
         return;
     }
 
-    if (alert.lastVideoId === latestVideo.id) return;
+    if (alert.lastVideoId === latestVideo.id || postedVideoIds.includes(latestVideo.id)) {
+        if (!postedVideoIds.includes(latestVideo.id)) {
+            await rememberPostedVideo(client, guild.id, latestVideo.id, postedVideoIds);
+        }
+        return;
+    }
 
     const channel = await guild.channels.fetch(alert.channelId).catch(() => null);
     if (!channel?.isTextBased?.()) {
@@ -99,6 +144,7 @@ async function checkGuild(client, guild, latestVideo) {
     }
 
     await sendYouTubeAlert(channel, latestVideo);
+    await rememberPostedVideo(client, guild.id, latestVideo.id, postedVideoIds);
     await patchGuildConfig(client, guild.id, {
         youtubeAlert: {
             ...alert,
@@ -112,6 +158,9 @@ async function checkGuild(client, guild, latestVideo) {
         channelId: channel.id,
         videoId: latestVideo.id,
     });
+    } finally {
+        checks.delete(guild.id);
+    }
 }
 
 export async function pollYouTubeAlerts(client) {

@@ -5,15 +5,25 @@ import { logger } from '../utils/logger.js';
 
 const PROMOTION_PATTERN = /(?:https?:\/\/|www\.|discord(?:app)?\.com\/invite\/|discord\.gg\/|(?:[a-z0-9-]+\.)+(?:com|net|org|gg|io|co|tv|me)\b)/i;
 
-function memberBypassesAutoModeration(message) {
-  return isBotOwner(message.author.id)
-    || message.member?.permissions?.has(PermissionFlagsBits.ManageMessages);
+function memberBypassesAntiPromo(message) {
+  return message.member?.permissions?.has(PermissionFlagsBits.ManageMessages);
 }
 
-function containsPing(message) {
-  return message.mentions.everyone
-    || message.mentions.users.size > 0
-    || message.mentions.roles.size > 0;
+async function containsProtectedPing(message, protectedUserIds) {
+  if (protectedUserIds.length === 0) return false;
+  if (message.mentions.everyone) return true;
+  if (protectedUserIds.some(userId => message.mentions.users.has(userId))) return true;
+  if (message.mentions.roles.size === 0) return false;
+
+  for (const userId of protectedUserIds) {
+    const member = message.guild.members.cache.get(userId)
+      || await message.guild.members.fetch(userId).catch(() => null);
+    if (member && message.mentions.roles.some(role => member.roles.cache.has(role.id))) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function rejectMessage(message, reason) {
@@ -43,17 +53,22 @@ async function rejectMessage(message, reason) {
 }
 
 export async function handleAutoModeration(message, client) {
-  if (memberBypassesAutoModeration(message)) return false;
+  if (isBotOwner(message.author.id)) return false;
 
   const config = await getGuildConfig(client, message.guild.id);
   const settings = config.autoModeration || {};
+  const promotionAllowed = (settings.promoAllowedChannelIds || []).includes(message.channel.id);
 
-  if (settings.antiPromo && PROMOTION_PATTERN.test(message.content)) {
+  if (settings.antiPromo
+    && !promotionAllowed
+    && !memberBypassesAntiPromo(message)
+    && PROMOTION_PATTERN.test(message.content)) {
     return rejectMessage(message, 'promotional links and server invites are not allowed here.');
   }
 
-  if (settings.antiPing && containsPing(message)) {
-    return rejectMessage(message, 'pinging users, roles, `@everyone`, or `@here` is not allowed here.');
+  const protectedUserIds = settings.antiPingUserIds || [];
+  if (settings.antiPing && await containsProtectedPing(message, protectedUserIds)) {
+    return rejectMessage(message, 'that bot owner has anti-ping protection enabled.');
   }
 
   return false;

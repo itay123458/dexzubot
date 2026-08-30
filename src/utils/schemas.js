@@ -80,6 +80,8 @@ export const GuildConfigSchema = z
     autoModeration: z.object({
       antiPromo: z.boolean().default(false),
       antiPing: z.boolean().default(false),
+      promoAllowedChannelIds: z.array(z.string()).default([]),
+      antiPingUserIds: z.array(z.string()).default([]),
     }).optional(),
   })
   .passthrough();

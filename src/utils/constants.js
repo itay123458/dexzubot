@@ -42,6 +42,8 @@ export const DEFAULT_GUILD_CONFIG = {
     autoModeration: {
         antiPromo: false,
         antiPing: false,
+        promoAllowedChannelIds: [],
+        antiPingUserIds: [],
     },
 };
 
