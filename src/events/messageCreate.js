@@ -15,6 +15,7 @@ import { isCommandEnabled } from '../services/commandAccessService.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
+  isCountingAttempt,
   isValidCountingMessage,
   recordCorrectCount,
 } from '../services/countingGameService.js';
@@ -155,6 +156,14 @@ async function handleCountingGame(message, client) {
 
     const content = message.content.trim();
     const validCount = isValidCountingMessage(content, config);
+
+    // Leave ordinary conversation and other non-count messages untouched.
+    // Only messages that can be parsed by the configured counting system are
+    // treated as counting attempts.
+    if (!validCount && !isCountingAttempt(content, config)) {
+      return true;
+    }
+
     const invalidAttempt = !validCount || message.author.id === config.lastUserId;
 
     if (invalidAttempt) {

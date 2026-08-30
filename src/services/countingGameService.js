@@ -278,6 +278,14 @@ export function isValidCountingMessage(content, config) {
   return trimmed === expected;
 }
 
+export function isCountingAttempt(content, config) {
+  const trimmed = content.trim();
+  if (!trimmed) return false;
+
+  const system = COUNTING_SYSTEMS[config.system] ? config.system : 'decimal';
+  return COUNTING_SYSTEMS[system].parse(trimmed) !== null;
+}
+
 export async function activateCountingGame(client, guildId, channelId, system = 'decimal') {
   const normalizedSystem = COUNTING_SYSTEMS[system] ? system : 'decimal';
   const config = normalizeCountingGame({
