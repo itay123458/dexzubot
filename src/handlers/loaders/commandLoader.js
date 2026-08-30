@@ -5,6 +5,8 @@ import { Collection } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import botConfig from '../../config/bot.js';
 import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
+import { isCommandEnabledInConfig } from '../../services/commandAccessService.js';
+import { getGuildConfig } from '../../services/config/guildConfig.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -121,7 +123,38 @@ export async function loadCommands(client) {
     return client.commands;
 }
 
-function collectCommandPayloads(client) {
+function filterCommandOptions(commandJson, category, guildConfig) {
+    if (!guildConfig || !Array.isArray(commandJson.options)) {
+        return commandJson;
+    }
+
+    const originalHasSubcommands = commandJson.options.some(option => option.type === 1 || option.type === 2);
+    const options = commandJson.options.flatMap(option => {
+        if (option.type === 1) {
+            const fullName = `${commandJson.name} ${option.name}`;
+            return isCommandEnabledInConfig(guildConfig, fullName, category) ? [option] : [];
+        }
+
+        if (option.type === 2) {
+            const subcommands = (option.options || []).filter(subcommand => {
+                if (subcommand.type !== 1) return true;
+                const fullName = `${commandJson.name} ${option.name} ${subcommand.name}`;
+                return isCommandEnabledInConfig(guildConfig, fullName, category);
+            });
+            return subcommands.length > 0 ? [{ ...option, options: subcommands }] : [];
+        }
+
+        return [option];
+    });
+
+    if (originalHasSubcommands && options.length === 0) {
+        return null;
+    }
+
+    return { ...commandJson, options };
+}
+
+function collectCommandPayloads(client, guildConfig = null) {
     const commands = [];
     let totalSubcommands = 0;
     const registeredNames = new Set();
@@ -139,6 +172,11 @@ function collectCommandPayloads(client) {
             continue;
         }
 
+        if (guildConfig && !isCommandEnabledInConfig(guildConfig, commandName, command.category)) {
+            logger.debug(`Skipping disabled command registration: ${command.category}/${commandName}`);
+            continue;
+        }
+
         logger.debug(`Processing command for registration: ${commandName}`);
 
         if (registeredNames.has(commandName)) {
@@ -147,7 +185,11 @@ function collectCommandPayloads(client) {
         }
 
         registeredNames.add(commandName);
-        const commandJson = command.data.toJSON();
+        const commandJson = filterCommandOptions(command.data.toJSON(), command.category, guildConfig);
+        if (!commandJson) {
+            logger.debug(`Skipping command with no enabled subcommands: ${command.category}/${commandName}`);
+            continue;
+        }
         commands.push(commandJson);
         totalSubcommands += getSubcommandInfo(commandJson).length;
 
@@ -271,15 +313,21 @@ async function registerGlobalCommands(client, clientId, commands, totalSubcomman
 }
 
 export async function registerCommands(client, options = {}) {
-    const { clientId = null } = options;
+    const { clientId = null, guildConfig = null } = options;
 
     try {
-        const { commands, totalSubcommands } = collectCommandPayloads(client);
+        const { commands, totalSubcommands } = collectCommandPayloads(client, guildConfig);
         await registerGlobalCommands(client, clientId, commands, totalSubcommands);
     } catch (error) {
         logger.error('Error registering commands:', error);
         throw error;
     }
+}
+
+export async function syncGuildCommandRegistration(client, guildId) {
+    const guildConfig = await getGuildConfig(client, guildId);
+    const clientId = client.application?.id || client.config?.bot?.clientId || process.env.CLIENT_ID;
+    await registerCommands(client, { clientId, guildConfig });
 }
 
 export async function reloadCommand(client, commandName) {

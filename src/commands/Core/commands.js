@@ -18,6 +18,7 @@ import {
   getCommandAccessSnapshot,
   isProtectedCommand,
 } from '../../services/commandAccessService.js';
+import { syncGuildCommandRegistration } from '../../handlers/loaders/commandLoader.js';
 import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
 import {
   buildDashboardView,
@@ -348,6 +349,7 @@ export default {
 
       if (isDisable) {
         await disableCategory(client, interaction.guildId, category.key);
+        await syncGuildCommandRegistration(client, interaction.guildId);
         return InteractionHelper.safeEditReply(interaction, {
           embeds: [
             successEmbed(
@@ -359,6 +361,7 @@ export default {
       }
 
       await enableCategory(client, interaction.guildId, category.key);
+      await syncGuildCommandRegistration(client, interaction.guildId);
       return InteractionHelper.safeEditReply(interaction, {
         embeds: [successEmbed('Category Enabled', `**${category.displayName}** commands are now enabled (except individually disabled commands).`)],
       });
@@ -367,12 +370,14 @@ export default {
     const commandName = target.toLowerCase();
     if (isDisable) {
       await disableCommand(client, interaction.guildId, commandName);
+      await syncGuildCommandRegistration(client, interaction.guildId);
       return InteractionHelper.safeEditReply(interaction, {
         embeds: [successEmbed('Command Disabled', `\`/${commandName}\` is now disabled in this server.`)],
       });
     }
 
     await enableCommand(client, interaction.guildId, commandName);
+    await syncGuildCommandRegistration(client, interaction.guildId);
     return InteractionHelper.safeEditReply(interaction, {
       embeds: [successEmbed('Command Enabled', `\`/${commandName}\` is now enabled in this server.`)],
     });

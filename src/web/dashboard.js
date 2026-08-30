@@ -11,6 +11,7 @@ import {
 } from '../services/commandAccessService.js';
 import { getGuildConfig, patchGuildConfig } from '../services/config/guildConfig.js';
 import { fetchLatestYouTubeVideo } from '../services/youtubeAlertService.js';
+import { syncGuildCommandRegistration } from '../handlers/loaders/commandLoader.js';
 import { logger } from '../utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -116,6 +117,7 @@ export function registerDashboard(app, client) {
     }
     if (enabled) await enableCategory(client, guild.id, category);
     else await disableCategory(client, guild.id, category);
+    await syncGuildCommandRegistration(client, guild.id);
     return res.json({ ok: true });
   });
 
