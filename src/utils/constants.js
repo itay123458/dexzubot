@@ -38,7 +38,11 @@ export const DEFAULT_GUILD_CONFIG = {
     },
     verification: {
         enabled: false
-    }
+    },
+    autoModeration: {
+        antiPromo: false,
+        antiPing: false,
+    },
 };
 
 export const INTERACTION_TIMEOUTS = {

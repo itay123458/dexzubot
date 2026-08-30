@@ -76,7 +76,11 @@ export const GuildConfigSchema = z
     logging: LoggingConfigSchema.optional(),
     ticketLogging: TicketLoggingSchema.optional(),
     enableLogging: z.boolean().optional(),
-    verification: VerificationConfigSchema
+    verification: VerificationConfigSchema,
+    autoModeration: z.object({
+      antiPromo: z.boolean().default(false),
+      antiPing: z.boolean().default(false),
+    }).optional(),
   })
   .passthrough();
 

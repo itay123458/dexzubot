@@ -12,6 +12,7 @@ import { getCommandPrefix, getBotMessage, isBotOwner, isCommandCategoryEnabled, 
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
+import { handleAutoModeration } from '../services/autoModerationService.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -30,6 +31,10 @@ export default {
       if (message.author.bot || !message.guild) return;
 
       logger.debug(`Message received from ${message.author.tag}: ${message.content}`);
+
+      if (await handleAutoModeration(message, client)) {
+        return;
+      }
 
       const countingProcessed = await handleCountingGame(message, client);
       if (countingProcessed) {
