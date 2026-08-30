@@ -79,6 +79,19 @@ docker compose stop
 docker compose start
 ```
 
+## Private control dashboard
+
+The bot serves its control dashboard at `http://127.0.0.1:3001/dashboard/` on
+the Pi. Keep this host port loopback-only. Use Tailscale Serve (not Funnel) to
+provide private HTTPS access to approved tailnet users:
+
+```bash
+sudo tailscale serve --bg http://127.0.0.1:3001
+```
+
+Do not expose port 3001 on the LAN or public internet. Funnel is intentionally
+not used because it makes the site publicly reachable.
+
 `docker compose down` removes containers and the private network but preserves the
 database volume. Do not add `--volumes` unless permanent bot data should be deleted.
 
