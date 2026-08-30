@@ -23,7 +23,7 @@ export const commandAliases = {
     'ping': 'ping',
     'help': 'help',
     'h': 'help',
-    'info': 'help',
+    'info': 'info',
 
     'ban': 'ban',
     'kick': 'kick',
