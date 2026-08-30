@@ -12,7 +12,7 @@ export default {
     .setDMPermission(false)
     .addSubcommand(command => command
       .setName('enable')
-      .setDescription('Protect yourself from direct, role, everyone, and here pings'))
+      .setDescription('Protect yourself from direct user mentions'))
     .addSubcommand(command => command
       .setName('disable')
       .setDescription('Remove anti-ping protection from yourself'))
@@ -53,7 +53,7 @@ export default {
       embeds: [successEmbed(
         `Anti Ping ${enabled ? 'Enabled' : 'Disabled'}`,
         enabled
-          ? 'You are now protected from direct, role, `@everyone`, and `@here` pings.'
+          ? 'You are now protected from direct `@user` mentions. Role, `@everyone`, and `@here` pings are not blocked.'
           : 'Anti-ping protection has been removed from you.',
       )],
     });

@@ -9,21 +9,8 @@ function memberBypassesAntiPromo(message) {
   return message.member?.permissions?.has(PermissionFlagsBits.ManageMessages);
 }
 
-async function containsProtectedPing(message, protectedUserIds) {
-  if (protectedUserIds.length === 0) return false;
-  if (message.mentions.everyone) return true;
-  if (protectedUserIds.some(userId => message.mentions.users.has(userId))) return true;
-  if (message.mentions.roles.size === 0) return false;
-
-  for (const userId of protectedUserIds) {
-    const member = message.guild.members.cache.get(userId)
-      || await message.guild.members.fetch(userId).catch(() => null);
-    if (member && message.mentions.roles.some(role => member.roles.cache.has(role.id))) {
-      return true;
-    }
-  }
-
-  return false;
+function containsProtectedPing(message, protectedUserIds) {
+  return protectedUserIds.some(userId => message.mentions.users.has(userId));
 }
 
 async function rejectMessage(message, reason) {
@@ -67,7 +54,7 @@ export async function handleAutoModeration(message, client) {
   }
 
   const protectedUserIds = settings.antiPingUserIds || [];
-  if (settings.antiPing && await containsProtectedPing(message, protectedUserIds)) {
+  if (settings.antiPing && containsProtectedPing(message, protectedUserIds)) {
     return rejectMessage(message, 'that bot owner has anti-ping protection enabled.');
   }
 
