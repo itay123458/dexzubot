@@ -7,6 +7,7 @@ import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getServerCounters, updateCounter } from '../services/serverstatsService.js';
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
+import { createWelcomeCard } from '../services/welcomeCardService.js';
 
 export default {
   name: Events.GuildMemberAdd,
@@ -45,6 +46,10 @@ export default {
                     ? formatWelcomeMessage(welcomeConfig.welcomeEmbed.footer, formatData)
                     : `Welcome to ${guild.name}!`;
 
+                const card = welcomeConfig.cardEnabled ? await createWelcomeCard(member, 'welcome') : null;
+                if (card) {
+                    await channel.send({ content: welcomeMessage, files: [card], allowedMentions: { users: [user.id] } });
+                } else {
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
 
                 if (!canEmbed) {
@@ -74,6 +79,7 @@ export default {
                         content: messageContent,
                         embeds: [embed] 
                     });
+                }
                 }
             }
         }

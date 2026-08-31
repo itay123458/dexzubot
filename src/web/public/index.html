@@ -6,6 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>DexzuBot Control</title>
   <link rel="stylesheet" href="/dashboard/style.css">
+  <link rel="stylesheet" href="/dashboard/dashboard-controls.css">
 </head>
 <body>
   <div class="shell">
@@ -35,6 +36,33 @@
           <p>Protect bot owners from direct <code>@user</code> mentions.</p>
           <div id="ping-owners" class="check-list"></div>
           <button id="save-ping">Save anti-ping</button>
+        </article>
+
+        <article class="card wide">
+          <div class="card-head"><div><p class="eyebrow">GREETINGS</p><h2>Welcome &amp; goodbye cards</h2></div><label class="switch"><input id="greeting-cards" type="checkbox"><span></span></label></div>
+          <p>Create personalized image cards with each member's avatar.</p>
+          <label class="check-row"><input id="welcome-enabled" type="checkbox"><span>Enable welcome cards</span></label>
+          <select id="welcome-channel"></select>
+          <input id="welcome-message" type="text" maxlength="1000" placeholder="Welcome {user} to {server}!">
+          <label class="check-row"><input id="goodbye-enabled" type="checkbox"><span>Enable goodbye cards</span></label>
+          <select id="goodbye-channel"></select>
+          <input id="goodbye-message" type="text" maxlength="1000" placeholder="Goodbye {user.tag}">
+          <button id="save-greetings">Save greeting settings</button>
+        </article>
+
+        <article class="card wide">
+          <div class="card-head"><div><p class="eyebrow">COMMUNITY</p><h2>Leveling</h2></div><label class="switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
+          <p>Control XP rewards and level-up announcements.</p>
+          <label class="check-row"><input id="leveling-announce" type="checkbox"><span>Send level-up announcements</span></label>
+          <select id="leveling-channel"></select>
+          <div class="level-fields">
+            <label>Minimum XP<input id="leveling-xp-min" type="number" min="1" max="1000"></label>
+            <label>Maximum XP<input id="leveling-xp-max" type="number" min="1" max="1000"></label>
+            <label>Cooldown (seconds)<input id="leveling-cooldown" type="number" min="0" max="3600"></label>
+            <label>XP multiplier<input id="leveling-multiplier" type="number" min="0.1" max="10" step="0.1"></label>
+          </div>
+          <button id="save-leveling">Save leveling settings</button>
+          <div class="danger-zone"><strong>Reset all XP</strong><p>This permanently resets every member to level 0.</p><button id="reset-leveling" class="danger-button">Reset everyone</button></div>
         </article>
 
         <article class="card wide">

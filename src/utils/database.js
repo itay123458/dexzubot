@@ -372,6 +372,7 @@ function normalizeWelcomeConfig(raw = {}) {
         welcomeEmbed,
         welcomePing: Boolean(base.welcomePing),
         welcomeImage: base.welcomeImage ?? null,
+        cardEnabled: Boolean(base.cardEnabled),
         goodbyeEnabled: Boolean(base.goodbyeEnabled),
         goodbyeChannelId,
         leaveMessage,

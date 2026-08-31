@@ -7,6 +7,7 @@ import { getServerCounters, updateCounter } from '../services/serverstatsService
 import { getGuildBirthdays, deleteBirthday } from '../utils/database.js';
 import { deleteUserLevelData } from '../services/leveling/leveling.js';
 import { logger } from '../utils/logger.js';
+import { createWelcomeCard } from '../services/welcomeCardService.js';
 
 export default {
   name: Events.GuildMemberRemove,
@@ -42,6 +43,10 @@ export default {
                     ? formatWelcomeMessage(welcomeConfig.leaveEmbed.footer, formatData)
                     : `Goodbye from ${guild.name}!`;
 
+                const card = welcomeConfig.cardEnabled ? await createWelcomeCard(member, 'goodbye') : null;
+                if (card) {
+                    await channel.send({ content: goodbyeMessage, files: [card], allowedMentions: { users: [user.id] } });
+                } else {
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
 
                 if (!canEmbed) {
@@ -73,6 +78,7 @@ export default {
                         allowedMentions: welcomeConfig?.goodbyePing ? { users: [user.id] } : { parse: [] },
                         embeds: [embed]
                     });
+                }
                 }
                 }
             }

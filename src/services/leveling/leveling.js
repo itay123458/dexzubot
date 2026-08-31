@@ -5,7 +5,7 @@ import { logger } from '../../utils/logger.js';
 import { getGuildConfig, setGuildConfig } from '../config/guildConfig.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { addXp } from './xpSystem.js';
-import { getUserLevelKey } from '../../utils/database/keys.js';
+import { getUserLevelKey, getUserLevelPrefix } from '../../utils/database/keys.js';
 
 const BASE_XP = 100;
 const XP_MULTIPLIER = 1.5;
@@ -457,4 +457,17 @@ export async function deleteUserLevelData(client, guildId, userId) {
     if (error instanceof TitanBotError) throw error;
     logger.warn(`Could not delete level data for user ${userId} in guild ${guildId}`);
   }
+}
+
+export async function resetGuildLevelData(client, guildId) {
+  const prefixes = [getUserLevelPrefix(guildId), `${guildId}:leveling:users:`];
+  const keys = new Set();
+  for (const prefix of prefixes) {
+    let listed = await client.db.list(prefix);
+    if (!Array.isArray(listed)) listed = listed && typeof listed === 'object' ? Object.keys(listed) : [];
+    listed.filter(key => key.startsWith(prefix)).forEach(key => keys.add(key));
+  }
+  for (const key of keys) await client.db.delete(key);
+  logger.info(`Reset leveling data for ${keys.size} users in guild ${guildId}`);
+  return keys.size;
 }

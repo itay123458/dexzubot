@@ -14,6 +14,8 @@ import { fetchLatestYouTubeVideo } from '../services/youtubeAlertService.js';
 import { syncGuildCommandRegistration } from '../handlers/loaders/commandLoader.js';
 import { logger } from '../utils/logger.js';
 import { EVENT_TYPES } from '../services/loggingService.js';
+import { resetGuildLevelData } from '../services/leveling/leveling.js';
+import { getWelcomeConfig, saveWelcomeConfig } from '../utils/database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, 'public');
@@ -72,7 +74,7 @@ function sameOrigin(req) {
   }
 }
 
-function publicConfigState(client, guild, config) {
+function publicConfigState(client, guild, config, welcomeConfig) {
   const snapshot = getCommandAccessSnapshot(client, config);
   const channels = guild.channels.cache
     .filter(channel => channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement)
@@ -134,6 +136,24 @@ function publicConfigState(client, guild, config) {
       channelId: config.logging?.channels?.audit || config.logging?.channelId || config.logChannelId || null,
       events: loggingEvents,
     },
+    leveling: {
+      enabled: config.leveling?.enabled === true,
+      announceLevelUp: config.leveling?.announceLevelUp !== false,
+      channelId: config.leveling?.levelUpChannel || null,
+      xpMin: config.leveling?.xpRange?.min || config.leveling?.xpPerMessage?.min || 15,
+      xpMax: config.leveling?.xpRange?.max || config.leveling?.xpPerMessage?.max || 25,
+      cooldown: config.leveling?.xpCooldown ?? 20,
+      multiplier: config.leveling?.xpMultiplier ?? 1,
+    },
+    greetings: {
+      cardEnabled: welcomeConfig.cardEnabled === true,
+      welcomeEnabled: welcomeConfig.enabled === true,
+      welcomeChannelId: welcomeConfig.channelId || null,
+      welcomeMessage: welcomeConfig.welcomeMessage || 'Welcome {user} to {server}!',
+      goodbyeEnabled: welcomeConfig.goodbyeEnabled === true,
+      goodbyeChannelId: welcomeConfig.goodbyeChannelId || null,
+      goodbyeMessage: welcomeConfig.leaveMessage || '{user.tag} has left the server.',
+    },
   };
 }
 
@@ -155,8 +175,11 @@ export function registerDashboard(app, client) {
   router.get('/state', async (req, res) => {
     const guild = getDashboardGuild(client);
     if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
-    const config = await getGuildConfig(client, guild.id);
-    return res.json(publicConfigState(client, guild, config));
+    const [config, welcomeConfig] = await Promise.all([
+      getGuildConfig(client, guild.id),
+      getWelcomeConfig(client, guild.id),
+    ]);
+    return res.json(publicConfigState(client, guild, config, welcomeConfig));
   });
 
   router.post('/category', async (req, res) => {
@@ -246,6 +269,59 @@ export function registerDashboard(app, client) {
         enabledEvents,
       },
     });
+    return res.json({ ok: true });
+  });
+
+  router.post('/leveling', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const { enabled, announceLevelUp, channelId, xpMin, xpMax, cooldown, multiplier } = req.body || {};
+    const channel = guild?.channels.cache.get(channelId);
+    const min = Number(xpMin);
+    const max = Number(xpMax);
+    const cooldownSeconds = Number(cooldown);
+    const xpMultiplier = Number(multiplier);
+    if (!guild || typeof enabled !== 'boolean' || typeof announceLevelUp !== 'boolean' ||
+      !Number.isInteger(min) || !Number.isInteger(max) || min < 1 || max > 1000 || min > max ||
+      !Number.isInteger(cooldownSeconds) || cooldownSeconds < 0 || cooldownSeconds > 3600 ||
+      !Number.isFinite(xpMultiplier) || xpMultiplier < 0.1 || xpMultiplier > 10 ||
+      (enabled && announceLevelUp && (!channel || !channel.isTextBased?.()))) {
+      return res.status(400).json({ error: 'Choose valid leveling settings and an announcement channel.' });
+    }
+    const config = await getGuildConfig(client, guild.id);
+    await patchGuildConfig(client, guild.id, { leveling: {
+      ...(config.leveling || {}), enabled, announceLevelUp, levelUpChannel: channelId || null,
+      xpRange: { min, max }, xpPerMessage: { min, max }, xpCooldown: cooldownSeconds, xpMultiplier,
+    } });
+    return res.json({ ok: true });
+  });
+
+  router.post('/leveling/reset', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    if (!guild || req.body?.confirm !== guild.name) {
+      return res.status(400).json({ error: 'Type the exact server name to confirm the XP reset.' });
+    }
+    const resetCount = await resetGuildLevelData(client, guild.id);
+    return res.json({ ok: true, resetCount });
+  });
+
+  router.post('/greetings', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const { cardEnabled, welcomeEnabled, welcomeChannelId, welcomeMessage, goodbyeEnabled, goodbyeChannelId, goodbyeMessage } = req.body || {};
+    const welcomeChannel = guild?.channels.cache.get(welcomeChannelId);
+    const goodbyeChannel = guild?.channels.cache.get(goodbyeChannelId);
+    if (!guild || typeof cardEnabled !== 'boolean' || typeof welcomeEnabled !== 'boolean' || typeof goodbyeEnabled !== 'boolean' ||
+      typeof welcomeMessage !== 'string' || !welcomeMessage.trim() || welcomeMessage.length > 1000 ||
+      typeof goodbyeMessage !== 'string' || !goodbyeMessage.trim() || goodbyeMessage.length > 1000 ||
+      (welcomeEnabled && !welcomeChannel?.isTextBased?.()) || (goodbyeEnabled && !goodbyeChannel?.isTextBased?.())) {
+      return res.status(400).json({ error: 'Choose valid welcome/goodbye channels and messages.' });
+    }
+    const current = await getWelcomeConfig(client, guild.id);
+    const saved = await saveWelcomeConfig(client, guild.id, {
+      ...current, cardEnabled, enabled: welcomeEnabled, channelId: welcomeChannelId || null,
+      welcomeMessage: welcomeMessage.trim(), goodbyeEnabled, goodbyeChannelId: goodbyeChannelId || null,
+      leaveMessage: goodbyeMessage.trim(),
+    });
+    if (!saved) return res.status(500).json({ error: 'Failed to save welcome settings.' });
     return res.json({ ok: true });
   });
 
