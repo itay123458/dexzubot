@@ -29,6 +29,7 @@ export const botConfig = {
       },
     ],
     mirrorUserId: "1360170120953204878",
+    mirrorGuildId: "1533088766821007390",
   },
 
   // =========================

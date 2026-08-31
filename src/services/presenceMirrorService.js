@@ -2,7 +2,10 @@ import config from '../config/application.js';
 import { logger } from '../utils/logger.js';
 
 function getFallbackPresence(client) {
-  const guildName = client.guilds?.cache?.first?.()?.name;
+  const mirrorGuildId = config.bot.presence.mirrorGuildId;
+  const guildName = mirrorGuildId
+    ? client.guilds?.cache?.get?.(mirrorGuildId)?.name
+    : client.guilds?.cache?.first?.()?.name;
   return {
     status: config.bot.presence.status,
     activities: [{
@@ -62,8 +65,13 @@ export function applyMirroredPresence(client, presence) {
 
 export async function initializePresenceMirror(client) {
   const mirrorUserId = config.bot.presence.mirrorUserId;
+  const mirrorGuildId = config.bot.presence.mirrorGuildId;
+  const mirrorGuild = mirrorGuildId ? client.guilds.cache.get(mirrorGuildId) : null;
+  const guilds = mirrorGuild
+    ? [mirrorGuild]
+    : (mirrorGuildId ? [] : [...client.guilds.cache.values()]);
 
-  for (const guild of client.guilds.cache.values()) {
+  for (const guild of guilds) {
     try {
       const member = await guild.members.fetch({ user: mirrorUserId, withPresences: true });
       if (applyMirroredPresence(client, member.presence)) {
@@ -73,6 +81,10 @@ export async function initializePresenceMirror(client) {
     } catch (error) {
       logger.debug(`Could not fetch mirrored presence in guild ${guild.id}: ${error.message}`);
     }
+  }
+
+  if (mirrorGuildId && !mirrorGuild) {
+    logger.warn(`Presence mirror server ${mirrorGuildId} is not available to the bot.`);
   }
 
   applyMirroredPresence(client, null);
