@@ -9,81 +9,114 @@
   <link rel="stylesheet" href="/dashboard/dashboard-controls.css">
 </head>
 <body>
-  <div class="shell">
-    <header class="hero">
-      <div class="identity"><img id="bot-avatar" alt="DexzuBot avatar"><div><p class="eyebrow">PRIVATE CONTROL PANEL</p><h1>DexzuBot</h1><p id="server-name">Connecting…</p></div></div>
-      <div id="online-pill" class="pill">Checking status</div>
-    </header>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img id="bot-avatar" alt="DexzuBot avatar">
+        <div><span>CONTROL PANEL</span><strong>DexzuBot</strong></div>
+      </div>
 
-    <main>
-      <div class="section-heading"><div><p class="eyebrow">OVERVIEW</p><h2>Server at a glance</h2></div><p>Live information from your Discord server.</p></div>
-      <section class="metrics" id="metrics"></section>
+      <nav class="dashboard-nav" aria-label="Dashboard sections">
+        <button class="nav-item active" data-page="overview"><span class="nav-icon">⌂</span><span>Overview</span></button>
+        <button class="nav-item" data-page="safety"><span class="nav-icon">◇</span><span>Safety</span></button>
+        <button class="nav-item" data-page="greetings"><span class="nav-icon">✦</span><span>Greetings</span></button>
+        <button class="nav-item" data-page="leveling"><span class="nav-icon">↗</span><span>Leveling</span></button>
+        <button class="nav-item" data-page="logging"><span class="nav-icon">≡</span><span>Logging</span></button>
+        <button class="nav-item" data-page="youtube"><span class="nav-icon">▶</span><span>YouTube</span></button>
+      </nav>
 
-      <div class="section-heading settings-heading"><div><p class="eyebrow">CONFIGURATION</p><h2>Bot settings</h2></div><p>Changes are saved securely and persist after restarts.</p></div>
-      <section class="grid">
-        <article class="card wide">
-          <div class="card-head"><div><p class="eyebrow">ACCESS</p><h2>Command categories</h2></div><p>Changes apply immediately.</p></div>
-          <div id="categories" class="toggle-grid"></div>
-        </article>
+      <div class="sidebar-footer">
+        <div id="online-pill" class="pill">Checking status</div>
+        <small>Private dashboard</small>
+      </div>
+    </aside>
 
-        <article class="card">
-          <div class="card-head"><div><p class="eyebrow">SAFETY</p><h2>Anti promo</h2></div><label class="switch"><input id="promo-enabled" type="checkbox"><span></span></label></div>
-          <p>Promotion is allowed only in the selected channels.</p>
-          <div id="promo-channels" class="check-list"></div>
-          <button id="save-promo">Save anti-promo</button>
-        </article>
+    <div class="workspace">
+      <header class="topbar">
+        <div><p class="eyebrow">DEXZUBOT CONTROL</p><h1 id="page-title">Overview</h1><p id="page-description">Server health and command access.</p></div>
+        <div class="server-chip"><span>Managing</span><strong id="server-name">Connecting…</strong></div>
+      </header>
 
-        <article class="card">
-          <div class="card-head"><div><p class="eyebrow">SAFETY</p><h2>Anti ping</h2></div></div>
-          <p>Protect bot owners from direct <code>@user</code> mentions.</p>
-          <div id="ping-owners" class="check-list"></div>
-          <button id="save-ping">Save anti-ping</button>
-        </article>
+      <main>
+        <section class="page active" data-panel="overview">
+          <section class="metrics" id="metrics"></section>
+          <article class="card">
+            <div class="card-head"><div><p class="eyebrow">ACCESS</p><h2>Command categories</h2><p>Choose which command groups appear in your server.</p></div><span class="status-note">Applies instantly</span></div>
+            <div id="categories" class="toggle-grid"></div>
+          </article>
+        </section>
 
-        <article class="card wide">
-          <div class="card-head"><div><p class="eyebrow">GREETINGS</p><h2>Welcome &amp; goodbye cards</h2></div><label class="switch"><input id="greeting-cards" type="checkbox"><span></span></label></div>
-          <p>Create personalized image cards with each member's avatar.</p>
-          <label class="check-row"><input id="welcome-enabled" type="checkbox"><span>Enable welcome cards</span></label>
-          <select id="welcome-channel"></select>
-          <input id="welcome-message" type="text" maxlength="1000" placeholder="Welcome {user} to {server}!">
-          <label class="check-row"><input id="goodbye-enabled" type="checkbox"><span>Enable goodbye cards</span></label>
-          <select id="goodbye-channel"></select>
-          <input id="goodbye-message" type="text" maxlength="1000" placeholder="Goodbye {user.tag}">
-          <button id="save-greetings">Save greeting settings</button>
-        </article>
-
-        <article class="card wide">
-          <div class="card-head"><div><p class="eyebrow">COMMUNITY</p><h2>Leveling</h2></div><label class="switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
-          <p>Control XP rewards and level-up announcements.</p>
-          <p class="message-preview"><span>Permanent message</span><code>{user} has leveled up to level {level}!</code></p>
-          <label class="check-row"><input id="leveling-announce" type="checkbox"><span>Send level-up announcements</span></label>
-          <select id="leveling-channel"></select>
-          <div class="level-fields">
-            <label>Minimum XP<input id="leveling-xp-min" type="number" min="1" max="1000"></label>
-            <label>Maximum XP<input id="leveling-xp-max" type="number" min="1" max="1000"></label>
-            <label>Cooldown (seconds)<input id="leveling-cooldown" type="number" min="0" max="3600"></label>
-            <label>XP multiplier<input id="leveling-multiplier" type="number" min="0.1" max="10" step="0.1"></label>
+        <section class="page" data-panel="safety">
+          <div class="page-intro"><div><p class="eyebrow">PROTECTION</p><h2>Safety controls</h2></div><p>Control promotions and protect selected users from direct mentions.</p></div>
+          <div class="split-grid">
+            <article class="card">
+              <div class="card-head"><div><p class="eyebrow">ANTI PROMO</p><h2>Promotion filter</h2><p>Promotion is allowed only in selected channels.</p></div><label class="switch"><input id="promo-enabled" type="checkbox"><span></span></label></div>
+              <div id="promo-channels" class="check-list"></div>
+              <button id="save-promo">Save anti-promo</button>
+            </article>
+            <article class="card">
+              <div class="card-head"><div><p class="eyebrow">ANTI PING</p><h2>Mention protection</h2><p>Protect bot owners from direct <code>@user</code> mentions.</p></div></div>
+              <div id="ping-owners" class="check-list"></div>
+              <button id="save-ping">Save anti-ping</button>
+            </article>
           </div>
-          <button id="save-leveling">Save leveling settings</button>
-          <div class="danger-zone"><strong>Reset all XP</strong><p>This permanently resets every member to level 0.</p><button id="reset-leveling" class="danger-button">Reset everyone</button></div>
-        </article>
+        </section>
 
-        <article class="card wide">
-          <div class="card-head"><div><p class="eyebrow">AUDIT LOG</p><h2>Server logging</h2></div><label class="switch"><input id="logging-enabled" type="checkbox"><span></span></label></div>
-          <p>Send selected server events to one private log channel. Logging can only be configured here.</p>
-          <select id="logging-channel"></select>
-          <div id="logging-events" class="check-list event-grid"></div>
-          <button id="save-logging">Save logging settings</button>
-        </article>
+        <section class="page" data-panel="greetings">
+          <div class="page-intro"><div><p class="eyebrow">MEMBER EXPERIENCE</p><h2>Welcome &amp; goodbye</h2></div><p>Personalized cards and messages for members joining or leaving.</p></div>
+          <article class="card form-card">
+            <div class="card-head"><div><h2>Greeting cards</h2><p>Use the custom Dexzu background with each member's avatar.</p></div><label class="switch"><input id="greeting-cards" type="checkbox"><span></span></label></div>
+            <div class="form-section">
+              <label class="check-row"><input id="welcome-enabled" type="checkbox"><span>Enable welcome cards</span></label>
+              <select id="welcome-channel"></select>
+              <input id="welcome-message" type="text" maxlength="1000" placeholder="Welcome {user} to {server}!">
+            </div>
+            <div class="form-section">
+              <label class="check-row"><input id="goodbye-enabled" type="checkbox"><span>Enable goodbye cards</span></label>
+              <select id="goodbye-channel"></select>
+              <input id="goodbye-message" type="text" maxlength="1000" placeholder="Goodbye {user.tag}">
+            </div>
+            <button id="save-greetings">Save greeting settings</button>
+          </article>
+        </section>
 
-        <article class="card wide">
-          <div class="card-head"><div><p class="eyebrow">AUTOMATION</p><h2>YouTube alerts</h2></div><label class="switch"><input id="youtube-enabled" type="checkbox"><span></span></label></div>
-          <p>Post new DexzuGtag uploads once, with persistent duplicate protection.</p>
-          <select id="youtube-channel"></select>
-          <button id="save-youtube">Save YouTube alerts</button>
-        </article>
-      </section>
-    </main>
+        <section class="page" data-panel="leveling">
+          <div class="page-intro"><div><p class="eyebrow">COMMUNITY</p><h2>Leveling system</h2></div><label class="switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
+          <article class="card form-card">
+            <p class="message-preview"><span>Permanent message</span><code>{user} has leveled up to level {level}!</code></p>
+            <label class="check-row"><input id="leveling-announce" type="checkbox"><span>Send level-up announcements</span></label>
+            <select id="leveling-channel"></select>
+            <div class="level-fields">
+              <label>Minimum XP<input id="leveling-xp-min" type="number" min="1" max="1000"></label>
+              <label>Maximum XP<input id="leveling-xp-max" type="number" min="1" max="1000"></label>
+              <label>Cooldown<input id="leveling-cooldown" type="number" min="0" max="3600"><small>seconds</small></label>
+              <label>Multiplier<input id="leveling-multiplier" type="number" min="0.1" max="10" step="0.1"><small>XP rate</small></label>
+            </div>
+            <button id="save-leveling">Save leveling settings</button>
+            <div class="danger-zone"><div><strong>Reset all XP</strong><p>Permanently return every member to level 0.</p></div><button id="reset-leveling" class="danger-button">Reset everyone</button></div>
+          </article>
+        </section>
+
+        <section class="page" data-panel="logging">
+          <div class="page-intro"><div><p class="eyebrow">AUDIT LOG</p><h2>Server logging</h2></div><label class="switch"><input id="logging-enabled" type="checkbox"><span></span></label></div>
+          <article class="card form-card">
+            <p>Select one private destination and choose which server events to record.</p>
+            <select id="logging-channel"></select>
+            <div id="logging-events" class="check-list event-grid"></div>
+            <button id="save-logging">Save logging settings</button>
+          </article>
+        </section>
+
+        <section class="page" data-panel="youtube">
+          <div class="page-intro"><div><p class="eyebrow">AUTOMATION</p><h2>YouTube alerts</h2></div><label class="switch"><input id="youtube-enabled" type="checkbox"><span></span></label></div>
+          <article class="card compact-card">
+            <p>Post new DexzuGtag uploads once, with persistent duplicate protection.</p>
+            <select id="youtube-channel"></select>
+            <button id="save-youtube">Save YouTube alerts</button>
+          </article>
+        </section>
+      </main>
+    </div>
   </div>
   <div id="toast" role="status"></div>
   <script src="/dashboard/app.js" defer></script>

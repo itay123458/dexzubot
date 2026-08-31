@@ -16,6 +16,29 @@ const post = async (path, body) => {
 };
 const checkbox = (id, label, checked, group) => `<label class="check-row"><input type="checkbox" data-group="${group}" value="${id}" ${checked ? 'checked' : ''}><span>${label}</span></label>`;
 const channelOptions = (channels, selected, placeholder) => `<option value="">${placeholder}</option>${channels.map(channel => `<option value="${channel.id}" ${channel.id === selected ? 'selected' : ''}>#${channel.name}</option>`).join('')}`;
+const pageDetails = {
+  overview: ['Overview', 'Server health and command access.'],
+  safety: ['Safety', 'Promotion filters and mention protection.'],
+  greetings: ['Greetings', 'Welcome and goodbye member experiences.'],
+  leveling: ['Leveling', 'XP rewards, announcements, and progression.'],
+  logging: ['Logging', 'Choose which server events are recorded.'],
+  youtube: ['YouTube', 'Automatic upload alerts for DexzuGtag.'],
+};
+
+function showPage(pageName) {
+  const selected = pageDetails[pageName] ? pageName : 'overview';
+  document.querySelectorAll('[data-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === selected));
+  document.querySelectorAll('[data-page]').forEach(button => button.classList.toggle('active', button.dataset.page === selected));
+  $('page-title').textContent = pageDetails[selected][0];
+  $('page-description').textContent = pageDetails[selected][1];
+  history.replaceState(null, '', `#${selected}`);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.querySelectorAll('[data-page]').forEach(button => {
+  button.onclick = () => showPage(button.dataset.page);
+});
+showPage(location.hash.slice(1));
 
 function render(current) {
   state = current;
@@ -64,7 +87,7 @@ $('save-leveling').onclick = async () => {
   const button = $('save-leveling');
   if (button.disabled) return;
   button.disabled = true;
-  button.textContent = 'Saving…';
+  button.textContent = 'Saving...';
   try {
     await post('leveling', {
       enabled: $('leveling-enabled').checked,
