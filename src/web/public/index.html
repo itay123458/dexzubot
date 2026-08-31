@@ -11,13 +11,15 @@
 <body>
   <div class="shell">
     <header class="hero">
-      <div class="identity"><img id="bot-avatar" alt=""><div><p class="eyebrow">PRIVATE CONTROL PANEL</p><h1>DexzuBot</h1><p id="server-name">Connecting…</p></div></div>
+      <div class="identity"><img id="bot-avatar" alt="DexzuBot avatar"><div><p class="eyebrow">PRIVATE CONTROL PANEL</p><h1>DexzuBot</h1><p id="server-name">Connecting…</p></div></div>
       <div id="online-pill" class="pill">Checking status</div>
     </header>
 
     <main>
+      <div class="section-heading"><div><p class="eyebrow">OVERVIEW</p><h2>Server at a glance</h2></div><p>Live information from your Discord server.</p></div>
       <section class="metrics" id="metrics"></section>
 
+      <div class="section-heading settings-heading"><div><p class="eyebrow">CONFIGURATION</p><h2>Bot settings</h2></div><p>Changes are saved securely and persist after restarts.</p></div>
       <section class="grid">
         <article class="card wide">
           <div class="card-head"><div><p class="eyebrow">ACCESS</p><h2>Command categories</h2></div><p>Changes apply immediately.</p></div>
@@ -53,7 +55,7 @@
         <article class="card wide">
           <div class="card-head"><div><p class="eyebrow">COMMUNITY</p><h2>Leveling</h2></div><label class="switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
           <p>Control XP rewards and level-up announcements.</p>
-          <p><strong>Permanent message:</strong> {user} has leveled up to level {level}!</p>
+          <p class="message-preview"><span>Permanent message</span><code>{user} has leveled up to level {level}!</code></p>
           <label class="check-row"><input id="leveling-announce" type="checkbox"><span>Send level-up announcements</span></label>
           <select id="leveling-channel"></select>
           <div class="level-fields">
