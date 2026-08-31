@@ -43,7 +43,9 @@ async function encodePng(image) {
 export async function createWelcomeCard(member, type = 'welcome') {
   try {
     loadFonts();
-    const canvas = PureImage.make(900, 360);
+    // Discord displays greeting cards at roughly this size. Rendering at the
+    // previous 900x360 resolution more than doubled the PNG work on the Pi.
+    const canvas = PureImage.make(600, 240);
     const context = canvas.getContext('2d');
     const isWelcome = type === 'welcome';
     const accent = isWelcome ? '#39e6df' : '#a88cff';
@@ -54,31 +56,31 @@ export async function createWelcomeCard(member, type = 'welcome') {
     context.fillStyle = 'rgba(2,8,24,0.32)';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = 'rgba(3,12,32,0.70)';
-    context.fillRect(36, 35, 828, 290);
+    context.fillRect(24, 23, 552, 194);
     context.fillStyle = isWelcome ? 'rgba(57,230,223,0.28)' : 'rgba(168,140,255,0.28)';
-    context.fillRect(36, 35, 828, 7);
+    context.fillRect(24, 23, 552, 5);
 
     const avatar = await loadRemoteImage(member.user.displayAvatarURL({ extension: 'png', size: 256 }));
     context.save();
     context.beginPath();
-    context.arc(450, 130, 76, 0, Math.PI * 2);
+    context.arc(300, 87, 51, 0, Math.PI * 2);
     context.clip();
-    context.drawImage(avatar, 374, 54, 152, 152);
+    context.drawImage(avatar, 249, 36, 102, 102);
     context.restore();
     context.strokeStyle = accent;
-    context.lineWidth = 5;
+    context.lineWidth = 4;
     context.beginPath();
-    context.arc(450, 130, 78, 0, Math.PI * 2);
+    context.arc(300, 87, 52, 0, Math.PI * 2);
     context.stroke();
 
     context.textAlign = 'center';
     context.fillStyle = '#ffffff';
-    context.font = '39pt "DejaVu Sans Bold"';
-    const heading = fitText(context, `${isWelcome ? 'Welcome' : 'Goodbye'} @${member.user.username}`, 760);
-    context.fillText(heading, 450, 250);
+    context.font = '26pt "DejaVu Sans Bold"';
+    const heading = fitText(context, `${isWelcome ? 'Welcome' : 'Goodbye'} @${member.user.username}`, 506);
+    context.fillText(heading, 300, 167);
     context.fillStyle = '#d4d7da';
-    context.font = '27pt "DejaVu Sans"';
-    context.fillText(isWelcome ? `Member #${member.guild.memberCount}` : 'You will be missed :(', 450, 292);
+    context.font = '18pt "DejaVu Sans"';
+    context.fillText(isWelcome ? `Member #${member.guild.memberCount}` : 'You will be missed :(', 300, 195);
 
     return new AttachmentBuilder(await encodePng(canvas), { name: `${type}-${member.id}.png` });
   } catch (error) {
