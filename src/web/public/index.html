@@ -12,13 +12,15 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <img id="bot-avatar" alt="DexzuBot avatar">
+        <div class="brand-avatar"><img id="bot-avatar" alt="DexzuBot avatar"></div>
         <div><span>CONTROL PANEL</span><strong>DexzuBot</strong></div>
       </div>
 
       <nav class="dashboard-nav" aria-label="Dashboard sections">
+        <p class="nav-label">Control</p>
         <button class="nav-item active" data-page="overview"><span class="nav-icon">⌂</span><span>Overview</span></button>
         <button class="nav-item" data-page="safety"><span class="nav-icon">◇</span><span>Safety</span></button>
+        <p class="nav-label nav-group">Server</p>
         <button class="nav-item" data-page="greetings"><span class="nav-icon">✦</span><span>Greetings</span></button>
         <button class="nav-item" data-page="leveling"><span class="nav-icon">↗</span><span>Leveling</span></button>
         <button class="nav-item" data-page="logging"><span class="nav-icon">≡</span><span>Logging</span></button>
@@ -27,23 +29,26 @@
 
       <div class="sidebar-footer">
         <div id="online-pill" class="pill">Checking status</div>
-        <small>Private dashboard</small>
+        <small>DexzuBot • Private Control Panel</small>
       </div>
     </aside>
 
     <div class="workspace">
       <header class="topbar">
-        <div><p class="eyebrow">DEXZUBOT CONTROL</p><h1 id="page-title">Overview</h1><p id="page-description">Server health and command access.</p></div>
-        <div class="server-chip"><span>Managing</span><strong id="server-name">Connecting…</strong></div>
+        <div><p class="eyebrow">DEXZUBOT CONTROL</p><h1 id="page-title">Overview</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
+        <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small>Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
       </header>
 
       <main>
         <section class="page active" data-panel="overview">
-          <section class="metrics" id="metrics"></section>
-          <article class="card">
-            <div class="card-head"><div><p class="eyebrow">ACCESS</p><h2>Command categories</h2><p>Choose which command groups appear in your server.</p></div><span class="status-note">Applies instantly</span></div>
+          <section class="metrics" id="metrics" aria-label="Server statistics"><div class="metric skeleton"></div><div class="metric skeleton"></div><div class="metric skeleton"></div><div class="metric skeleton"></div></section>
+          <div class="overview-grid">
+          <article class="card modules-card">
+            <div class="card-head"><div><p class="eyebrow">ACCESS</p><h2>Command Modules</h2><p>Enable or disable bot systems for this server.</p></div><span class="status-note"><i></i> Applies instantly</span></div>
             <div id="categories" class="toggle-grid"></div>
           </article>
+          <aside class="overview-rail"><article class="card status-card"><div class="card-head"><div><p class="eyebrow">LIVE SYSTEM</p><h2>System Status</h2></div><button id="refresh-dashboard" class="icon-button" title="Refresh dashboard" aria-label="Refresh dashboard">↻</button></div><div id="system-status" class="system-status"><div class="status-row skeleton-line"></div><div class="status-row skeleton-line"></div></div></article></aside>
+          </div>
         </section>
 
         <section class="page" data-panel="safety">
