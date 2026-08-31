@@ -1,4 +1,6 @@
 let state;
+let youtubeLatest;
+let youtubeLatestLoaded = false;
 const $ = id => document.getElementById(id);
 const toast = (message, error = false, detail = '') => {
   const type = typeof error === 'string' ? error : (error ? 'error' : 'success');
@@ -30,6 +32,7 @@ const post = async (path, body) => {
 };
 const checkbox = (id, label, checked, group) => `<label class="check-row"><input type="checkbox" data-group="${group}" value="${id}" ${checked ? 'checked' : ''}><span>${label}</span></label>`;
 const channelOptions = (channels, selected, placeholder) => `<option value="">${placeholder}</option>${channels.map(channel => `<option value="${channel.id}" ${channel.id === selected ? 'selected' : ''}>#${channel.name}</option>`).join('')}`;
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 const icon = paths => `<svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
 const icons = {
   members: icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
@@ -57,6 +60,7 @@ function showPage(pageName) {
   $('page-description').textContent = pageDetails[selected][1];
   history.replaceState(null, '', `#${selected}`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (selected === 'youtube') void loadYouTubeLatest();
 }
 
 document.querySelectorAll('[data-page]').forEach(button => {
@@ -136,6 +140,71 @@ function render(current) {
   $('logging-events').innerHTML = current.logging.events.map(event => checkbox(event.key, event.label, event.enabled, 'logging')).join('');
   $('youtube-enabled').checked = current.youtube.enabled;
   $('youtube-channel').innerHTML = channelOptions(current.channels, current.youtube.channelId, 'Choose a channel');
+  $('youtube-preview-avatar').src = current.bot.avatar;
+  updateYouTubeSummary();
+  renderYouTubeLatest();
+}
+
+function selectedYouTubeChannel() {
+  return state?.channels.find(channel => channel.id === $('youtube-channel').value) || null;
+}
+
+function updateYouTubeSummary() {
+  if (!state) return;
+  const enabled = $('youtube-enabled').checked;
+  const channel = selectedYouTubeChannel();
+  $('youtube-state-label').textContent = enabled ? 'Active' : 'Disabled';
+  $('youtube-state-pill').classList.toggle('active', enabled);
+  $('youtube-destination').textContent = channel ? `#${channel.name}` : 'Not configured';
+  $('youtube-hero').classList.toggle('disabled', !enabled);
+  $('youtube-control').classList.toggle('alerts-disabled', !enabled);
+  $('youtube-service-status').innerHTML = [
+    ['YouTube alerts', enabled ? 'Active' : 'Disabled', enabled ? 'good' : ''],
+    ['Destination', channel ? `#${channel.name}` : 'Not configured', channel ? 'good' : 'warning'],
+    ['Duplicate protection', 'Enabled', 'good'],
+    ...(state.youtube.lastPostedAt ? [['Last notification', new Date(state.youtube.lastPostedAt).toLocaleString(), 'good']] : []),
+  ].map(([label, value, status]) => `<div class="status-row"><span>${escapeHtml(label)}</span><strong><i class="status-dot ${status}"></i>${escapeHtml(value)}</strong></div>`).join('');
+}
+
+function renderYouTubeLatest() {
+  if (!state) return;
+  const latest = $('youtube-latest');
+  const previewMedia = $('youtube-preview-media');
+  const latestLink = $('youtube-latest-link');
+  const previewLink = $('youtube-preview-link');
+  if (!youtubeLatest) {
+    latest.className = 'youtube-empty';
+    latest.innerHTML = '<span>▶</span><strong>No upload information available yet.</strong>';
+    latestLink.removeAttribute('href'); previewLink.removeAttribute('href');
+    $('youtube-preview-title').textContent = 'Video title preview';
+    previewMedia.innerHTML = '<span>▶</span>';
+    return;
+  }
+  const published = youtubeLatest.publishedAt ? new Date(youtubeLatest.publishedAt).toLocaleString() : 'Publish time unavailable';
+  const notified = state.youtube.lastVideoId === youtubeLatest.id && Boolean(state.youtube.lastPostedAt);
+  latest.className = 'latest-video';
+  latest.innerHTML = `<img src="${escapeHtml(youtubeLatest.thumbnailUrl)}" alt="Latest DexzuGtag upload thumbnail"><div><p class="eyebrow">DEXZUGTAG</p><h3>${escapeHtml(youtubeLatest.title)}</h3><p>${escapeHtml(published)}</p><span class="sent-status">${notified ? '✓ Notification sent' : 'Waiting for next upload'}</span></div>`;
+  latestLink.href = youtubeLatest.url; previewLink.href = youtubeLatest.url;
+  $('youtube-preview-title').textContent = youtubeLatest.title;
+  previewMedia.innerHTML = `<img src="${escapeHtml(youtubeLatest.thumbnailUrl)}" alt="Latest upload preview">`;
+  if (notified) {
+    $('youtube-notifications').className = 'latest-video notification-item';
+    $('youtube-notifications').innerHTML = `<img src="${escapeHtml(youtubeLatest.thumbnailUrl)}" alt=""><div><h3>${escapeHtml(youtubeLatest.title)}</h3><p>${escapeHtml(new Date(state.youtube.lastPostedAt).toLocaleString())} • ${escapeHtml($('youtube-destination').textContent)}</p><span class="sent-status">✓ Sent</span></div>`;
+  }
+}
+
+async function loadYouTubeLatest() {
+  if (youtubeLatestLoaded) return;
+  youtubeLatestLoaded = true;
+  try {
+    const response = await fetch('/dashboard/api/youtube/latest', { cache: 'no-store' });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Latest upload unavailable');
+    youtubeLatest = data.video;
+  } catch (error) {
+    youtubeLatest = null;
+  }
+  renderYouTubeLatest();
 }
 
 async function load() {
@@ -183,5 +252,38 @@ $('save-leveling').onclick = async () => {
 };
 $('reset-leveling').onclick = async () => { const confirmation = prompt(`Type ${state.server.name} to reset every member's XP and level:`); if (confirmation === null) return; try { const result = await post('leveling/reset', { confirm: confirmation }); toast(`Reset XP for ${result.resetCount} members`); } catch (error) { toast(error.message, true); } };
 $('save-logging').onclick = async () => { try { await post('logging', { enabled: $('logging-enabled').checked, channelId: $('logging-channel').value, enabledEventTypes: [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value) }); toast('Logging settings saved'); await load(); } catch (error) { toast(error.message, true); } };
-$('save-youtube').onclick = async () => { try { await post('youtube', { enabled: $('youtube-enabled').checked, channelId: $('youtube-channel').value }); toast('YouTube alerts saved'); await load(); } catch (error) { toast(error.message, true); } };
+$('youtube-channel').onchange = () => { document.querySelector('.youtube-config').classList.add('dirty'); updateYouTubeSummary(); };
+$('youtube-enabled').onchange = async () => {
+  const input = $('youtube-enabled'); const previous = !input.checked; const enabled = input.checked;
+  input.disabled = true; updateYouTubeSummary();
+  try {
+    await post('youtube', { enabled, channelId: $('youtube-channel').value });
+    state.youtube.enabled = enabled; state.youtube.channelId = $('youtube-channel').value || state.youtube.channelId;
+    document.querySelector('.youtube-config').classList.remove('dirty');
+    toast(`YouTube alerts ${enabled ? 'enabled' : 'disabled'}`);
+  } catch (error) {
+    input.checked = previous; updateYouTubeSummary();
+    toast(`Couldn't ${enabled ? 'enable' : 'disable'} YouTube alerts`, true, error.message);
+  } finally { input.disabled = false; }
+};
+$('save-youtube').onclick = async () => {
+  const button = $('save-youtube'); button.disabled = true;
+  try {
+    const enabled = $('youtube-enabled').checked; const channelId = $('youtube-channel').value;
+    await post('youtube', { enabled, channelId });
+    state.youtube.enabled = enabled; state.youtube.channelId = channelId || state.youtube.channelId;
+    document.querySelector('.youtube-config').classList.remove('dirty'); updateYouTubeSummary();
+    toast('YouTube settings saved');
+  } catch (error) { toast("Couldn't save YouTube settings", true, error.message); }
+  finally { button.disabled = false; }
+};
+$('test-youtube').onclick = async () => {
+  const channel = selectedYouTubeChannel();
+  if (!channel) { toast('Choose a destination channel', 'warning'); return; }
+  if (!confirm(`Send a test notification to #${channel.name}?`)) return;
+  const button = $('test-youtube'); button.disabled = true;
+  try { await post('youtube/test', { channelId: channel.id }); toast('Test notification sent', false, `Posted in #${channel.name}.`); }
+  catch (error) { toast("Couldn't send test notification", true, error.message); }
+  finally { button.disabled = false; }
+};
 load().catch(error => toast(error.message, true));

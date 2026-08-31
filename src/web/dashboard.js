@@ -11,7 +11,7 @@ import {
   resetCategoryCommands,
 } from '../services/commandAccessService.js';
 import { getGuildConfig, patchGuildConfig } from '../services/config/guildConfig.js';
-import { fetchLatestYouTubeVideo } from '../services/youtubeAlertService.js';
+import { fetchLatestYouTubeVideo, sendYouTubeAlert } from '../services/youtubeAlertService.js';
 import { syncGuildCommandRegistration } from '../handlers/loaders/commandLoader.js';
 import { logger } from '../utils/logger.js';
 import { EVENT_TYPES } from '../services/loggingService.js';
@@ -167,7 +167,7 @@ export function registerDashboard(app, client) {
     res.set('X-Frame-Options', 'DENY');
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Referrer-Policy', 'no-referrer');
-    res.set('Content-Security-Policy', "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://*.discordapp.net data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.set('Content-Security-Policy', "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://*.discordapp.net https://i.ytimg.com data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     if (req.method !== 'GET' && !sameOrigin(req)) {
       return res.status(403).json({ error: 'Cross-origin dashboard request rejected.' });
     }
@@ -182,6 +182,15 @@ export function registerDashboard(app, client) {
       getWelcomeConfig(client, guild.id),
     ]);
     return res.json(publicConfigState(client, guild, config, welcomeConfig));
+  });
+
+  router.get('/youtube/latest', async (req, res) => {
+    try {
+      return res.json({ video: await fetchLatestYouTubeVideo() });
+    } catch (error) {
+      logger.warn('Dashboard could not load the latest YouTube upload', { error: error.message });
+      return res.status(503).json({ error: 'Latest upload information is temporarily unavailable.' });
+    }
   });
 
   router.post('/category', async (req, res) => {
@@ -239,6 +248,18 @@ export function registerDashboard(app, client) {
     await patchGuildConfig(client, guild.id, {
       youtubeAlert: { ...current, enabled, channelId: enabled ? channelId : current.channelId, lastVideoId },
     });
+    return res.json({ ok: true });
+  });
+
+  router.post('/youtube/test', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const channelId = req.body?.channelId;
+    const channel = guild?.channels.cache.get(channelId);
+    if (!guild || !channel?.isTextBased?.()) {
+      return res.status(400).json({ error: 'Choose a valid YouTube alert channel.' });
+    }
+    const latestVideo = await fetchLatestYouTubeVideo();
+    await sendYouTubeAlert(channel, latestVideo, { test: true });
     return res.json({ ok: true });
   });
 
@@ -352,7 +373,7 @@ export function registerDashboard(app, client) {
     res.set('X-Frame-Options', 'DENY');
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Referrer-Policy', 'no-referrer');
-    res.set('Content-Security-Policy', "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://*.discordapp.net data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.set('Content-Security-Policy', "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://*.discordapp.net https://i.ytimg.com data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     next();
   });
   app.use('/dashboard/api', router);

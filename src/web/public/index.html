@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/dashboard/style.css">
   <link rel="stylesheet" href="/dashboard/dashboard-controls.css">
   <link rel="stylesheet" href="/dashboard/dashboard-polish.css">
+  <link rel="stylesheet" href="/dashboard/youtube-dashboard.css">
 </head>
 <body>
   <div class="app-shell">
@@ -119,12 +120,34 @@
         </section>
 
         <section class="page" data-panel="youtube">
-          <div class="page-intro"><div><p class="eyebrow">AUTOMATION</p><h2>YouTube alerts</h2></div><label class="switch"><input id="youtube-enabled" type="checkbox"><span></span></label></div>
-          <article class="card compact-card">
-            <p>Post new DexzuGtag uploads once, with persistent duplicate protection.</p>
-            <select id="youtube-channel"></select>
-            <button id="save-youtube">Save YouTube alerts</button>
-          </article>
+          <div id="youtube-control" class="youtube-control">
+            <article id="youtube-hero" class="card youtube-hero">
+              <div class="youtube-brand"><span class="youtube-logo">▶</span><div><p class="eyebrow">AUTOMATION</p><h2>YouTube Alerts</h2><p>Automatically notify your Discord server when DexzuGtag uploads.</p></div></div>
+              <div class="youtube-toggle"><span id="youtube-state-pill" class="youtube-state-pill"><i></i><b id="youtube-state-label">Disabled</b></span><label class="switch"><input id="youtube-enabled" type="checkbox" aria-label="Enable YouTube alerts"><span></span></label></div>
+              <div class="youtube-summary"><div><span>Creator</span><strong>DexzuGtag</strong></div><div><span>Destination</span><strong id="youtube-destination">Not configured</strong></div><div><span>Duplicate Protection</span><strong class="positive">Enabled</strong></div></div>
+            </article>
+
+            <div class="youtube-main-grid">
+              <article class="card youtube-config">
+                <div class="card-head"><div><p class="eyebrow">ALERT SETTINGS</p><h2>Alert Configuration</h2><p>Choose where new upload notifications are sent.</p></div></div>
+                <label class="field-label" for="youtube-channel">Discord destination channel</label>
+                <div class="channel-select"><span>#</span><select id="youtube-channel"></select></div>
+                <div class="youtube-actions"><button id="save-youtube"><span>✓</span> Save Changes</button><button id="test-youtube" class="secondary-button" type="button"><span>▶</span> Send Test Notification</button></div>
+                <div class="duplicate-row"><span class="shield-mark">✓</span><div><strong>Duplicate Protection</strong><p>Prevents DexzuBot from posting the same upload more than once.</p></div><b>Enabled</b></div>
+              </article>
+
+              <article class="card youtube-preview-card">
+                <div class="card-head"><div><p class="eyebrow">DISCORD MESSAGE</p><h2>Notification Preview</h2></div><span class="preview-badge">Preview</span></div>
+                <div class="discord-preview"><div class="preview-author"><img id="youtube-preview-avatar" alt="DexzuBot"><div><strong>DexzuBot <span>BOT</span></strong><small>Just now</small></div></div><div class="preview-embed"><b>● New YouTube Upload</b><p>DexzuGtag just uploaded a new video!</p><div id="youtube-preview-media" class="preview-media"><span>▶</span></div><strong id="youtube-preview-title">Loading latest upload…</strong><small>Watch the latest DexzuGtag upload.</small><em>YouTube • Preview</em><a id="youtube-preview-link" class="video-link" target="_blank" rel="noopener">Watch on YouTube</a></div></div>
+              </article>
+            </div>
+
+            <div class="youtube-bottom-grid">
+              <article class="card latest-card"><div class="card-head"><div><p class="eyebrow">LATEST UPLOAD</p><h2>Latest Upload</h2></div><a id="youtube-latest-link" class="text-link" target="_blank" rel="noopener">Open video ↗</a></div><div id="youtube-latest" class="youtube-empty"><span>▶</span><strong>Loading upload information…</strong></div></article>
+              <article class="card recent-youtube-card"><div class="card-head"><div><p class="eyebrow">HISTORY</p><h2>Recent Notifications</h2><p>Recently detected YouTube uploads.</p></div></div><div id="youtube-notifications" class="youtube-empty compact"><span>≡</span><strong>No notifications yet</strong><p>New DexzuGtag upload notifications will appear here.</p></div></article>
+              <article class="card youtube-service-card"><div class="card-head"><div><p class="eyebrow">SERVICE</p><h2>Alert Status</h2></div></div><div id="youtube-service-status" class="system-status"></div></article>
+            </div>
+          </div>
         </section>
       </main>
     </div>
