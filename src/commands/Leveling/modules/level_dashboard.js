@@ -20,7 +20,7 @@ import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
 import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
-import { getLevelingConfig, saveLevelingConfig } from '../../../services/leveling/leveling.js';
+import { getLevelingConfig, saveLevelingConfig, PERMANENT_LEVEL_UP_MESSAGE } from '../../../services/leveling/leveling.js';
 import { botHasPermission } from '../../../utils/permissionGuard.js';
 import { startDashboardSession } from '../../../utils/dashboardSession.js';
 
@@ -29,7 +29,7 @@ function buildDashboardEmbed(cfg, guild) {
     const xpMin = cfg.xpRange?.min ?? cfg.xpPerMessage?.min ?? 15;
     const xpMax = cfg.xpRange?.max ?? cfg.xpPerMessage?.max ?? 25;
     const cooldown = cfg.xpCooldown ?? 60;
-    const rawMsg = cfg.levelUpMessage || '{user} has leveled up to level {level}!';
+    const rawMsg = PERMANENT_LEVEL_UP_MESSAGE;
     const msgPreview = `\`${rawMsg.length > 60 ? rawMsg.substring(0, 60) + '…' : rawMsg}\``;
 
     const rewards = cfg.roleRewards ?? {};
@@ -74,8 +74,8 @@ function buildSelectMenu(guildId) {
                 .setValue('channel')
                 .setEmoji('📢'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Edit Level-up Message')
-                .setDescription('Customise the message shown when a user levels up')
+                .setLabel('View Permanent Message')
+                .setDescription('The level-up message is fixed and cannot be edited')
                 .setValue('message')
                 .setEmoji('💬'),
             new StringSelectMenuOptionBuilder()
@@ -174,7 +174,10 @@ export default {
                             await handleChannel(selectInteraction, interaction, cfg, guildId, client);
                             break;
                         case 'message':
-                            await handleMessage(selectInteraction, interaction, cfg, guildId, client);
+                            await selectInteraction.reply({
+                                content: `The permanent level-up message is: **${PERMANENT_LEVEL_UP_MESSAGE}**`,
+                                flags: MessageFlags.Ephemeral,
+                            });
                             break;
                         case 'xp_range':
                             await handleXpRange(selectInteraction, interaction, cfg, guildId, client);

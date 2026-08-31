@@ -15,7 +15,7 @@ import { fetchLatestYouTubeVideo } from '../services/youtubeAlertService.js';
 import { syncGuildCommandRegistration } from '../handlers/loaders/commandLoader.js';
 import { logger } from '../utils/logger.js';
 import { EVENT_TYPES } from '../services/loggingService.js';
-import { resetGuildLevelData } from '../services/leveling/leveling.js';
+import { PERMANENT_LEVEL_UP_MESSAGE, resetGuildLevelData } from '../services/leveling/leveling.js';
 import { getWelcomeConfig, saveWelcomeConfig } from '../utils/database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -290,17 +290,25 @@ export function registerDashboard(app, client) {
       return res.status(400).json({ error: 'Choose valid leveling settings and an announcement channel.' });
     }
     const config = await getGuildConfig(client, guild.id);
+    const access = getCommandAccessSnapshot(client, config);
+    const levelingAccess = access.categories.find(category => category.key === 'leveling');
+    const accessNeedsSync = enabled
+      ? Boolean(levelingAccess?.categoryDisabled || levelingAccess?.disabledCount)
+      : !levelingAccess?.categoryDisabled;
     await patchGuildConfig(client, guild.id, { leveling: {
       ...(config.leveling || {}), enabled, announceLevelUp, levelUpChannel: channelId || null,
+      levelUpMessage: PERMANENT_LEVEL_UP_MESSAGE,
       xpRange: { min, max }, xpPerMessage: { min, max }, xpCooldown: cooldownSeconds, xpMultiplier,
     } });
-    if (enabled) {
-      await enableCategory(client, guild.id, 'Leveling', { actorId: req.dashboardUserId });
-      await resetCategoryCommands(client, guild.id, 'Leveling', { actorId: req.dashboardUserId });
-    } else {
-      await disableCategory(client, guild.id, 'Leveling', { actorId: req.dashboardUserId });
+    if (accessNeedsSync) {
+      if (enabled) {
+        await enableCategory(client, guild.id, 'Leveling', { actorId: req.dashboardUserId });
+        await resetCategoryCommands(client, guild.id, 'Leveling', { actorId: req.dashboardUserId });
+      } else {
+        await disableCategory(client, guild.id, 'Leveling', { actorId: req.dashboardUserId });
+      }
+      await syncGuildCommandRegistration(client, guild.id);
     }
-    await syncGuildCommandRegistration(client, guild.id);
     return res.json({ ok: true });
   });
 

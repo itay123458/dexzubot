@@ -1,7 +1,7 @@
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
 import { createEmbed } from '../../utils/embeds.js';
-import { getLevelingConfig, saveLevelingConfig } from '../../services/leveling/leveling.js';
+import { getLevelingConfig, saveLevelingConfig, PERMANENT_LEVEL_UP_MESSAGE } from '../../services/leveling/leveling.js';
 import { botHasPermission } from '../../utils/permissionGuard.js';
 import { TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -41,15 +41,6 @@ export default {
                         .setMaxValue(500)
                         .setRequired(false),
                 )
-                .addStringOption((option) =>
-                    option
-                        .setName('message')
-                        .setDescription(
-                            'Level-up message. Use {user} and {level} as placeholders (default provided)',
-                        )
-                        .setMaxLength(500)
-                        .setRequired(false),
-                )
                 .addIntegerOption((option) =>
                     option
                         .setName('xp_cooldown')
@@ -86,9 +77,7 @@ export default {
             const channel = interaction.options.getChannel('channel');
             const xpMin = interaction.options.getInteger('xp_min') ?? 15;
             const xpMax = interaction.options.getInteger('xp_max') ?? 25;
-            const message =
-                interaction.options.getString('message') ??
-                '{user} has leveled up to level {level}!';
+            const message = PERMANENT_LEVEL_UP_MESSAGE;
             const xpCooldown = interaction.options.getInteger('xp_cooldown') ?? 60;
 
             if (xpMin > xpMax) {

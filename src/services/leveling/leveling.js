@@ -9,6 +9,7 @@ import { getUserLevelKey, getUserLevelPrefix } from '../../utils/database/keys.j
 
 const BASE_XP = 100;
 const XP_MULTIPLIER = 1.5;
+export const PERMANENT_LEVEL_UP_MESSAGE = '{user} has leveled up to level {level}!';
 const MAX_LEVEL = 1000;
 const MIN_LEVEL = 0;
 
@@ -154,7 +155,7 @@ export async function getLevelingConfig(client, guildId) {
       enabled: true,
       xpPerMessage: { min: 15, max: 25 },
       xpCooldown: 20,
-      levelUpMessage: '{user} has leveled up to level {level}!',
+      levelUpMessage: PERMANENT_LEVEL_UP_MESSAGE,
       levelUpChannel: null,
       ignoredChannels: [],
       ignoredRoles: [],
@@ -169,7 +170,7 @@ export async function getLevelingConfig(client, guildId) {
       enabled: true,
       xpPerMessage: { min: 15, max: 25 },
       xpCooldown: 20,
-      levelUpMessage: '{user} has leveled up to level {level}!',
+      levelUpMessage: PERMANENT_LEVEL_UP_MESSAGE,
       levelUpChannel: null,
       ignoredChannels: [],
       ignoredRoles: [],

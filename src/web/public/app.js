@@ -60,7 +60,30 @@ async function load() {
 $('save-promo').onclick = async () => { try { await post('anti-promo', { enabled: $('promo-enabled').checked, allowedChannelIds: [...document.querySelectorAll('[data-group=promo]:checked')].map(input => input.value) }); toast('Anti-promo saved'); await load(); } catch (error) { toast(error.message, true); } };
 $('save-ping').onclick = async () => { try { await post('anti-ping', { protectedUserIds: [...document.querySelectorAll('[data-group=ping]:checked')].map(input => input.value) }); toast('Anti-ping saved'); await load(); } catch (error) { toast(error.message, true); } };
 $('save-greetings').onclick = async () => { try { await post('greetings', { cardEnabled: $('greeting-cards').checked, welcomeEnabled: $('welcome-enabled').checked, welcomeChannelId: $('welcome-channel').value, welcomeMessage: $('welcome-message').value, goodbyeEnabled: $('goodbye-enabled').checked, goodbyeChannelId: $('goodbye-channel').value, goodbyeMessage: $('goodbye-message').value }); toast('Greeting settings saved'); await load(); } catch (error) { toast(error.message, true); } };
-$('save-leveling').onclick = async () => { try { await post('leveling', { enabled: $('leveling-enabled').checked, announceLevelUp: $('leveling-announce').checked, channelId: $('leveling-channel').value, xpMin: Number($('leveling-xp-min').value), xpMax: Number($('leveling-xp-max').value), cooldown: Number($('leveling-cooldown').value), multiplier: Number($('leveling-multiplier').value) }); toast('Leveling settings saved'); await load(); } catch (error) { toast(error.message, true); } };
+$('save-leveling').onclick = async () => {
+  const button = $('save-leveling');
+  if (button.disabled) return;
+  button.disabled = true;
+  button.textContent = 'Saving…';
+  try {
+    await post('leveling', {
+      enabled: $('leveling-enabled').checked,
+      announceLevelUp: $('leveling-announce').checked,
+      channelId: $('leveling-channel').value,
+      xpMin: Number($('leveling-xp-min').value),
+      xpMax: Number($('leveling-xp-max').value),
+      cooldown: Number($('leveling-cooldown').value),
+      multiplier: Number($('leveling-multiplier').value),
+    });
+    toast('Leveling settings saved');
+    await load();
+  } catch (error) {
+    toast(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Save leveling settings';
+  }
+};
 $('reset-leveling').onclick = async () => { const confirmation = prompt(`Type ${state.server.name} to reset every member's XP and level:`); if (confirmation === null) return; try { const result = await post('leveling/reset', { confirm: confirmation }); toast(`Reset XP for ${result.resetCount} members`); } catch (error) { toast(error.message, true); } };
 $('save-logging').onclick = async () => { try { await post('logging', { enabled: $('logging-enabled').checked, channelId: $('logging-channel').value, enabledEventTypes: [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value) }); toast('Logging settings saved'); await load(); } catch (error) { toast(error.message, true); } };
 $('save-youtube').onclick = async () => { try { await post('youtube', { enabled: $('youtube-enabled').checked, channelId: $('youtube-channel').value }); toast('YouTube alerts saved'); await load(); } catch (error) { toast(error.message, true); } };

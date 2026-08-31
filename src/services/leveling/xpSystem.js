@@ -1,7 +1,7 @@
 // xpSystem.js
 
 import { logger } from '../../utils/logger.js';
-import { getLevelingConfig, getXpForLevel, getUserLevelData, saveUserLevelData } from './leveling.js';
+import { getLevelingConfig, getXpForLevel, getUserLevelData, saveUserLevelData, PERMANENT_LEVEL_UP_MESSAGE } from './leveling.js';
 import { logEvent, EVENT_TYPES } from '../loggingService.js';
 import { formatLogLine } from '../../utils/logging/logEmbeds.js';
 import { Mutex } from '../../utils/mutex.js';
@@ -125,7 +125,7 @@ async function sendLevelUpAnnouncement(guild, member, levelData, config) {
       return;
     }
 
-    const message = config.levelUpMessage
+    const message = PERMANENT_LEVEL_UP_MESSAGE
       .replace(/{user}/g, member.toString())
       .replace(/{level}/g, levelData.level)
       .replace(/{xp}/g, levelData.xp)
