@@ -243,7 +243,7 @@ async function handleLeveling(message, client) {
 
     const userData = await getUserLevelData(client, message.guild.id, message.author.id);
 
-    const cooldownTime = levelingConfig.xpCooldown || 60;
+    const cooldownTime = levelingConfig.xpCooldown ?? 60;
     const now = Date.now();
     const timeSinceLastMessage = now - (userData.lastMessage || 0);
 
@@ -259,10 +259,8 @@ async function handleLeveling(message, client) {
 
     const xpToGive = Math.floor(Math.random() * (safeMaxXP - safeMinXP + 1)) + safeMinXP;
 
-    let finalXP = xpToGive;
-    if (levelingConfig.xpMultiplier && levelingConfig.xpMultiplier > 1) {
-      finalXP = Math.floor(finalXP * levelingConfig.xpMultiplier);
-    }
+    const multiplier = levelingConfig.xpMultiplier ?? 1;
+    const finalXP = Math.max(1, Math.floor(xpToGive * multiplier));
 
     const result = await addXp(client, message.guild, message.member, finalXP);
 
