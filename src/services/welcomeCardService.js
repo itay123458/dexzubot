@@ -1,4 +1,6 @@
 import PureImage from 'pureimage';
+import { createReadStream } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { PassThrough, Readable } from 'node:stream';
 import { AttachmentBuilder } from 'discord.js';
 import { logger } from '../utils/logger.js';
@@ -10,6 +12,8 @@ function fitText(context, text, maxWidth) {
 }
 
 let fontsLoaded = false;
+const backgroundPath = fileURLToPath(new URL('../assets/dexzu-card-background.png', import.meta.url));
+let backgroundPromise = null;
 function loadFonts() {
   if (fontsLoaded) return;
   PureImage.registerFont('/usr/share/fonts/dejavu/DejaVuSans.ttf', 'DejaVu Sans').loadSync();
@@ -23,6 +27,11 @@ async function loadRemoteImage(url) {
   return PureImage.decodePNGFromStream(Readable.from(Buffer.from(await response.arrayBuffer())));
 }
 
+function loadCustomBackground() {
+  if (!backgroundPromise) backgroundPromise = PureImage.decodePNGFromStream(createReadStream(backgroundPath));
+  return backgroundPromise;
+}
+
 async function encodePng(image) {
   const stream = new PassThrough();
   const chunks = [];
@@ -31,54 +40,23 @@ async function encodePng(image) {
   return Buffer.concat(chunks);
 }
 
-function getAverageColor(image) {
-  if (!image?.data?.length) return { r: 38, g: 126, b: 190 };
-  let red = 0;
-  let green = 0;
-  let blue = 0;
-  let samples = 0;
-  for (let index = 0; index < image.data.length; index += 64) {
-    if (image.data[index + 3] < 100) continue;
-    red += image.data[index];
-    green += image.data[index + 1];
-    blue += image.data[index + 2];
-    samples += 1;
-  }
-  if (!samples) return { r: 38, g: 126, b: 190 };
-  const boost = value => Math.max(55, Math.min(220, Math.round(value / samples * 1.35)));
-  return { r: boost(red), g: boost(green), b: boost(blue) };
-}
-
-function rgb({ r, g, b }, alpha = 1) {
-  return alpha === 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`;
-}
-
 export async function createWelcomeCard(member, type = 'welcome') {
   try {
     loadFonts();
     const canvas = PureImage.make(900, 360);
     const context = canvas.getContext('2d');
     const isWelcome = type === 'welcome';
-    const guildIconUrl = member.guild.iconURL?.({ extension: 'png', size: 256 });
-    const guildBannerUrl = member.guild.bannerURL?.({ extension: 'png', size: 1024 });
-    const [guildIcon, guildBanner] = await Promise.all([
-      guildIconUrl ? loadRemoteImage(guildIconUrl).catch(() => null) : null,
-      guildBannerUrl ? loadRemoteImage(guildBannerUrl).catch(() => null) : null,
-    ]);
-    const themeColor = getAverageColor(guildIcon);
-    const accent = rgb(themeColor);
-
-    context.fillStyle = rgb(themeColor);
+    const accent = isWelcome ? '#39e6df' : '#a88cff';
+    const background = await loadCustomBackground();
+    const sourceHeight = Math.round(background.width * canvas.height / canvas.width);
+    const sourceY = Math.max(0, Math.floor((background.height - sourceHeight) / 2));
+    context.drawImage(background, 0, sourceY, background.width, Math.min(sourceHeight, background.height), 0, 0, canvas.width, canvas.height);
+    context.fillStyle = 'rgba(2,8,24,0.32)';
     context.fillRect(0, 0, canvas.width, canvas.height);
-    if (guildBanner) {
-      context.drawImage(guildBanner, 0, 0, canvas.width, canvas.height);
-      context.fillStyle = 'rgba(3,10,24,0.58)';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    context.fillStyle = 'rgba(5,14,28,0.86)';
+    context.fillStyle = 'rgba(3,12,32,0.70)';
     context.fillRect(36, 35, 828, 290);
-    context.fillStyle = rgb(themeColor, 0.24);
-    context.fillRect(36, 35, 828, 8);
+    context.fillStyle = isWelcome ? 'rgba(57,230,223,0.28)' : 'rgba(168,140,255,0.28)';
+    context.fillRect(36, 35, 828, 7);
 
     const avatar = await loadRemoteImage(member.user.displayAvatarURL({ extension: 'png', size: 256 }));
     context.save();
