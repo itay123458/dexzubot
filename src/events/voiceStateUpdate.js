@@ -9,6 +9,8 @@ import {
 import { sanitizeInput } from '../utils/validation.js';
 import { logger } from '../utils/logger.js';
 import { handleMusicVoiceState } from '../services/music/musicVoiceState.js';
+import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
+import { formatLogLine } from '../utils/logging/logEmbeds.js';
 
 const channelCreationCooldown = new Map();
 const VOICE_CREATE_COOLDOWN_MS = 2000;
@@ -30,6 +32,7 @@ export default {
         cleanupCooldownEntries();
 
         try {
+            await logVoiceChange(client, oldState, newState);
             const config = await getJoinToCreateConfig(client, guildId);
 
             if (!config.enabled || config.triggerChannels.length === 0) {
@@ -292,6 +295,57 @@ userLimit: userLimit === 0 ? undefined : userLimit,
         }
     }
 };
+
+async function logVoiceChange(client, oldState, newState) {
+    const member = newState.member || oldState.member;
+    const oldChannel = oldState.channel;
+    const newChannel = newState.channel;
+    if (oldChannel?.id === newChannel?.id) return;
+
+    let eventType;
+    let title;
+    let channel;
+    const lines = [];
+
+    if (!oldChannel && newChannel) {
+        eventType = EVENT_TYPES.VOICE_JOIN;
+        title = 'Member joined voice channel';
+        channel = newChannel;
+        lines.push(formatLogLine('Channel', newChannel.toString()));
+    } else if (oldChannel && !newChannel) {
+        eventType = EVENT_TYPES.VOICE_LEAVE;
+        title = 'Member left voice channel';
+        channel = oldChannel;
+        lines.push(formatLogLine('Channel', oldChannel.toString()));
+    } else if (oldChannel && newChannel) {
+        eventType = EVENT_TYPES.VOICE_MOVE;
+        title = 'Member moved voice channel';
+        channel = newChannel;
+        lines.push(formatLogLine('From', oldChannel.toString()));
+        lines.push(formatLogLine('To', newChannel.toString()));
+    } else {
+        return;
+    }
+
+    await logEvent({
+        client,
+        guildId: newState.guild.id,
+        eventType,
+        data: {
+            title,
+            author: {
+                name: `@${member.user.username}`,
+                iconURL: member.user.displayAvatarURL({ dynamic: true }),
+            },
+            lines,
+            quoted: true,
+            thumbnail: member.user.displayAvatarURL({ dynamic: true, size: 256 }),
+            userId: member.id,
+            channelId: channel.id,
+            footer: { text: `User ID: ${member.id}` },
+        },
+    });
+}
 
 function sanitizeVoiceChannelName(inputName) {
     const safeName = sanitizeInput(String(inputName || ''), MAX_CHANNEL_NAME_LENGTH)

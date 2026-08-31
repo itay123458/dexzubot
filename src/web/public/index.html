@@ -38,6 +38,14 @@
         </article>
 
         <article class="card wide">
+          <div class="card-head"><div><p class="eyebrow">AUDIT LOG</p><h2>Server logging</h2></div><label class="switch"><input id="logging-enabled" type="checkbox"><span></span></label></div>
+          <p>Send selected server events to one private log channel. Logging can only be configured here.</p>
+          <select id="logging-channel"></select>
+          <div id="logging-events" class="check-list event-grid"></div>
+          <button id="save-logging">Save logging settings</button>
+        </article>
+
+        <article class="card wide">
           <div class="card-head"><div><p class="eyebrow">AUTOMATION</p><h2>YouTube alerts</h2></div><label class="switch"><input id="youtube-enabled" type="checkbox"><span></span></label></div>
           <p>Post new DexzuGtag uploads once, with persistent duplicate protection.</p>
           <select id="youtube-channel"></select>

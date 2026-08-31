@@ -455,6 +455,7 @@ export const botConfig = {
     leveling: false,
     moderation: true,
     logging: true,
+    loggingCommands: false,
     welcome: true,
 
     // Community engagement systems.
@@ -539,7 +540,7 @@ const COMMAND_CATEGORY_FEATURE_MAP = {
   giveaway: "giveaways",
   jointocreate: "joinToCreate",
   leveling: "leveling",
-  logging: "logging",
+  logging: "loggingCommands",
   moderation: "moderation",
   music: "music",
   reaction_roles: "reactionRoles",

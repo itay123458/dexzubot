@@ -68,12 +68,17 @@ export default {
         guildId: message.guild.id,
         eventType: EVENT_TYPES.MESSAGE_DELETE,
         data: {
-          title: 'Message deleted',
+          title: `Message deleted in #${message.channel?.name || 'unknown-channel'}`,
+          author: message.author ? {
+            name: `@${message.author.username}`,
+            iconURL: message.author.displayAvatarURL({ dynamic: true }),
+          } : null,
           lines: metaLines,
           quoted: true,
           section: messageBody ? { title: 'Message', body: messageBody || '*(empty message)*' } : null,
           userId: message.author?.id,
           channelId: message.channel.id,
+          footer: { text: `User ID: ${message.author?.id || 'Unknown'}` },
         }
       });
 

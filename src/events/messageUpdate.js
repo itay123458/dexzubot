@@ -36,7 +36,11 @@ export default {
         guildId: newMessage.guild.id,
         eventType: EVENT_TYPES.MESSAGE_EDIT,
         data: {
-          title: 'Message edited',
+          title: `Message edited in #${newMessage.channel?.name || 'unknown-channel'}`,
+          author: newMessage.author ? {
+            name: `@${newMessage.author.username}`,
+            iconURL: newMessage.author.displayAvatarURL({ dynamic: true }),
+          } : null,
           lines: metaLines,
           quoted: true,
           fields: [
@@ -45,6 +49,7 @@ export default {
           ],
           userId: newMessage.author?.id,
           channelId: newMessage.channel.id,
+          footer: { text: `User ID: ${newMessage.author?.id || 'Unknown'} • Jump: ${newMessage.url}` },
         }
       });
 

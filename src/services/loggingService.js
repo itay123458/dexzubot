@@ -34,6 +34,10 @@ const EVENT_TYPES = {
   MESSAGE_EDIT: 'message.edit',
   MESSAGE_BULK_DELETE: 'message.bulkdelete',
 
+  VOICE_JOIN: 'voice.join',
+  VOICE_LEAVE: 'voice.leave',
+  VOICE_MOVE: 'voice.move',
+
   ROLE_CREATE: 'role.create',
   ROLE_DELETE: 'role.delete',
   ROLE_UPDATE: 'role.update',
@@ -80,6 +84,9 @@ const EVENT_COLORS = {
   'message.delete': 0x8b0000,
   'message.edit': 0xFFA500,
   'message.bulkdelete': 0xFF0000,
+  'voice.join': 0x57F287,
+  'voice.leave': 0x5865F2,
+  'voice.move': 0xFEE75C,
   'role.create': 0x2ecc71,
   'role.delete': 0xe74c3c,
   'role.update': 0x3498db,
@@ -235,7 +242,7 @@ export async function logEvent({
     const channel = guild.channels.cache.get(logChannelId) ||
       await guild.channels.fetch(logChannelId).catch(() => null);
 
-    if (!channel || channel.type !== ChannelType.GuildText) {
+    if (!channel || (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement)) {
       logger.warn(`logEvent: Invalid log channel ${logChannelId} for guild ${guildId}`);
       return null;
     }

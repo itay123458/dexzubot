@@ -13,9 +13,24 @@ import { getGuildConfig, patchGuildConfig } from '../services/config/guildConfig
 import { fetchLatestYouTubeVideo } from '../services/youtubeAlertService.js';
 import { syncGuildCommandRegistration } from '../handlers/loaders/commandLoader.js';
 import { logger } from '../utils/logger.js';
+import { EVENT_TYPES } from '../services/loggingService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, 'public');
+const DASHBOARD_LOGGING_EVENTS = [
+  ['message.delete', 'Deleted messages'],
+  ['message.edit', 'Edited messages'],
+  ['message.bulkdelete', 'Bulk message deletes'],
+  ['voice.join', 'Voice joins'],
+  ['voice.leave', 'Voice leaves'],
+  ['voice.move', 'Voice moves'],
+  ['member.join', 'Member joins'],
+  ['member.leave', 'Member leaves'],
+  ['member.namechange', 'Nickname changes'],
+  ['role.create', 'Role creation'],
+  ['role.delete', 'Role deletion'],
+  ['role.update', 'Role updates'],
+];
 
 function getDashboardGuild(client) {
   const configuredGuild = process.env.GUILD_ID && client.guilds.cache.get(process.env.GUILD_ID);
@@ -42,6 +57,11 @@ function publicConfigState(client, guild, config) {
     const user = client.users.cache.get(id);
     return { id, name: user?.username || id, avatar: user?.displayAvatarURL?.() || null };
   });
+  const loggingEvents = DASHBOARD_LOGGING_EVENTS.map(([key, label]) => ({
+    key,
+    label,
+    enabled: config.logging?.enabledEvents?.[key] !== false,
+  }));
 
   return {
     bot: {
@@ -83,6 +103,11 @@ function publicConfigState(client, guild, config) {
       channelId: config.youtubeAlert?.channelId || null,
       lastVideoId: config.youtubeAlert?.lastVideoId || null,
       lastPostedAt: config.youtubeAlert?.lastPostedAt || null,
+    },
+    logging: {
+      enabled: config.logging?.enabled === true,
+      channelId: config.logging?.channels?.audit || config.logging?.channelId || config.logChannelId || null,
+      events: loggingEvents,
     },
   };
 }
@@ -163,6 +188,38 @@ export function registerDashboard(app, client) {
     }
     await patchGuildConfig(client, guild.id, {
       youtubeAlert: { ...current, enabled, channelId: enabled ? channelId : current.channelId, lastVideoId },
+    });
+    return res.json({ ok: true });
+  });
+
+  router.post('/logging', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const { enabled, channelId, enabledEventTypes } = req.body || {};
+    const channel = guild?.channels.cache.get(channelId);
+    const validEventTypes = new Set(Object.values(EVENT_TYPES));
+    if (
+      !guild ||
+      typeof enabled !== 'boolean' ||
+      !Array.isArray(enabledEventTypes) ||
+      (enabled && (!channel || (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement))) ||
+      enabledEventTypes.some(type => !validEventTypes.has(type))
+    ) {
+      return res.status(400).json({ error: 'Choose a valid logging channel and event types.' });
+    }
+
+    const selected = new Set(enabledEventTypes);
+    const config = await getGuildConfig(client, guild.id);
+    const enabledEvents = { ...(config.logging?.enabledEvents || {}) };
+    for (const [type] of DASHBOARD_LOGGING_EVENTS) {
+      enabledEvents[type] = selected.has(type);
+    }
+    await patchGuildConfig(client, guild.id, {
+      logging: {
+        ...(config.logging || {}),
+        enabled,
+        channels: { ...(config.logging?.channels || {}), audit: channelId || null },
+        enabledEvents,
+      },
     });
     return res.json({ ok: true });
   });
