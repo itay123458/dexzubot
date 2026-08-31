@@ -12,8 +12,9 @@ export default {
 
       const usernameChanged = oldUser.username !== newUser.username;
       const discriminatorChanged = oldUser.discriminator !== newUser.discriminator;
+      const avatarChanged = oldUser.avatar !== newUser.avatar;
 
-      if (!usernameChanged && !discriminatorChanged) return;
+      if (!usernameChanged && !discriminatorChanged && !avatarChanged) return;
 
       const fields = [];
 
@@ -43,6 +44,10 @@ export default {
         });
       }
 
+      if (avatarChanged) {
+        fields.push({ name: 'Avatar', value: 'Profile picture changed', inline: false });
+      }
+
       const guilds = [...newUser.client.guilds.cache.values()];
       for (const guild of guilds) {
         if (!guild.members.cache.has(newUser.id)) continue;
@@ -50,9 +55,12 @@ export default {
         await logEvent({
           client: newUser.client,
           guildId: guild.id,
-          eventType: EVENT_TYPES.MEMBER_NAME_CHANGE,
+          eventType: avatarChanged && !usernameChanged && !discriminatorChanged
+            ? EVENT_TYPES.MEMBER_PROFILE_UPDATE
+            : EVENT_TYPES.MEMBER_NAME_CHANGE,
           data: {
-            description: `${newUser.tag} updated their username`,
+            description: `${newUser.tag} updated their Discord profile`,
+            thumbnail: newUser.displayAvatarURL({ dynamic: true, size: 256 }),
             userId: newUser.id,
             fields: [
               {

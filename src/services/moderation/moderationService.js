@@ -4,6 +4,7 @@ import { PermissionFlagsBits } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logModerationAction } from '../../utils/moderation.js';
+import { markBotModerationAction } from '../loggingService.js';
 
 function getTargetLabel(target) {
   return target.user?.tag ?? target.displayName ?? 'this user';
@@ -174,6 +175,7 @@ export class ModerationService {
         }
       }
 
+      markBotModerationAction(guild.id, 'ban', user.id);
       await guild.members.ban(user.id, { reason });
 
       const caseId = await logModerationAction({
@@ -233,6 +235,7 @@ export class ModerationService {
         );
       }
 
+      markBotModerationAction(guild.id, 'kick', member.id);
       await member.kick(reason);
 
       const caseId = await logModerationAction({
@@ -291,6 +294,7 @@ export class ModerationService {
         );
       }
 
+      markBotModerationAction(guild.id, 'timeout', member.id);
       await member.timeout(durationMs, reason);
 
       const durationMinutes = Math.floor(durationMs / 60000);
@@ -360,6 +364,7 @@ export class ModerationService {
         );
       }
 
+      markBotModerationAction(guild.id, 'untimeout', member.id);
       await member.timeout(null, reason);
 
       await logModerationAction({
@@ -414,6 +419,7 @@ export class ModerationService {
         );
       }
 
+      markBotModerationAction(guild.id, 'unban', user.id);
       await guild.members.unban(user.id, reason);
 
       const caseId = await logModerationAction({

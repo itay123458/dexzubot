@@ -1,0 +1,3 @@
+import { Events } from 'discord.js';
+import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
+export default { name: Events.GuildStickerUpdate, async execute(oldSticker, newSticker) { const lines=[]; if(oldSticker.name!==newSticker.name) lines.push(`**Name:** ${oldSticker.name} → ${newSticker.name}`); if(oldSticker.description!==newSticker.description) lines.push(`**Description:** ${oldSticker.description||'None'} → ${newSticker.description||'None'}`); if(!lines.length)return; await logEvent({ client: newSticker.client, guildId: newSticker.guild.id, eventType: EVENT_TYPES.STICKER_UPDATE, data: { title: 'Sticker updated', lines, footer: { text: `Sticker ID: ${newSticker.id}` } } }); } };

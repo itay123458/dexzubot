@@ -18,6 +18,16 @@ import { EVENT_TYPES } from '../services/loggingService.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, 'public');
 const DASHBOARD_LOGGING_EVENTS = [
+  ['moderation.ban', 'Bans'],
+  ['moderation.kick', 'Kicks'],
+  ['moderation.timeout', 'Timeouts'],
+  ['moderation.untimeout', 'Timeout removals'],
+  ['moderation.unban', 'Unbans'],
+  ['moderation.warn', 'Warnings'],
+  ['moderation.purge', 'Message purges'],
+  ['moderation.lock', 'Channel locks'],
+  ['moderation.unlock', 'Channel unlocks'],
+  ['moderation.dm', 'Moderator DMs'],
   ['message.delete', 'Deleted messages'],
   ['message.edit', 'Edited messages'],
   ['message.bulkdelete', 'Bulk message deletes'],
@@ -27,9 +37,24 @@ const DASHBOARD_LOGGING_EVENTS = [
   ['member.join', 'Member joins'],
   ['member.leave', 'Member leaves'],
   ['member.namechange', 'Nickname changes'],
+  ['member.roleupdate', 'Member role changes'],
+  ['member.timeoutupdate', 'Manual timeout changes'],
+  ['member.profileupdate', 'Avatar/profile changes'],
   ['role.create', 'Role creation'],
   ['role.delete', 'Role deletion'],
   ['role.update', 'Role updates'],
+  ['channel.create', 'Channel creation'],
+  ['channel.update', 'Channel updates'],
+  ['channel.delete', 'Channel deletion'],
+  ['guild.update', 'Server setting changes'],
+  ['emoji.create', 'Emoji creation'],
+  ['emoji.update', 'Emoji updates'],
+  ['emoji.delete', 'Emoji deletion'],
+  ['sticker.create', 'Sticker creation'],
+  ['sticker.update', 'Sticker updates'],
+  ['sticker.delete', 'Sticker deletion'],
+  ['invite.create', 'Invite creation'],
+  ['invite.delete', 'Invite deletion'],
 ];
 
 function getDashboardGuild(client) {

@@ -12,6 +12,18 @@ import {
 } from '../utils/logging/logEmbeds.js';
 
 const LOG_DESTINATIONS = ['audit', 'applications', 'reports'];
+const recentBotModerationActions = new Map();
+
+export function markBotModerationAction(guildId, action, userId) {
+  recentBotModerationActions.set(`${guildId}:${action}:${userId}`, Date.now() + 15000);
+}
+
+export function consumeBotModerationAction(guildId, action, userId) {
+  const key = `${guildId}:${action}:${userId}`;
+  const expiresAt = recentBotModerationActions.get(key);
+  recentBotModerationActions.delete(key);
+  return Boolean(expiresAt && expiresAt > Date.now());
+}
 
 const EVENT_TYPES = {
   MODERATION_BAN: 'moderation.ban',
@@ -45,6 +57,24 @@ const EVENT_TYPES = {
   MEMBER_JOIN: 'member.join',
   MEMBER_LEAVE: 'member.leave',
   MEMBER_NAME_CHANGE: 'member.namechange',
+  MEMBER_ROLE_UPDATE: 'member.roleupdate',
+  MEMBER_TIMEOUT_UPDATE: 'member.timeoutupdate',
+  MEMBER_PROFILE_UPDATE: 'member.profileupdate',
+
+  CHANNEL_CREATE: 'channel.create',
+  CHANNEL_UPDATE: 'channel.update',
+  CHANNEL_DELETE: 'channel.delete',
+
+  GUILD_UPDATE: 'guild.update',
+
+  EMOJI_CREATE: 'emoji.create',
+  EMOJI_UPDATE: 'emoji.update',
+  EMOJI_DELETE: 'emoji.delete',
+  STICKER_CREATE: 'sticker.create',
+  STICKER_UPDATE: 'sticker.update',
+  STICKER_DELETE: 'sticker.delete',
+  INVITE_CREATE: 'invite.create',
+  INVITE_DELETE: 'invite.delete',
 
   REACTION_ROLE_ADD: 'reactionrole.add',
   REACTION_ROLE_REMOVE: 'reactionrole.remove',
@@ -93,6 +123,21 @@ const EVENT_COLORS = {
   'member.join': 0x2ecc71,
   'member.leave': 0xe74c3c,
   'member.namechange': 0x3498db,
+  'member.roleupdate': 0x5865F2,
+  'member.timeoutupdate': 0xF1C40F,
+  'member.profileupdate': 0x3498DB,
+  'channel.create': 0x57F287,
+  'channel.update': 0xFEE75C,
+  'channel.delete': 0xED4245,
+  'guild.update': 0x5865F2,
+  'emoji.create': 0x57F287,
+  'emoji.update': 0xFEE75C,
+  'emoji.delete': 0xED4245,
+  'sticker.create': 0x57F287,
+  'sticker.update': 0xFEE75C,
+  'sticker.delete': 0xED4245,
+  'invite.create': 0x57F287,
+  'invite.delete': 0xED4245,
   'reactionrole.add': 0x2ecc71,
   'reactionrole.remove': 0xe74c3c,
   'reactionrole.create': 0x3498db,

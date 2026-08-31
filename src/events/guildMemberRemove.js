@@ -1,8 +1,8 @@
-import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { AuditLogEvent, Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
 import { getWelcomeConfig, getUserApplications, deleteApplication } from '../utils/database.js';
 import { formatWelcomeMessage } from '../utils/welcome.js';
-import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
+import { consumeBotModerationAction, logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getServerCounters, updateCounter } from '../services/serverstatsService.js';
 import { getGuildBirthdays, deleteBirthday } from '../utils/database.js';
 import { deleteUserLevelData } from '../services/leveling/leveling.js';
@@ -79,18 +79,24 @@ export default {
         }
 
         try {
-            await logEvent({
+            const botKick = consumeBotModerationAction(guild.id, 'kick', user.id);
+            const audit = botKick ? null : await guild.fetchAuditLogs({ type: AuditLogEvent.MemberKick, limit: 1 }).catch(() => null);
+            const kickEntry = audit?.entries.first();
+            const manualKick = kickEntry?.target?.id === user.id && Date.now() - kickEntry.createdTimestamp < 10000;
+            if (!botKick) await logEvent({
                 client: member.client,
                 guildId: guild.id,
-                eventType: EVENT_TYPES.MEMBER_LEAVE,
+                eventType: manualKick ? EVENT_TYPES.MODERATION_KICK : EVENT_TYPES.MEMBER_LEAVE,
                 data: {
-                    title: 'User left',
+                    title: manualKick ? 'Member kicked' : 'User left',
                     lines: [
                         `**User:** ${user.toString()} (${user.tag})`,
+                        manualKick ? `**Moderator:** ${kickEntry.executor?.toString() || 'Unknown'}` : null,
+                        manualKick ? `**Reason:** ${kickEntry.reason || 'No reason provided'}` : null,
                         `**ID:** \`${user.id}\``,
                         `**Joined:** <t:${Math.floor((member.joinedTimestamp || Date.now()) / 1000)}:R>`,
                         `**Members:** ${guild.memberCount}`,
-                    ],
+                    ].filter(Boolean),
                     quoted: false,
                     thumbnail: user.displayAvatarURL({ dynamic: true }),
                     userId: user.id,

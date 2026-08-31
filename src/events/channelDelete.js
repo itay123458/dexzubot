@@ -7,10 +7,23 @@ import {
 } from '../utils/database.js';
 import { getServerCounters, saveServerCounters } from '../services/serverstatsService.js';
 import { logger } from '../utils/logger.js';
+import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 
 export default {
     name: 'channelDelete',
     async execute(channel, client) {
+        if (channel.guild) {
+            await logEvent({
+                client,
+                guildId: channel.guild.id,
+                eventType: EVENT_TYPES.CHANNEL_DELETE,
+                data: {
+                    title: 'Channel deleted',
+                    lines: [`**Name:** #${channel.name}`, `**Type:** ${String(channel.type)}`, `**Channel ID:** \`${channel.id}\``],
+                    channelId: channel.id,
+                },
+            });
+        }
         
         if (channel.type === 0 && channel.guild) {
             try {

@@ -1,0 +1,3 @@
+import { Events } from 'discord.js';
+import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
+export default { name: Events.InviteCreate, async execute(invite) { if(!invite.guild)return; await logEvent({ client: invite.client, guildId: invite.guild.id, eventType: EVENT_TYPES.INVITE_CREATE, data: { title: 'Invite created', lines: [`**Code:** \`${invite.code}\``, `**Channel:** ${invite.channel?.toString()||'Unknown'}`, `**Creator:** ${invite.inviter?.toString()||'Unknown'}`, `**Maximum uses:** ${invite.maxUses||'Unlimited'}`], channelId: invite.channelId, footer: { text: `Invite code: ${invite.code}` } } }); } };
