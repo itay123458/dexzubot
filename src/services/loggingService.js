@@ -27,6 +27,7 @@ export function consumeBotModerationAction(guildId, action, userId) {
 
 const EVENT_TYPES = {
   MODERATION_BAN: 'moderation.ban',
+  MODERATION_SOFTBAN: 'moderation.softban',
   MODERATION_KICK: 'moderation.kick',
   MODERATION_MUTE: 'moderation.mute',
   MODERATION_WARN: 'moderation.warn',
@@ -98,6 +99,7 @@ const EVENT_TYPES = {
 
 const EVENT_COLORS = {
   'moderation.ban': 0x721919,
+  'moderation.softban': 0x9B2335,
   'moderation.kick': 0xFFA500,
   'moderation.mute': 0xF1C40F,
   'moderation.warn': 0xFEE75C,

@@ -7,6 +7,7 @@ import { getFromDb, setInDb } from './database.js';
 
 const ACTION_TO_EVENT_TYPE = {
   'Member Banned': EVENT_TYPES.MODERATION_BAN,
+  'Member Softbanned': EVENT_TYPES.MODERATION_SOFTBAN,
   'Member Kicked': EVENT_TYPES.MODERATION_KICK,
   'Member Timed Out': EVENT_TYPES.MODERATION_TIMEOUT,
   'Member Untimeouted': EVENT_TYPES.MODERATION_UNTIMEOUT,

@@ -4,16 +4,8 @@ import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { ModerationService } from '../../services/moderation/moderationService.js';
-
-const durationChoices = [
-    { name: "5 minutes", value: 5 },
-    { name: "10 minutes", value: 10 },
-    { name: "30 minutes", value: 30 },
-    { name: "1 hour", value: 60 },
-    { name: "6 hours", value: 360 },
-    { name: "1 day", value: 1440 },
-    { name: "1 week", value: 10080 },
-];
+import { formatModerationDuration, parseModerationDuration } from '../../utils/moderationDuration.js';
+import { sendModerationReasonDm } from '../../utils/moderationDm.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -25,16 +17,15 @@ export default {
                 .setDescription("User to timeout")
                 .setRequired(true),
         )
-        .addIntegerOption(
+        .addStringOption(
             (option) =>
                 option
                     .setName("duration")
-                    .setDescription("Duration of the timeout")
-                    .setRequired(true)
-                    .addChoices(...durationChoices),
+                    .setDescription("Duration: 1s, 5m, 2h, 7d, or 4w (maximum 28 days)")
+                    .setRequired(true),
         )
         .addStringOption((option) =>
-            option.setName("reason").setDescription("Reason for the timeout"),
+            option.setName("reason").setDescription("Reason for the timeout").setMaxLength(1000),
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
     category: "moderation",
@@ -52,8 +43,9 @@ export default {
 
         const targetUser = interaction.options.getUser("target");
         const member = interaction.options.getMember("target");
-        const durationMinutes = interaction.options.getInteger("duration");
-        const reason = interaction.options.getString("reason") || "No reason provided";
+        const durationInput = interaction.options.getString("duration");
+        const providedReason = interaction.options.getString("reason")?.trim() || null;
+        const reason = providedReason || "No reason provided";
 
         if (!targetUser) {
             throw new TitanBotError(
@@ -86,24 +78,38 @@ export default {
             );
         }
 
-        const durationMs = durationMinutes * 60 * 1000;
+        const durationMs = parseModerationDuration(durationInput);
+        if (!durationMs) {
+            throw new TitanBotError(
+                'Invalid timeout duration',
+                ErrorTypes.USER_INPUT,
+                'Use a duration such as `1s`, `5m`, `2h`, `7d`, or `4w`. The maximum is 28 days.',
+            );
+        }
+
+        const durationDisplay = formatModerationDuration(durationMs);
         const result = await ModerationService.timeoutUser({
             guild: interaction.guild,
             member,
             moderator: interaction.member,
             durationMs,
             reason,
+            beforeAction: providedReason
+                ? () => sendModerationReasonDm({
+                    user: targetUser,
+                    guild: interaction.guild,
+                    action: 'Timeout',
+                    reason: providedReason,
+                    duration: durationDisplay,
+                })
+                : null,
         });
-
-        const durationDisplay =
-            durationChoices.find((c) => c.value === durationMinutes)
-                ?.name || `${durationMinutes} minutes`;
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [
                 successEmbed(
                     `⏳ **Timed out** ${targetUser.tag} for ${durationDisplay}.`,
-                    `**Reason:** ${reason}\n**Case ID:** #${result.caseId}`,
+                    `**Reason:** ${reason}\n**Case ID:** #${result.caseId}${providedReason ? `\n**DM:** ${result.dmSent ? 'Delivered' : 'Could not deliver'}` : ''}`,
                 ),
             ],
         });

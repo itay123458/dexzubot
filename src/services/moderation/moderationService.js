@@ -5,6 +5,7 @@ import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logModerationAction } from '../../utils/moderation.js';
 import { markBotModerationAction } from '../loggingService.js';
+import { formatModerationDuration } from '../../utils/moderationDuration.js';
 
 function getTargetLabel(target) {
   return target.user?.tag ?? target.displayName ?? 'this user';
@@ -266,12 +267,78 @@ export class ModerationService {
     }
   }
 
+  static async softbanUser({
+    guild,
+    member,
+    moderator,
+    reason = 'No reason provided',
+    beforeAction = null
+  }) {
+    try {
+      if (!guild || !member || !moderator) {
+        throw new TitanBotError(
+          'Missing required parameters',
+          ErrorTypes.VALIDATION,
+          'Guild, member, and moderator are required'
+        );
+      }
+
+      this.assertModerationHierarchy(moderator, member, 'softban');
+      if (!member.bannable) {
+        throw new TitanBotError(
+          'Cannot softban member',
+          ErrorTypes.PERMISSION,
+          `I cannot softban **${getTargetLabel(member)}**. Check my Ban Members permission and role position.`
+        );
+      }
+
+      const dmSent = beforeAction ? await beforeAction() : null;
+
+      markBotModerationAction(guild.id, 'ban', member.id);
+      await guild.members.ban(member.id, { deleteMessageSeconds: 7 * 24 * 60 * 60, reason });
+
+      try {
+        markBotModerationAction(guild.id, 'unban', member.id);
+        await guild.members.unban(member.id, `Softban completed: ${reason}`);
+      } catch (error) {
+        throw new TitanBotError(
+          `Softban unban failed: ${error.message}`,
+          ErrorTypes.UNKNOWN,
+          `The member was banned, but I could not remove the ban. Use \`/unban target:${member.id}\` to finish the softban.`
+        );
+      }
+
+      const caseId = await logModerationAction({
+        client: guild.client,
+        guild,
+        event: {
+          action: 'Member Softbanned',
+          target: `${member.user.tag} (${member.id})`,
+          executor: `${moderator.user.tag} (${moderator.id})`,
+          reason,
+          metadata: {
+            userId: member.id,
+            moderatorId: moderator.id,
+            deletedMessageDays: 7
+          }
+        }
+      });
+
+      logger.info(`User softbanned: ${member.user.tag} by ${moderator.user.tag} in ${guild.name}`);
+      return { caseId, user: member.user.tag, reason, dmSent };
+    } catch (error) {
+      logger.error('Error softbanning user:', error);
+      throw error;
+    }
+  }
+
   static async timeoutUser({
     guild,
     member,
     moderator,
     durationMs,
-    reason = 'No reason provided'
+    reason = 'No reason provided',
+    beforeAction = null
   }) {
     try {
       if (!guild || !member || !moderator || !durationMs) {
@@ -294,10 +361,11 @@ export class ModerationService {
         );
       }
 
+      const dmSent = beforeAction ? await beforeAction() : null;
+
       markBotModerationAction(guild.id, 'timeout', member.id);
       await member.timeout(durationMs, reason);
 
-      const durationMinutes = Math.floor(durationMs / 60000);
       const caseId = await logModerationAction({
         client: guild.client,
         guild,
@@ -306,7 +374,7 @@ export class ModerationService {
           target: `${member.user.tag} (${member.id})`,
           executor: `${moderator.user.tag} (${moderator.id})`,
           reason,
-          duration: `${durationMinutes} minutes`,
+          duration: formatModerationDuration(durationMs),
           metadata: {
             userId: member.id,
             moderatorId: moderator.id,
@@ -320,7 +388,8 @@ export class ModerationService {
       return {
         caseId,
         user: member.user.tag,
-        duration: durationMinutes,
+        durationMs,
+        dmSent,
         reason
       };
     } catch (error) {

@@ -8,6 +8,7 @@ import {
   disableCategory,
   enableCategory,
   getCommandAccessSnapshot,
+  resetCategoryCommands,
 } from '../services/commandAccessService.js';
 import { getGuildConfig, patchGuildConfig } from '../services/config/guildConfig.js';
 import { fetchLatestYouTubeVideo } from '../services/youtubeAlertService.js';
@@ -21,6 +22,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, 'public');
 const DASHBOARD_LOGGING_EVENTS = [
   ['moderation.ban', 'Bans'],
+  ['moderation.softban', 'Softbans'],
   ['moderation.kick', 'Kicks'],
   ['moderation.timeout', 'Timeouts'],
   ['moderation.untimeout', 'Timeout removals'],
@@ -292,6 +294,13 @@ export function registerDashboard(app, client) {
       ...(config.leveling || {}), enabled, announceLevelUp, levelUpChannel: channelId || null,
       xpRange: { min, max }, xpPerMessage: { min, max }, xpCooldown: cooldownSeconds, xpMultiplier,
     } });
+    if (enabled) {
+      await enableCategory(client, guild.id, 'Leveling', { actorId: req.dashboardUserId });
+      await resetCategoryCommands(client, guild.id, 'Leveling', { actorId: req.dashboardUserId });
+    } else {
+      await disableCategory(client, guild.id, 'Leveling', { actorId: req.dashboardUserId });
+    }
+    await syncGuildCommandRegistration(client, guild.id);
     return res.json({ ok: true });
   });
 
