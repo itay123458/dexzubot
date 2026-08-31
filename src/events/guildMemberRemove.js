@@ -26,10 +26,9 @@ export default {
                 const me = guild.members.me;
                 const permissions = me ? channel.permissionsFor(me) : null;
                 if (!permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
-                    return;
-                }
-
-                const formatData = { user, guild, member };
+                    logger.debug(`Skipping goodbye message because permissions are missing in channel ${channel.id}`);
+                } else {
+                    const formatData = { user, guild, member };
                 const goodbyeMessage = formatWelcomeMessage(
                     welcomeConfig.leaveMessage || welcomeConfig.leaveEmbed?.description || botConfig.welcome?.defaultGoodbyeMessage || '{user} has left the server.',
                     formatData
@@ -74,6 +73,7 @@ export default {
                         allowedMentions: welcomeConfig?.goodbyePing ? { users: [user.id] } : { parse: [] },
                         embeds: [embed]
                     });
+                }
                 }
             }
         }
