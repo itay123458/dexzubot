@@ -167,7 +167,7 @@ export function registerDashboard(app, client) {
     res.set('X-Frame-Options', 'DENY');
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Referrer-Policy', 'no-referrer');
-    res.set('Content-Security-Policy', "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://*.discordapp.net https://i.ytimg.com data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.set('Content-Security-Policy', "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://*.discordapp.net https://*.ytimg.com data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     if (req.method !== 'GET' && !sameOrigin(req)) {
       return res.status(403).json({ error: 'Cross-origin dashboard request rejected.' });
     }
@@ -373,7 +373,7 @@ export function registerDashboard(app, client) {
     res.set('X-Frame-Options', 'DENY');
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('Referrer-Policy', 'no-referrer');
-    res.set('Content-Security-Policy', "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://*.discordapp.net https://i.ytimg.com data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.set('Content-Security-Policy', "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://*.discordapp.net https://*.ytimg.com data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     next();
   });
   app.use('/dashboard/api', router);
