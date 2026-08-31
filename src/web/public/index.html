@@ -7,6 +7,7 @@
   <title>DexzuBot Control</title>
   <link rel="stylesheet" href="/dashboard/style.css">
   <link rel="stylesheet" href="/dashboard/dashboard-controls.css">
+  <link rel="stylesheet" href="/dashboard/dashboard-polish.css">
 </head>
 <body>
   <div class="app-shell">
@@ -14,17 +15,18 @@
       <div class="brand">
         <div class="brand-avatar"><img id="bot-avatar" alt="DexzuBot avatar"></div>
         <div><span>CONTROL PANEL</span><strong>DexzuBot</strong></div>
+        <button id="sidebar-collapse" class="collapse-button" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">‹</button>
       </div>
 
       <nav class="dashboard-nav" aria-label="Dashboard sections">
         <p class="nav-label">Control</p>
-        <button class="nav-item active" data-page="overview"><span class="nav-icon">⌂</span><span>Overview</span></button>
-        <button class="nav-item" data-page="safety"><span class="nav-icon">◇</span><span>Safety</span></button>
+        <button class="nav-item active" data-page="overview" title="Overview"><span class="nav-icon">⌂</span><span>Overview</span></button>
+        <button class="nav-item" data-page="safety" title="Safety"><span class="nav-icon">◇</span><span>Safety</span></button>
         <p class="nav-label nav-group">Server</p>
-        <button class="nav-item" data-page="greetings"><span class="nav-icon">✦</span><span>Greetings</span></button>
-        <button class="nav-item" data-page="leveling"><span class="nav-icon">↗</span><span>Leveling</span></button>
-        <button class="nav-item" data-page="logging"><span class="nav-icon">≡</span><span>Logging</span></button>
-        <button class="nav-item" data-page="youtube"><span class="nav-icon">▶</span><span>YouTube</span></button>
+        <button class="nav-item" data-page="greetings" title="Greetings"><span class="nav-icon">✦</span><span>Greetings</span></button>
+        <button class="nav-item" data-page="leveling" title="Leveling"><span class="nav-icon">↗</span><span>Leveling</span></button>
+        <button class="nav-item" data-page="logging" title="Logging"><span class="nav-icon">≡</span><span>Logging</span></button>
+        <button class="nav-item" data-page="youtube" title="YouTube"><span class="nav-icon">▶</span><span>YouTube</span></button>
       </nav>
 
       <div class="sidebar-footer">
@@ -35,7 +37,7 @@
 
     <div class="workspace">
       <header class="topbar">
-        <div><p class="eyebrow">DEXZUBOT CONTROL</p><h1 id="page-title">Overview</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
+        <div><p class="breadcrumb">DexzuBot <span>/</span> <b id="breadcrumb-page">Overview</b></p><h1 id="page-title">Overview</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
         <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small>Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
       </header>
 
@@ -48,6 +50,10 @@
             <div id="categories" class="toggle-grid"></div>
           </article>
           <aside class="overview-rail"><article class="card status-card"><div class="card-head"><div><p class="eyebrow">LIVE SYSTEM</p><h2>System Status</h2></div><button id="refresh-dashboard" class="icon-button" title="Refresh dashboard" aria-label="Refresh dashboard">↻</button></div><div id="system-status" class="system-status"><div class="status-row skeleton-line"></div><div class="status-row skeleton-line"></div></div></article></aside>
+          </div>
+          <div class="insight-grid">
+            <article class="card activity-card"><div class="card-head"><div><p class="eyebrow">EVENT STREAM</p><h2>Recent Activity</h2><p>Latest events from DexzuBot.</p></div><button id="view-logs" class="secondary-button">View logs</button></div><div class="empty-state"><span class="empty-icon">≡</span><strong>No recent activity</strong><p>DexzuBot events will appear here when an activity feed is available.</p></div></article>
+            <article class="card performance-card"><div class="card-head"><div><p class="eyebrow">RUNTIME</p><h2>Bot Performance</h2><p>Live values from the current process.</p></div></div><div id="performance" class="performance-list"><div class="skeleton-line"></div><div class="skeleton-line"></div></div></article>
           </div>
         </section>
 
@@ -123,7 +129,7 @@
       </main>
     </div>
   </div>
-  <div id="toast" role="status"></div>
+  <div id="toasts" class="toast-stack" aria-live="polite"></div>
   <script src="/dashboard/app.js" defer></script>
 </body>
 </html>
