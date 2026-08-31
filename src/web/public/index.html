@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/dashboard/dashboard-controls.css">
   <link rel="stylesheet" href="/dashboard/dashboard-polish.css">
   <link rel="stylesheet" href="/dashboard/youtube-dashboard.css">
+  <link rel="stylesheet" href="/dashboard/control-pages.css">
 </head>
 <body>
   <div class="app-shell">
@@ -59,64 +60,50 @@
         </section>
 
         <section class="page" data-panel="safety">
-          <div class="page-intro"><div><p class="eyebrow">PROTECTION</p><h2>Safety controls</h2></div><p>Control promotions and protect selected users from direct mentions.</p></div>
-          <div class="split-grid">
-            <article class="card">
-              <div class="card-head"><div><p class="eyebrow">ANTI PROMO</p><h2>Promotion filter</h2><p>Promotion is allowed only in selected channels.</p></div><label class="switch"><input id="promo-enabled" type="checkbox"><span></span></label></div>
+          <div class="feature-heading"><div><p class="eyebrow">PROTECTION</p><h2>Safety Controls</h2><p>Protect the server from unwanted promotions and direct mentions.</p></div><div id="safety-summary" class="mini-summary"></div></div>
+          <div class="split-grid control-grid">
+            <article class="card control-card" data-dirty-form="safety-promo">
+              <div class="card-head"><div class="feature-title"><span class="feature-icon">◇</span><div><p class="eyebrow">PROMOTION FILTER</p><h2>Promotion Filter</h2><p>Control where promotional content is allowed.</p></div></div><label class="switch"><input id="promo-enabled" type="checkbox"><span></span></label></div>
+              <label class="field-label" for="promo-search">Allowed channels</label><input id="promo-search" class="search-input" type="search" placeholder="Search channels…">
               <div id="promo-channels" class="check-list"></div>
-              <button id="save-promo">Save anti-promo</button>
+              <div class="card-actions"><span id="promo-count">0 channels selected</span><button id="save-promo">✓ Save Changes</button></div>
             </article>
-            <article class="card">
-              <div class="card-head"><div><p class="eyebrow">ANTI PING</p><h2>Mention protection</h2><p>Protect bot owners from direct <code>@user</code> mentions.</p></div></div>
+            <article class="card control-card" data-dirty-form="safety-ping">
+              <div class="card-head"><div class="feature-title"><span class="feature-icon">@</span><div><p class="eyebrow">MENTION PROTECTION</p><h2>Mention Protection</h2><p>Protect selected members from direct <code>@mentions</code>.</p></div></div></div>
               <div id="ping-owners" class="check-list"></div>
-              <button id="save-ping">Save anti-ping</button>
+              <div class="card-actions"><span id="ping-count">0 members protected</span><button id="save-ping">✓ Save Changes</button></div>
             </article>
           </div>
+          <article class="card how-card"><p class="eyebrow">HOW IT WORKS</p><div><span><b>Promotion Filter</b> Promotional content is only allowed in selected channels.</span><span><b>Mention Protection</b> Selected members are protected from direct mentions.</span></div></article>
         </section>
 
         <section class="page" data-panel="greetings">
-          <div class="page-intro"><div><p class="eyebrow">MEMBER EXPERIENCE</p><h2>Welcome &amp; goodbye</h2></div><p>Personalized cards and messages for members joining or leaving.</p></div>
-          <article class="card form-card">
-            <div class="card-head"><div><h2>Greeting cards</h2><p>Use the custom Dexzu background with each member's avatar.</p></div><label class="switch"><input id="greeting-cards" type="checkbox"><span></span></label></div>
-            <div class="form-section">
-              <label class="check-row"><input id="welcome-enabled" type="checkbox"><span>Enable welcome cards</span></label>
-              <select id="welcome-channel"></select>
-              <input id="welcome-message" type="text" maxlength="1000" placeholder="Welcome {user} to {server}!">
-            </div>
-            <div class="form-section">
-              <label class="check-row"><input id="goodbye-enabled" type="checkbox"><span>Enable goodbye cards</span></label>
-              <select id="goodbye-channel"></select>
-              <input id="goodbye-message" type="text" maxlength="1000" placeholder="Goodbye {user.tag}">
-            </div>
-            <button id="save-greetings">Save greeting settings</button>
-          </article>
+          <div class="feature-heading"><div><p class="eyebrow">MEMBER EXPERIENCE</p><h2>Welcome &amp; Goodbye</h2><p>Personalized cards and messages for members joining or leaving.</p></div><label class="switch feature-switch"><input id="greeting-cards" type="checkbox"><span></span></label></div>
+          <div id="greeting-summary" class="summary-grid two"></div>
+          <div class="split-grid control-grid" data-dirty-form="greetings">
+            <article class="card control-card"><div class="card-head"><div class="feature-title"><span class="feature-icon">＋</span><div><p class="eyebrow">WELCOME MESSAGE</p><h2>Welcome Members</h2></div></div><label class="switch"><input id="welcome-enabled" type="checkbox"><span></span></label></div><label class="field-label" for="welcome-channel">Destination channel</label><select id="welcome-channel"></select><label class="field-label" for="welcome-message">Message template</label><input id="welcome-message" type="text" maxlength="1000" placeholder="Welcome {user} to {server}!"><p class="variable-help">Available: <code>{user}</code> <code>{server}</code></p><div id="welcome-preview" class="greeting-preview"><span>Preview</span><strong>Welcome ExampleUser</strong><p></p></div></article>
+            <article class="card control-card"><div class="card-head"><div class="feature-title"><span class="feature-icon">−</span><div><p class="eyebrow">GOODBYE MESSAGE</p><h2>Goodbye Members</h2></div></div><label class="switch"><input id="goodbye-enabled" type="checkbox"><span></span></label></div><label class="field-label" for="goodbye-channel">Destination channel</label><select id="goodbye-channel"></select><label class="field-label" for="goodbye-message">Message template</label><input id="goodbye-message" type="text" maxlength="1000" placeholder="Goodbye {user.tag}"><p class="variable-help">Available: <code>{user.tag}</code> <code>{server}</code></p><div id="goodbye-preview" class="greeting-preview goodbye"><span>Preview</span><strong>Goodbye ExampleUser</strong><p></p></div></article>
+          </div>
+          <div class="page-save-row"><span class="dirty-label">● Unsaved changes</span><button id="save-greetings">✓ Save Changes</button></div>
         </section>
 
         <section class="page" data-panel="leveling">
-          <div class="page-intro"><div><p class="eyebrow">COMMUNITY</p><h2>Leveling system</h2></div><label class="switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
-          <article class="card form-card">
-            <p class="message-preview"><span>Permanent message</span><code>{user} has leveled up to level {level}!</code></p>
-            <label class="check-row"><input id="leveling-announce" type="checkbox"><span>Send level-up announcements</span></label>
-            <select id="leveling-channel"></select>
-            <div class="level-fields">
-              <label>Minimum XP<input id="leveling-xp-min" type="number" min="1" max="1000"></label>
-              <label>Maximum XP<input id="leveling-xp-max" type="number" min="1" max="1000"></label>
-              <label>Cooldown<input id="leveling-cooldown" type="number" min="0" max="3600"><small>seconds</small></label>
-              <label>Multiplier<input id="leveling-multiplier" type="number" min="0.1" max="10" step="0.1"><small>XP rate</small></label>
-            </div>
-            <button id="save-leveling">Save leveling settings</button>
-            <div class="danger-zone"><div><strong>Reset all XP</strong><p>Permanently return every member to level 0.</p></div><button id="reset-leveling" class="danger-button">Reset everyone</button></div>
-          </article>
+          <div class="feature-heading"><div><p class="eyebrow">COMMUNITY</p><h2>Leveling System</h2><p>Configure XP rewards, progression and level-up announcements.</p></div><label class="switch feature-switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
+          <div id="leveling-summary" class="summary-grid four"></div>
+          <div class="split-grid control-grid" data-dirty-form="leveling">
+            <article class="card control-card"><div class="card-head"><div><p class="eyebrow">XP SETTINGS</p><h2>XP Configuration</h2><p>Control how quickly members progress.</p></div></div><div class="level-fields"><label>Minimum XP<input id="leveling-xp-min" type="number" min="1" max="1000"></label><label>Maximum XP<input id="leveling-xp-max" type="number" min="1" max="1000"></label><label>Cooldown<input id="leveling-cooldown" type="number" min="0" max="3600"><small>seconds</small></label><label>Multiplier<input id="leveling-multiplier" type="number" min="0.1" max="10" step="0.1"><small>XP rate</small></label></div><p id="leveling-error" class="inline-error"></p></article>
+            <article class="card control-card"><div class="card-head"><div><p class="eyebrow">LEVEL-UP ANNOUNCEMENTS</p><h2>Announcement Settings</h2></div><label class="switch"><input id="leveling-announce" type="checkbox"><span></span></label></div><label class="field-label" for="leveling-channel">Destination channel</label><select id="leveling-channel"></select><p class="message-preview"><span>Permanent message</span><code>{user} has leveled up to level {level}!</code></p><div class="level-preview"><span>Preview</span><strong>🎉 ExampleUser reached Level 12!</strong></div></article>
+          </div>
+          <div class="page-save-row"><span class="dirty-label">● Unsaved changes</span><button id="save-leveling">✓ Save Changes</button></div>
+          <article class="card danger-card"><div><p class="eyebrow">DANGER ZONE</p><h2>Reset All XP</h2><p>Permanently reset every member's XP and level to 0. This action cannot be undone.</p></div><button id="reset-leveling" class="danger-button">Reset Everyone</button></article>
         </section>
 
         <section class="page" data-panel="logging">
-          <div class="page-intro"><div><p class="eyebrow">AUDIT LOG</p><h2>Server logging</h2></div><label class="switch"><input id="logging-enabled" type="checkbox"><span></span></label></div>
-          <article class="card form-card">
-            <p>Select one private destination and choose which server events to record.</p>
-            <select id="logging-channel"></select>
-            <div id="logging-events" class="check-list event-grid"></div>
-            <button id="save-logging">Save logging settings</button>
-          </article>
+          <div class="feature-heading"><div><p class="eyebrow">AUDIT LOG</p><h2>Server Logging</h2><p>Choose which server events DexzuBot records.</p></div><label class="switch feature-switch"><input id="logging-enabled" type="checkbox"><span></span></label></div>
+          <div id="logging-summary" class="summary-grid three"></div>
+          <article class="card destination-card" data-dirty-form="logging"><div class="card-head"><div><p class="eyebrow">LOG DESTINATION</p><h2>Audit Channel</h2><p>Choose where audit events are recorded.</p></div></div><select id="logging-channel"></select></article>
+          <article class="card logging-events-card"><div class="card-head"><div><p class="eyebrow">EVENT CATEGORIES</p><h2>Recorded Events</h2><p id="logging-enabled-count">0 events enabled</p></div><div class="event-global-actions"><button id="logging-all" class="secondary-button">Enable All</button><button id="logging-none" class="secondary-button">Disable All</button></div></div><input id="logging-search" class="search-input" type="search" placeholder="Search events…"><div id="logging-events" class="logging-groups"></div></article>
+          <div id="logging-save-bar" class="logging-save-bar"><span><b>● Unsaved changes</b><small id="logging-bar-count">0 events enabled</small></span><button id="logging-discard" class="secondary-button">Discard</button><button id="save-logging">✓ Save Changes</button></div>
         </section>
 
         <section class="page" data-panel="youtube">

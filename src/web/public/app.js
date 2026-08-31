@@ -1,6 +1,9 @@
 let state;
 let youtubeLatest;
 let youtubeLatestLoaded = false;
+const dirtyPages = new Set();
+let safetyPromoDirty = false;
+let safetyPingDirty = false;
 const $ = id => document.getElementById(id);
 const toast = (message, error = false, detail = '') => {
   const type = typeof error === 'string' ? error : (error ? 'error' : 'success');
@@ -53,6 +56,12 @@ const pageDetails = {
 
 function showPage(pageName) {
   const selected = pageDetails[pageName] ? pageName : 'overview';
+  const currentPage = document.querySelector('[data-panel].active')?.dataset.panel;
+  if (currentPage && currentPage !== selected && dirtyPages.has(currentPage)) {
+    if (!confirm('Discard unsaved changes?')) return;
+    dirtyPages.delete(currentPage);
+    if (state) render(state);
+  }
   document.querySelectorAll('[data-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === selected));
   document.querySelectorAll('[data-page]').forEach(button => button.classList.toggle('active', button.dataset.page === selected));
   $('page-title').textContent = pageDetails[selected][0];
@@ -61,6 +70,47 @@ function showPage(pageName) {
   history.replaceState(null, '', `#${selected}`);
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (selected === 'youtube') void loadYouTubeLatest();
+}
+
+function setDirty(page, dirty = true) {
+  if (!['safety', 'greetings', 'leveling', 'logging'].includes(page)) return;
+  if (dirty) dirtyPages.add(page); else dirtyPages.delete(page);
+  document.querySelector(`[data-panel="${page}"]`)?.classList.toggle('is-dirty', dirty);
+}
+
+function channelName(id) { return state?.channels.find(channel => channel.id === id)?.name || 'Not configured'; }
+function updateSafetyUi() {
+  const promoCount = document.querySelectorAll('[data-group=promo]:checked').length;
+  const pingCount = document.querySelectorAll('[data-group=ping]:checked').length;
+  $('promo-count').textContent = `${promoCount} channel${promoCount === 1 ? '' : 's'} selected`;
+  $('ping-count').textContent = `${pingCount} member${pingCount === 1 ? '' : 's'} protected`;
+  $('safety-summary').innerHTML = `<span><i class="status-dot ${$('promo-enabled').checked ? 'good' : ''}"></i>Promotion Filter <b>${$('promo-enabled').checked ? 'Enabled' : 'Disabled'}</b></span><span><i class="status-dot ${pingCount ? 'good' : ''}"></i>Mention Protection <b>${pingCount ? 'Enabled' : 'Disabled'}</b></span>`;
+}
+function updateGreetingUi() {
+  const welcomeChannel = channelName($('welcome-channel').value); const goodbyeChannel = channelName($('goodbye-channel').value);
+  $('greeting-summary').innerHTML = [['Welcome Messages', $('welcome-enabled').checked, welcomeChannel, '＋'], ['Goodbye Messages', $('goodbye-enabled').checked, goodbyeChannel, '−']].map(([label, enabled, destination, symbol]) => `<article class="summary-card"><span class="summary-icon">${symbol}</span><div><small>${label}</small><strong><i class="status-dot ${enabled ? 'good' : ''}"></i>${enabled ? 'Enabled' : 'Disabled'}</strong><p>Destination: ${destination === 'Not configured' ? '' : '#'}${escapeHtml(destination)}</p></div></article>`).join('');
+  $('welcome-preview').querySelector('p').textContent = $('welcome-message').value.replaceAll('{user}', 'ExampleUser').replaceAll('{server}', state?.server.name || 'the server');
+  $('goodbye-preview').querySelector('p').textContent = $('goodbye-message').value.replaceAll('{user.tag}', 'ExampleUser').replaceAll('{server}', state?.server.name || 'the server');
+}
+function validateLeveling() {
+  const min = Number($('leveling-xp-min').value), max = Number($('leveling-xp-max').value), cooldown = Number($('leveling-cooldown').value), multiplier = Number($('leveling-multiplier').value);
+  let error = '';
+  if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || max > 1000 || min > max) error = 'Minimum XP must be at least 1 and cannot exceed maximum XP.';
+  else if (!Number.isInteger(cooldown) || cooldown < 0 || cooldown > 3600) error = 'Cooldown must be between 0 and 3600 seconds.';
+  else if (!Number.isFinite(multiplier) || multiplier < .1 || multiplier > 10) error = 'Multiplier must be between 0.1× and 10×.';
+  $('leveling-error').textContent = error;
+  $('save-leveling').disabled = Boolean(error);
+  $('leveling-summary').innerHTML = [['Leveling', $('leveling-enabled').checked ? 'Active' : 'Disabled'], ['XP Range', `${min || 0} – ${max || 0}`], ['Cooldown', `${cooldown || 0} sec`], ['Multiplier', `${multiplier || 0}×`]].map(([label,value]) => `<article class="summary-card"><small>${label}</small><strong>${escapeHtml(value)}</strong></article>`).join('');
+  return !error;
+}
+function updateLoggingUi() {
+  const checked = document.querySelectorAll('[data-group=logging]:checked').length;
+  const total = document.querySelectorAll('[data-group=logging]').length;
+  $('logging-enabled-count').textContent = `${checked} of ${total} events enabled`;
+  $('logging-bar-count').textContent = `${checked} events enabled`;
+  const destination = channelName($('logging-channel').value);
+  $('logging-summary').innerHTML = [['Logging', $('logging-enabled').checked ? 'Enabled' : 'Disabled'], ['Destination', `${destination === 'Not configured' ? '' : '#'}${destination}`], ['Events', `${checked} enabled`]].map(([label,value]) => `<article class="summary-card"><small>${label}</small><strong>${escapeHtml(value)}</strong></article>`).join('');
+  document.querySelectorAll('.logging-group').forEach(group => { const all = group.querySelectorAll('[data-group=logging]').length; const on = group.querySelectorAll('[data-group=logging]:checked').length; group.querySelector('.group-count').textContent = `${on}/${all} enabled`; });
 }
 
 document.querySelectorAll('[data-page]').forEach(button => {
@@ -120,7 +170,7 @@ function render(current) {
   }; });
   $('promo-enabled').checked = current.antiPromo.enabled;
   $('promo-channels').innerHTML = current.channels.map(channel => checkbox(channel.id, `#${channel.name}`, current.antiPromo.allowedChannelIds.includes(channel.id), 'promo')).join('');
-  $('ping-owners').innerHTML = current.owners.map(owner => checkbox(owner.id, owner.name, current.antiPing.protectedUserIds.includes(owner.id), 'ping')).join('');
+  $('ping-owners').innerHTML = current.owners.map(owner => `<label class="check-row owner-row"><input type="checkbox" data-group="ping" value="${owner.id}" ${current.antiPing.protectedUserIds.includes(owner.id) ? 'checked' : ''}><span class="owner-avatar">${owner.avatar ? `<img src="${escapeHtml(owner.avatar)}" alt="">` : '@'}</span><span><b>${escapeHtml(owner.name)}</b><small>Protected from direct mentions</small></span></label>`).join('');
   $('greeting-cards').checked = current.greetings.cardEnabled;
   $('welcome-enabled').checked = current.greetings.welcomeEnabled;
   $('welcome-channel').innerHTML = channelOptions(current.channels, current.greetings.welcomeChannelId, 'Choose a welcome channel');
@@ -137,16 +187,42 @@ function render(current) {
   $('leveling-multiplier').value = current.leveling.multiplier;
   $('logging-enabled').checked = current.logging.enabled;
   $('logging-channel').innerHTML = channelOptions(current.channels, current.logging.channelId, 'Choose a log channel');
-  $('logging-events').innerHTML = current.logging.events.map(event => checkbox(event.key, event.label, event.enabled, 'logging')).join('');
+  const logGroups = { Moderation: [], Messages: [], Voice: [], Members: [], Channels: [], Server: [] };
+  current.logging.events.forEach(event => {
+    const prefix = event.key.split('.')[0];
+    const group = prefix === 'moderation' ? 'Moderation' : prefix === 'message' ? 'Messages' : prefix === 'voice' ? 'Voice' : prefix === 'member' ? 'Members' : prefix === 'channel' ? 'Channels' : 'Server';
+    logGroups[group].push(event);
+  });
+  $('logging-events').innerHTML = Object.entries(logGroups).filter(([,events]) => events.length).map(([group, events]) => `<details class="logging-group" open><summary><span>${group}</span><b class="group-count">${events.filter(event => event.enabled).length}/${events.length} enabled</b></summary><div class="group-actions"><button type="button" data-log-action="on">Enable All</button><button type="button" data-log-action="off">Disable All</button></div><div class="group-events">${events.map(event => checkbox(event.key, event.label, event.enabled, 'logging')).join('')}</div></details>`).join('');
   $('youtube-enabled').checked = current.youtube.enabled;
   $('youtube-channel').innerHTML = channelOptions(current.channels, current.youtube.channelId, 'Choose a channel');
   $('youtube-preview-avatar').src = current.bot.avatar;
+  updateSafetyUi(); updateGreetingUi(); validateLeveling(); updateLoggingUi();
+  safetyPromoDirty = false; safetyPingDirty = false;
+  ['safety','greetings','leveling','logging'].forEach(page => setDirty(page, false));
+  bindControlEvents();
   updateYouTubeSummary();
   renderYouTubeLatest();
 }
 
 function selectedYouTubeChannel() {
   return state?.channels.find(channel => channel.id === $('youtube-channel').value) || null;
+}
+
+function bindControlEvents() {
+  const bind = (ids, page, update) => ids.forEach(id => { const element = $(id); element.oninput = element.onchange = () => { setDirty(page); update?.(); }; });
+  $('promo-enabled').onchange = () => { safetyPromoDirty = true; setDirty('safety'); updateSafetyUi(); };
+  document.querySelectorAll('[data-group=promo],[data-group=ping]').forEach(input => { input.onchange = () => { if (input.dataset.group === 'promo') safetyPromoDirty = true; else safetyPingDirty = true; setDirty('safety'); updateSafetyUi(); input.closest('.check-row')?.classList.toggle('selected', input.checked); }; input.closest('.check-row')?.classList.toggle('selected', input.checked); });
+  $('promo-search').oninput = () => { const query = $('promo-search').value.trim().toLowerCase(); document.querySelectorAll('[data-group=promo]').forEach(input => { input.closest('.check-row').hidden = !input.closest('.check-row').textContent.toLowerCase().includes(query); }); };
+  bind(['greeting-cards','welcome-enabled','welcome-channel','welcome-message','goodbye-enabled','goodbye-channel','goodbye-message'], 'greetings', updateGreetingUi);
+  bind(['leveling-enabled','leveling-announce','leveling-channel','leveling-xp-min','leveling-xp-max','leveling-cooldown','leveling-multiplier'], 'leveling', validateLeveling);
+  bind(['logging-enabled','logging-channel'], 'logging', updateLoggingUi);
+  document.querySelectorAll('[data-group=logging]').forEach(input => { input.onchange = () => { setDirty('logging'); updateLoggingUi(); }; });
+  document.querySelectorAll('[data-log-action]').forEach(button => { button.onclick = () => { button.closest('.logging-group').querySelectorAll('[data-group=logging]').forEach(input => { input.checked = button.dataset.logAction === 'on'; }); setDirty('logging'); updateLoggingUi(); }; });
+  $('logging-all').onclick = () => { document.querySelectorAll('[data-group=logging]').forEach(input => { input.checked = true; }); setDirty('logging'); updateLoggingUi(); };
+  $('logging-none').onclick = () => { document.querySelectorAll('[data-group=logging]').forEach(input => { input.checked = false; }); setDirty('logging'); updateLoggingUi(); };
+  $('logging-search').oninput = () => { const query = $('logging-search').value.trim().toLowerCase(); document.querySelectorAll('.logging-group').forEach(group => { let visible = 0; group.querySelectorAll('.check-row').forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(query); if (!row.hidden) visible += 1; }); group.hidden = visible === 0; if (query && visible) group.open = true; }); };
+  $('logging-discard').onclick = () => { dirtyPages.delete('logging'); render(state); };
 }
 
 function updateYouTubeSummary() {
@@ -223,16 +299,17 @@ $('refresh-dashboard').onclick = async () => {
   finally { button.classList.remove('loading'); button.disabled = false; }
 };
 
-$('save-promo').onclick = async () => { try { await post('anti-promo', { enabled: $('promo-enabled').checked, allowedChannelIds: [...document.querySelectorAll('[data-group=promo]:checked')].map(input => input.value) }); toast('Anti-promo saved'); await load(); } catch (error) { toast(error.message, true); } };
-$('save-ping').onclick = async () => { try { await post('anti-ping', { protectedUserIds: [...document.querySelectorAll('[data-group=ping]:checked')].map(input => input.value) }); toast('Anti-ping saved'); await load(); } catch (error) { toast(error.message, true); } };
-$('save-greetings').onclick = async () => { try { await post('greetings', { cardEnabled: $('greeting-cards').checked, welcomeEnabled: $('welcome-enabled').checked, welcomeChannelId: $('welcome-channel').value, welcomeMessage: $('welcome-message').value, goodbyeEnabled: $('goodbye-enabled').checked, goodbyeChannelId: $('goodbye-channel').value, goodbyeMessage: $('goodbye-message').value }); toast('Greeting settings saved'); await load(); } catch (error) { toast(error.message, true); } };
+$('save-promo').onclick = async () => { try { const allowedChannelIds = [...document.querySelectorAll('[data-group=promo]:checked')].map(input => input.value); await post('anti-promo', { enabled: $('promo-enabled').checked, allowedChannelIds }); state.antiPromo = { enabled: $('promo-enabled').checked, allowedChannelIds }; safetyPromoDirty = false; setDirty('safety', safetyPingDirty); toast('Promotion filter saved'); } catch (error) { toast("Couldn't save promotion filter", true, error.message); } };
+$('save-ping').onclick = async () => { try { const protectedUserIds = [...document.querySelectorAll('[data-group=ping]:checked')].map(input => input.value); await post('anti-ping', { protectedUserIds }); state.antiPing.protectedUserIds = protectedUserIds; safetyPingDirty = false; setDirty('safety', safetyPromoDirty); toast('Mention protection saved'); } catch (error) { toast("Couldn't save mention protection", true, error.message); } };
+$('save-greetings').onclick = async () => { try { const settings = { cardEnabled: $('greeting-cards').checked, welcomeEnabled: $('welcome-enabled').checked, welcomeChannelId: $('welcome-channel').value, welcomeMessage: $('welcome-message').value, goodbyeEnabled: $('goodbye-enabled').checked, goodbyeChannelId: $('goodbye-channel').value, goodbyeMessage: $('goodbye-message').value }; await post('greetings', settings); state.greetings = { ...state.greetings, ...settings }; setDirty('greetings', false); toast('Greeting settings saved'); } catch (error) { toast("Couldn't save greeting settings", true, error.message); } };
 $('save-leveling').onclick = async () => {
   const button = $('save-leveling');
   if (button.disabled) return;
+  if (!validateLeveling()) return;
   button.disabled = true;
   button.textContent = 'Saving...';
   try {
-    await post('leveling', {
+    const settings = {
       enabled: $('leveling-enabled').checked,
       announceLevelUp: $('leveling-announce').checked,
       channelId: $('leveling-channel').value,
@@ -240,18 +317,19 @@ $('save-leveling').onclick = async () => {
       xpMax: Number($('leveling-xp-max').value),
       cooldown: Number($('leveling-cooldown').value),
       multiplier: Number($('leveling-multiplier').value),
-    });
+    };
+    await post('leveling', settings);
+    state.leveling = { ...state.leveling, ...settings }; setDirty('leveling', false);
     toast('Leveling settings saved');
-    await load();
   } catch (error) {
     toast(error.message, true);
   } finally {
     button.disabled = false;
-    button.textContent = 'Save leveling settings';
+    button.textContent = '✓ Save Changes';
   }
 };
-$('reset-leveling').onclick = async () => { const confirmation = prompt(`Type ${state.server.name} to reset every member's XP and level:`); if (confirmation === null) return; try { const result = await post('leveling/reset', { confirm: confirmation }); toast(`Reset XP for ${result.resetCount} members`); } catch (error) { toast(error.message, true); } };
-$('save-logging').onclick = async () => { try { await post('logging', { enabled: $('logging-enabled').checked, channelId: $('logging-channel').value, enabledEventTypes: [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value) }); toast('Logging settings saved'); await load(); } catch (error) { toast(error.message, true); } };
+$('reset-leveling').onclick = async () => { if (!confirm(`Reset all XP?\n\nThis will permanently reset XP and levels for every member in ${state.server.name}. This action cannot be undone.`)) return; const confirmation = prompt(`Type ${state.server.name} to confirm the reset:`); if (confirmation === null) return; try { const result = await post('leveling/reset', { confirm: confirmation }); toast(`Reset XP for ${result.resetCount} members`); } catch (error) { toast(error.message, true); } };
+$('save-logging').onclick = async () => { try { const enabledEventTypes = [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value); const enabled = $('logging-enabled').checked; const channelId = $('logging-channel').value; await post('logging', { enabled, channelId, enabledEventTypes }); state.logging.enabled = enabled; state.logging.channelId = channelId; state.logging.events.forEach(event => { event.enabled = enabledEventTypes.includes(event.key); }); setDirty('logging', false); toast('Logging settings saved'); } catch (error) { toast("Couldn't save logging settings", true, error.message); } };
 $('youtube-channel').onchange = () => { document.querySelector('.youtube-config').classList.add('dirty'); updateYouTubeSummary(); };
 $('youtube-enabled').onchange = async () => {
   const input = $('youtube-enabled'); const previous = !input.checked; const enabled = input.checked;
@@ -287,3 +365,4 @@ $('test-youtube').onclick = async () => {
   finally { button.disabled = false; }
 };
 load().catch(error => toast(error.message, true));
+window.addEventListener('beforeunload', event => { if (!dirtyPages.size) return; event.preventDefault(); event.returnValue = ''; });
