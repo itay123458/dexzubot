@@ -36,7 +36,9 @@ async function encodePng(image) {
   const stream = new PassThrough();
   const chunks = [];
   stream.on('data', chunk => chunks.push(chunk));
-  await PureImage.encodePNGToStream(image, stream);
+  // Fast compression matters more than saving a few kilobytes on greeting
+  // cards and avoids a long pause on the Raspberry Pi.
+  await PureImage.encodePNGToStream(image, stream, { deflateLevel: 1, deflateStrategy: 3 });
   return Buffer.concat(chunks);
 }
 
