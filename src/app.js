@@ -94,7 +94,7 @@ class TitanBot extends Client {
       await this.login(this.config.bot.token);
       startupLog('Discord login successful');
       
-      startupLog('Registering slash commands globally...');
+      startupLog('Registering slash commands for the configured server...');
       await this.registerCommands();
       startupLog('Slash commands registration complete');
       
@@ -332,7 +332,7 @@ class TitanBot extends Client {
     try {
       const guildId = process.env.GUILD_ID || this.guilds.cache.first()?.id;
       const guildConfig = guildId ? await getGuildConfig(this, guildId) : null;
-      await registerSlashCommands(this, { clientId: this.config.bot.clientId, guildConfig });
+      await registerSlashCommands(this, { clientId: this.config.bot.clientId, guildId, guildConfig });
     } catch (error) {
       logger.error('Error registering commands:', error);
     }

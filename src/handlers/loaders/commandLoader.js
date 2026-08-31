@@ -312,12 +312,31 @@ async function registerGlobalCommands(client, clientId, commands, totalSubcomman
     logger.info('Global commands may take up to an hour to appear in all servers on first deploy');
 }
 
+async function registerGuildCommands(client, clientId, guildId, commands, totalSubcommands) {
+    if (!clientId || !guildId) {
+        throw new Error('CLIENT_ID and guildId are required for guild slash command registration');
+    }
+    if (!client.rest) {
+        throw new Error('Discord REST client is not available for slash command registration');
+    }
+
+    logger.info(`Preparing to register ${totalSubcommands + commands.length} commands in guild ${guildId}`);
+    validateCommands(commands);
+    const commandsToRegister = prepareCommandsForRegistration(commands);
+    await client.rest.put(`/applications/${clientId}/guilds/${guildId}/commands`, { body: commandsToRegister });
+    logger.info(`Successfully registered ${commandsToRegister.length} guild commands in ${guildId}`);
+}
+
 export async function registerCommands(client, options = {}) {
-    const { clientId = null, guildConfig = null } = options;
+    const { clientId = null, guildId = null, guildConfig = null } = options;
 
     try {
         const { commands, totalSubcommands } = collectCommandPayloads(client, guildConfig);
-        await registerGlobalCommands(client, clientId, commands, totalSubcommands);
+        if (guildId) {
+            await registerGuildCommands(client, clientId, guildId, commands, totalSubcommands);
+        } else {
+            await registerGlobalCommands(client, clientId, commands, totalSubcommands);
+        }
     } catch (error) {
         logger.error('Error registering commands:', error);
         throw error;
@@ -327,7 +346,7 @@ export async function registerCommands(client, options = {}) {
 export async function syncGuildCommandRegistration(client, guildId) {
     const guildConfig = await getGuildConfig(client, guildId);
     const clientId = client.application?.id || client.config?.bot?.clientId || process.env.CLIENT_ID;
-    await registerCommands(client, { clientId, guildConfig });
+    await registerCommands(client, { clientId, guildId, guildConfig });
 }
 
 export async function reloadCommand(client, commandName) {
