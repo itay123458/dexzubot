@@ -55,8 +55,8 @@ async function completeTimedSoftban(client, record) {
 
   const configuredChannel = await guild.channels.fetch(record.inviteChannelId).catch(() => null);
   const inviteChannel = findSoftbanInviteChannel(guild, configuredChannel);
-  let inviteUrl = null;
-  if (inviteChannel) {
+  let inviteUrl = record.inviteUrl || null;
+  if (!inviteUrl && inviteChannel) {
     const invite = await inviteChannel.createInvite({
       maxAge: 7 * 24 * 60 * 60,
       maxUses: 1,

@@ -62,21 +62,21 @@ export default {
       durationMs,
       inviteChannelId: inviteChannel.id,
       reason,
-      beforeAction: providedReason
-        ? () => sendModerationReasonDm({
+      beforeAction: ({ inviteUrl, expiresAt }) => sendModerationReasonDm({
           user: targetUser,
           guild: interaction.guild,
-          action: 'Softban',
-          reason: providedReason,
+          action: 'Timed softban',
+          reason,
           duration: durationDisplay,
-        })
-        : null,
+          inviteUrl,
+          availableAt: expiresAt,
+        }),
     });
 
     await InteractionHelper.safeEditReply(interaction, {
       embeds: [successEmbed(
         `Softbanned ${targetUser.tag}`,
-        `**Duration:** ${durationDisplay}\n**Reason:** ${reason}\n**Messages removed:** Last 7 days\n**Expires:** <t:${Math.floor((Date.now() + durationMs) / 1000)}:R>\n**Return:** The member will be unbanned and sent a one-use invite.\n**Case ID:** #${result.caseId}${providedReason ? `\n**DM:** ${result.dmSent ? 'Delivered' : 'Could not deliver'}` : ''}`,
+        `**Duration:** ${durationDisplay}\n**Reason:** ${reason}\n**Messages removed:** Last 7 days\n**Expires:** <t:${Math.floor((Date.now() + durationMs) / 1000)}:R>\n**Return invite:** Delivered before the ban and usable after it expires.\n**Case ID:** #${result.caseId}\n**DM:** Delivered`,
       )],
     });
   },

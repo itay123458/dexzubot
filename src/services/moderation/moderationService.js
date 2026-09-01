@@ -295,10 +295,35 @@ export class ModerationService {
         );
       }
 
-      const dmSent = beforeAction ? await beforeAction() : null;
+      const expiresAt = new Date(Date.now() + durationMs).toISOString();
+      const inviteChannel = await guild.channels.fetch(inviteChannelId).catch(() => null);
+      if (!inviteChannel?.createInvite) {
+        throw new TitanBotError('Invite channel unavailable', ErrorTypes.PERMISSION, 'I could not access the channel selected for the return invite.');
+      }
+      const invite = await inviteChannel.createInvite({
+        maxAge: 0,
+        maxUses: 1,
+        unique: true,
+        reason: `Return invite for timed softban of ${member.id}`,
+      });
+
+      const dmSent = beforeAction ? await beforeAction({ inviteUrl: invite.url, expiresAt }) : false;
+      if (!dmSent) {
+        await invite.delete('Timed softban cancelled because the return invite DM failed').catch(() => {});
+        throw new TitanBotError(
+          'Return invite DM failed',
+          ErrorTypes.UNKNOWN,
+          `I could not DM **${getTargetLabel(member)}** their return invite, so the timed softban was not applied. Ask them to enable direct messages and try again.`
+        );
+      }
 
       markBotModerationAction(guild.id, 'ban', member.id);
-      await guild.members.ban(member.id, { deleteMessageSeconds: 7 * 24 * 60 * 60, reason });
+      try {
+        await guild.members.ban(member.id, { deleteMessageSeconds: 7 * 24 * 60 * 60, reason });
+      } catch (error) {
+        await invite.delete('Timed softban failed before the ban was applied').catch(() => {});
+        throw error;
+      }
 
       try {
         await scheduleTimedSoftban(guild.client, {
@@ -307,12 +332,14 @@ export class ModerationService {
           moderatorId: moderator.id,
           reason,
           inviteChannelId,
+          inviteUrl: invite.url,
           createdAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + durationMs).toISOString(),
+          expiresAt,
         });
       } catch (error) {
         markBotModerationAction(guild.id, 'unban', member.id);
         await guild.members.unban(member.id, 'Timed softban scheduling failed; reverting ban').catch(() => {});
+        await invite.delete('Timed softban scheduling failed').catch(() => {});
         throw new TitanBotError(
           `Softban scheduling failed: ${error.message}`,
           ErrorTypes.UNKNOWN,
@@ -333,7 +360,7 @@ export class ModerationService {
             moderatorId: moderator.id,
             deletedMessageDays: 7,
             durationMs,
-            expiresAt: new Date(Date.now() + durationMs).toISOString()
+            expiresAt
           }
         }
       });
