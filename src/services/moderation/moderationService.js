@@ -6,6 +6,7 @@ import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logModerationAction } from '../../utils/moderation.js';
 import { markBotModerationAction } from '../loggingService.js';
 import { formatModerationDuration } from '../../utils/moderationDuration.js';
+import { scheduleTimedSoftban } from './timedSoftbanService.js';
 
 function getTargetLabel(target) {
   return target.user?.tag ?? target.displayName ?? 'this user';
@@ -271,15 +272,17 @@ export class ModerationService {
     guild,
     member,
     moderator,
+    durationMs,
+    inviteChannelId,
     reason = 'No reason provided',
     beforeAction = null
   }) {
     try {
-      if (!guild || !member || !moderator) {
+      if (!guild || !member || !moderator || !durationMs || !inviteChannelId) {
         throw new TitanBotError(
           'Missing required parameters',
           ErrorTypes.VALIDATION,
-          'Guild, member, and moderator are required'
+          'Guild, member, moderator, duration, and invite channel are required'
         );
       }
 
@@ -298,13 +301,22 @@ export class ModerationService {
       await guild.members.ban(member.id, { deleteMessageSeconds: 7 * 24 * 60 * 60, reason });
 
       try {
-        markBotModerationAction(guild.id, 'unban', member.id);
-        await guild.members.unban(member.id, `Softban completed: ${reason}`);
+        await scheduleTimedSoftban(guild.client, {
+          guildId: guild.id,
+          userId: member.id,
+          moderatorId: moderator.id,
+          reason,
+          inviteChannelId,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + durationMs).toISOString(),
+        });
       } catch (error) {
+        markBotModerationAction(guild.id, 'unban', member.id);
+        await guild.members.unban(member.id, 'Timed softban scheduling failed; reverting ban').catch(() => {});
         throw new TitanBotError(
-          `Softban unban failed: ${error.message}`,
+          `Softban scheduling failed: ${error.message}`,
           ErrorTypes.UNKNOWN,
-          `The member was banned, but I could not remove the ban. Use \`/unban target:${member.id}\` to finish the softban.`
+          'I could not save the timed ban, so the ban was reverted. Please try again.'
         );
       }
 
@@ -319,13 +331,15 @@ export class ModerationService {
           metadata: {
             userId: member.id,
             moderatorId: moderator.id,
-            deletedMessageDays: 7
+            deletedMessageDays: 7,
+            durationMs,
+            expiresAt: new Date(Date.now() + durationMs).toISOString()
           }
         }
       });
 
       logger.info(`User softbanned: ${member.user.tag} by ${moderator.user.tag} in ${guild.name}`);
-      return { caseId, user: member.user.tag, reason, dmSent };
+      return { caseId, user: member.user.tag, reason, durationMs, dmSent };
     } catch (error) {
       logger.error('Error softbanning user:', error);
       throw error;

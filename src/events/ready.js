@@ -7,6 +7,7 @@ import { reconcileLevelRoles } from "../services/leveling/levelRoleSyncService.j
 import { initRiffyAfterReady } from "../services/music/riffySetup.js";
 import { initializePresenceMirror } from "../services/presenceMirrorService.js";
 import { initializeYouTubeAlerts } from "../services/youtubeAlertService.js";
+import { initializeTimedSoftbans } from "../services/moderation/timedSoftbanService.js";
 
 export default {
   name: Events.ClientReady,
@@ -16,10 +17,12 @@ export default {
     try {
       await initializePresenceMirror(client);
       initializeYouTubeAlerts(client);
+      const restoredSoftbans = await initializeTimedSoftbans(client);
 
       startupLog(`Ready! Logged in as ${client.user.tag}`);
       startupLog(`Serving ${client.guilds.cache.size} guild(s)`);
       startupLog(`Loaded ${client.commands.size} commands`);
+      startupLog(`Timed softbans restored: ${restoredSoftbans}`);
 
       if (client.config?.features?.music) {
         initRiffyAfterReady(client);
