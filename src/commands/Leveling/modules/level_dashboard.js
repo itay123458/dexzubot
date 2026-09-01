@@ -23,6 +23,7 @@ import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorH
 import { getLevelingConfig, saveLevelingConfig, PERMANENT_LEVEL_UP_MESSAGE } from '../../../services/leveling/leveling.js';
 import { botHasPermission } from '../../../utils/permissionGuard.js';
 import { startDashboardSession } from '../../../utils/dashboardSession.js';
+import { reconcileLevelRoles } from '../../../services/leveling/levelRoleSyncService.js';
 
 function buildDashboardEmbed(cfg, guild) {
     const channel = cfg.levelUpChannel ? `<#${cfg.levelUpChannel}>` : '`Not set`';
@@ -294,13 +295,23 @@ async function handleRoleRewardAdd(selectInteraction, rootInteraction, cfg, guil
     }
 
     const roleId = submitted.fields.getField('reward_role').values[0];
+    const role = rootInteraction.guild.roles.cache.get(roleId);
+    const botHighestRole = rootInteraction.guild.members.me?.roles.highest;
+    if (!role || role.id === rootInteraction.guild.id || role.managed || !botHighestRole || role.position >= botHighestRole.position) {
+        await replyUserError(submitted, {
+            type: ErrorTypes.PERMISSION,
+            message: 'Choose a role below DexzuBot\'s highest role that is not managed by another integration.',
+        });
+        return;
+    }
 
     cfg.roleRewards = cfg.roleRewards ?? {};
     cfg.roleRewards[level] = roleId;
     await saveLevelingConfig(client, guildId, cfg);
+    const sync = await reconcileLevelRoles(client, guildId);
 
     await submitted.reply({
-        embeds: [successEmbed('Role Reward Added', `<@&${roleId}> will now be awarded at level **${level}**.`)],
+        embeds: [successEmbed('Role Reward Added', `<@&${roleId}> will now be awarded at level **${level}**.${sync.rolesReAwarded ? `\nAssigned to **${sync.rolesReAwarded}** eligible existing member(s).` : ''}`)],
         flags: MessageFlags.Ephemeral,
     });
 

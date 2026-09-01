@@ -15,7 +15,8 @@ import { fetchLatestYouTubeVideo, sendYouTubeAlert } from '../services/youtubeAl
 import { syncGuildCommandRegistration } from '../handlers/loaders/commandLoader.js';
 import { logger } from '../utils/logger.js';
 import { EVENT_TYPES } from '../services/loggingService.js';
-import { PERMANENT_LEVEL_UP_MESSAGE, resetGuildLevelData } from '../services/leveling/leveling.js';
+import { PERMANENT_LEVEL_UP_MESSAGE, resetGuildLevelData, saveLevelingConfig } from '../services/leveling/leveling.js';
+import { reconcileLevelRoles } from '../services/leveling/levelRoleSyncService.js';
 import { getWelcomeConfig, saveWelcomeConfig } from '../utils/database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -91,6 +92,11 @@ function publicConfigState(client, guild, config, welcomeConfig) {
     label,
     enabled: config.logging?.enabledEvents?.[key] !== false,
   }));
+  const botHighestRole = guild.members.me?.roles.highest;
+  const manageableRoles = guild.roles.cache
+    .filter(role => role.id !== guild.id && !role.managed && botHighestRole && role.position < botHighestRole.position)
+    .map(role => ({ id: role.id, name: role.name, color: role.hexColor }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return {
     bot: {
@@ -109,6 +115,7 @@ function publicConfigState(client, guild, config, welcomeConfig) {
     },
     database: client.db?.getStatus?.() || null,
     channels,
+    roles: manageableRoles,
     owners,
     categories: snapshot.categories
       .filter(category => isSlashCommandCategoryEnabled(category.folder))
@@ -153,6 +160,10 @@ function publicConfigState(client, guild, config, welcomeConfig) {
       xpMax: config.leveling?.xpRange?.max || config.leveling?.xpPerMessage?.max || 25,
       cooldown: config.leveling?.xpCooldown ?? 20,
       multiplier: config.leveling?.xpMultiplier ?? 1,
+      roleRewards: Object.entries(config.leveling?.roleRewards || {})
+        .map(([level, roleId]) => ({ level: Number(level), roleId }))
+        .filter(reward => Number.isInteger(reward.level) && reward.level >= 1 && reward.level <= 500)
+        .sort((a, b) => a.level - b.level),
     },
     greetings: {
       cardEnabled: welcomeConfig.cardEnabled === true,
@@ -360,6 +371,32 @@ export function registerDashboard(app, client) {
     }
     const resetCount = await resetGuildLevelData(client, guild.id);
     return res.json({ ok: true, resetCount });
+  });
+
+  router.post('/leveling/rewards', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const requested = req.body?.roleRewards;
+    if (!guild || !Array.isArray(requested) || requested.length > 25) {
+      return res.status(400).json({ error: 'Choose up to 25 valid level role rewards.' });
+    }
+
+    const botHighestRole = guild.members.me?.roles.highest;
+    const roleRewards = {};
+    for (const reward of requested) {
+      const level = Number(reward?.level);
+      const roleId = String(reward?.roleId || '');
+      const role = guild.roles.cache.get(roleId);
+      if (!Number.isInteger(level) || level < 1 || level > 500 || roleRewards[level] ||
+        !role || role.id === guild.id || role.managed || !botHighestRole || role.position >= botHighestRole.position) {
+        return res.status(400).json({ error: 'Each reward needs a unique level from 1 to 500 and a role DexzuBot can manage.' });
+      }
+      roleRewards[level] = roleId;
+    }
+
+    const config = await getGuildConfig(client, guild.id);
+    await saveLevelingConfig(client, guild.id, { ...(config.leveling || {}), roleRewards });
+    const sync = await reconcileLevelRoles(client, guild.id);
+    return res.json({ ok: true, roleRewards: requested, rolesAwarded: sync.rolesReAwarded });
   });
 
   router.post('/greetings', async (req, res) => {

@@ -5,6 +5,9 @@ const dirtyPages = new Set();
 let safetyPromoDirty = false;
 let safetyPingDirty = false;
 let safetyAdvancedDirty = false;
+let levelingSettingsDirty = false;
+let levelingRewardsDirty = false;
+let levelRewardDraft = [];
 const $ = id => document.getElementById(id);
 const toast = (message, error = false, detail = '') => {
   const type = typeof error === 'string' ? error : (error ? 'error' : 'success');
@@ -104,6 +107,18 @@ function validateLeveling() {
   $('leveling-summary').innerHTML = [['Leveling', $('leveling-enabled').checked ? 'Active' : 'Disabled'], ['XP Range', `${min || 0} – ${max || 0}`], ['Cooldown', `${cooldown || 0} sec`], ['Multiplier', `${multiplier || 0}×`]].map(([label,value]) => `<article class="summary-card"><small>${label}</small><strong>${escapeHtml(value)}</strong></article>`).join('');
   return !error;
 }
+function renderLevelRewards() {
+  const rewards = [...levelRewardDraft].sort((a, b) => a.level - b.level);
+  $('level-reward-count').textContent = `${rewards.length} configured`;
+  $('level-reward-list').innerHTML = rewards.length ? rewards.map(reward => {
+    const role = state.roles.find(item => item.id === reward.roleId);
+    return `<div class="level-reward-row"><span>Level ${reward.level}</span><strong><i class="role-color" style="color:${escapeHtml(role?.color || '#99aab5')};background:${escapeHtml(role?.color || '#99aab5')}"></i>${escapeHtml(role?.name || 'Missing role')}</strong><button type="button" data-remove-level-reward="${reward.level}">Remove</button></div>`;
+  }).join('') : '<div class="level-reward-empty">No level roles configured yet.</div>';
+  document.querySelectorAll('[data-remove-level-reward]').forEach(button => { button.onclick = () => {
+    levelRewardDraft = levelRewardDraft.filter(reward => reward.level !== Number(button.dataset.removeLevelReward));
+    levelingRewardsDirty = true; setDirty('leveling', levelingSettingsDirty || levelingRewardsDirty); renderLevelRewards();
+  }; });
+}
 function updateLoggingUi() {
   const checked = document.querySelectorAll('[data-group=logging]:checked').length;
   const total = document.querySelectorAll('[data-group=logging]').length;
@@ -191,6 +206,9 @@ function render(current) {
   $('leveling-xp-max').value = current.leveling.xpMax;
   $('leveling-cooldown').value = current.leveling.cooldown;
   $('leveling-multiplier').value = current.leveling.multiplier;
+  levelRewardDraft = current.leveling.roleRewards.map(reward => ({ ...reward }));
+  $('level-reward-role').innerHTML = `<option value="">Choose a role</option>${current.roles.map(role => `<option value="${role.id}">${escapeHtml(role.name)}</option>`).join('')}`;
+  renderLevelRewards();
   $('logging-enabled').checked = current.logging.enabled;
   $('logging-channel').innerHTML = channelOptions(current.channels, current.logging.channelId, 'Choose a log channel');
   const logGroups = { Moderation: [], Messages: [], Voice: [], Members: [], Channels: [], Server: [] };
@@ -204,7 +222,7 @@ function render(current) {
   $('youtube-channel').innerHTML = channelOptions(current.channels, current.youtube.channelId, 'Choose a channel');
   $('youtube-preview-avatar').src = current.bot.avatar;
   updateSafetyUi(); updateGreetingUi(); validateLeveling(); updateLoggingUi();
-  safetyPromoDirty = false; safetyPingDirty = false; safetyAdvancedDirty = false;
+  safetyPromoDirty = false; safetyPingDirty = false; safetyAdvancedDirty = false; levelingSettingsDirty = false; levelingRewardsDirty = false;
   ['safety','greetings','leveling','logging'].forEach(page => setDirty(page, false));
   bindControlEvents();
   updateYouTubeSummary();
@@ -222,7 +240,7 @@ function bindControlEvents() {
   $('promo-search').oninput = () => { const query = $('promo-search').value.trim().toLowerCase(); document.querySelectorAll('[data-group=promo]').forEach(input => { input.closest('.check-row').hidden = !input.closest('.check-row').textContent.toLowerCase().includes(query); }); };
   ['spam-enabled','spam-max','spam-seconds','mentions-enabled','mentions-max'].forEach(id => { $(id).oninput = $(id).onchange = () => { safetyAdvancedDirty = true; setDirty('safety'); updateSafetyUi(); }; });
   bind(['greeting-cards','welcome-enabled','welcome-channel','welcome-message','goodbye-enabled','goodbye-channel','goodbye-message'], 'greetings', updateGreetingUi);
-  bind(['leveling-enabled','leveling-announce','leveling-channel','leveling-xp-min','leveling-xp-max','leveling-cooldown','leveling-multiplier'], 'leveling', validateLeveling);
+  ['leveling-enabled','leveling-announce','leveling-channel','leveling-xp-min','leveling-xp-max','leveling-cooldown','leveling-multiplier'].forEach(id => { $(id).oninput = $(id).onchange = () => { levelingSettingsDirty = true; setDirty('leveling'); validateLeveling(); }; });
   bind(['logging-enabled','logging-channel'], 'logging', updateLoggingUi);
   document.querySelectorAll('[data-group=logging]').forEach(input => { input.onchange = () => { setDirty('logging'); updateLoggingUi(); }; });
   document.querySelectorAll('[data-log-action]').forEach(button => { button.onclick = () => { button.closest('.logging-group').querySelectorAll('[data-group=logging]').forEach(input => { input.checked = button.dataset.logAction === 'on'; }); setDirty('logging'); updateLoggingUi(); }; });
@@ -327,7 +345,7 @@ $('save-leveling').onclick = async () => {
       multiplier: Number($('leveling-multiplier').value),
     };
     await post('leveling', settings);
-    state.leveling = { ...state.leveling, ...settings }; setDirty('leveling', false);
+    state.leveling = { ...state.leveling, ...settings }; levelingSettingsDirty = false; setDirty('leveling', levelingRewardsDirty);
     toast('Leveling settings saved');
   } catch (error) {
     toast(error.message, true);
@@ -335,6 +353,31 @@ $('save-leveling').onclick = async () => {
     button.disabled = false;
     button.textContent = '✓ Save Changes';
   }
+};
+$('add-level-reward').onclick = () => {
+  const level = Number($('level-reward-level').value);
+  const roleId = $('level-reward-role').value;
+  let error = '';
+  if (!Number.isInteger(level) || level < 1 || level > 500) error = 'Choose a whole level from 1 to 500.';
+  else if (!roleId) error = 'Choose a role to award.';
+  else if (levelRewardDraft.some(reward => reward.level === level)) error = `Level ${level} already has a reward. Remove it first to replace it.`;
+  else if (levelRewardDraft.length >= 25) error = 'You can configure up to 25 level role rewards.';
+  $('level-reward-error').textContent = error;
+  if (error) return;
+  levelRewardDraft.push({ level, roleId });
+  $('level-reward-level').value = '';
+  $('level-reward-role').value = '';
+  levelingRewardsDirty = true; setDirty('leveling'); renderLevelRewards();
+};
+$('save-level-rewards').onclick = async () => {
+  const button = $('save-level-rewards'); button.disabled = true;
+  try {
+    const result = await post('leveling/rewards', { roleRewards: levelRewardDraft });
+    state.leveling.roleRewards = levelRewardDraft.map(reward => ({ ...reward }));
+    levelingRewardsDirty = false; setDirty('leveling', levelingSettingsDirty);
+    toast('Level role rewards saved', false, result.rolesAwarded ? `${result.rolesAwarded} existing role assignment${result.rolesAwarded === 1 ? '' : 's'} added.` : 'New rewards apply automatically.');
+  } catch (error) { toast("Couldn't save level role rewards", true, error.message); }
+  finally { button.disabled = false; }
 };
 $('reset-leveling').onclick = async () => { if (!confirm(`Reset all XP?\n\nThis will permanently reset XP and levels for every member in ${state.server.name}. This action cannot be undone.`)) return; const confirmation = prompt(`Type ${state.server.name} to confirm the reset:`); if (confirmation === null) return; try { const result = await post('leveling/reset', { confirm: confirmation }); toast(`Reset XP for ${result.resetCount} members`); } catch (error) { toast(error.message, true); } };
 $('save-logging').onclick = async () => { try { const enabledEventTypes = [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value); const enabled = $('logging-enabled').checked; const channelId = $('logging-channel').value; await post('logging', { enabled, channelId, enabledEventTypes }); state.logging.enabled = enabled; state.logging.channelId = channelId; state.logging.events.forEach(event => { event.enabled = enabledEventTypes.includes(event.key); }); setDirty('logging', false); toast('Logging settings saved'); } catch (error) { toast("Couldn't save logging settings", true, error.message); } };

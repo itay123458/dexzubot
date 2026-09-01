@@ -174,7 +174,6 @@ async function handleCountingGame(message, client) {
     const invalidAttempt = !validCount || message.author.id === config.lastUserId;
 
     if (invalidAttempt) {
-      await message.delete().catch(() => {});
       await saveCountingGameConfig(client, message.guild.id, {
         ...config,
         nextNumber: 1,
@@ -182,10 +181,15 @@ async function handleCountingGame(message, client) {
         currentStreak: 0,
       });
 
-      const failureMessage = await message.channel.send(`❌ Count broken by <@${message.author.id}>. The sequence has been reset to **1**.`);
-      setTimeout(() => {
-        failureMessage.delete().catch(() => {});
-      }, 10000);
+      await message.react('❌').catch(error => {
+        logger.warn('Failed to react to an incorrect counting message:', {
+          guildId: message.guild.id,
+          channelId: message.channel.id,
+          messageId: message.id,
+          error: error.message,
+        });
+      });
+      await message.channel.send(`❌ Count broken by <@${message.author.id}>. The sequence has been reset to **1**.`);
 
       return true;
     }

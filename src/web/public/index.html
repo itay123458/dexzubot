@@ -101,6 +101,13 @@
             <article class="card control-card"><div class="card-head"><div><p class="eyebrow">LEVEL-UP ANNOUNCEMENTS</p><h2>Announcement Settings</h2></div><label class="switch"><input id="leveling-announce" type="checkbox"><span></span></label></div><label class="field-label" for="leveling-channel">Destination channel</label><select id="leveling-channel"></select><p class="message-preview"><span>Permanent message</span><code>{user} has leveled up to level {level}!</code></p><div class="level-preview"><span>Preview</span><strong>🎉 ExampleUser reached Level 12!</strong></div></article>
           </div>
           <div class="page-save-row"><span class="dirty-label">● Unsaved changes</span><button id="save-leveling">✓ Save Changes</button></div>
+          <article class="card level-rewards-card">
+            <div class="card-head"><div><p class="eyebrow">ROLE REWARDS</p><h2>Level Roles</h2><p>Automatically give members a role when they reach a configured level.</p></div><span id="level-reward-count" class="status-note">0 configured</span></div>
+            <div class="level-reward-builder"><label>Required level<input id="level-reward-level" type="number" min="1" max="500" placeholder="5"></label><label>Role<select id="level-reward-role"></select></label><button id="add-level-reward" type="button">+ Add Reward</button></div>
+            <p id="level-reward-error" class="inline-error"></p>
+            <div id="level-reward-list" class="level-reward-list"></div>
+            <div class="card-actions"><span>DexzuBot can only assign roles below its highest role.</span><button id="save-level-rewards" type="button">✓ Save Role Rewards</button></div>
+          </article>
           <article class="card danger-card"><div><p class="eyebrow">DANGER ZONE</p><h2>Reset All XP</h2><p>Permanently reset every member's XP and level to 0. This action cannot be undone.</p></div><button id="reset-leveling" class="danger-button">Reset Everyone</button></article>
         </section>
 
