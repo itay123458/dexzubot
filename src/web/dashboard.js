@@ -14,7 +14,7 @@ import { getGuildConfig, patchGuildConfig } from '../services/config/guildConfig
 import { fetchLatestYouTubeVideo, sendYouTubeAlert } from '../services/youtubeAlertService.js';
 import { syncGuildCommandRegistration } from '../handlers/loaders/commandLoader.js';
 import { logger } from '../utils/logger.js';
-import { EVENT_TYPES } from '../services/loggingService.js';
+import { EVENT_TYPES, getRecentActivity, recordRecentActivity } from '../services/loggingService.js';
 import { PERMANENT_LEVEL_UP_MESSAGE, resetGuildLevelData, saveLevelingConfig } from '../services/leveling/leveling.js';
 import { reconcileLevelRoles } from '../services/leveling/levelRoleSyncService.js';
 import { getWelcomeConfig, saveWelcomeConfig } from '../utils/database.js';
@@ -60,6 +60,7 @@ const DASHBOARD_LOGGING_EVENTS = [
   ['sticker.delete', 'Sticker deletion'],
   ['invite.create', 'Invite creation'],
   ['invite.delete', 'Invite deletion'],
+  ['counting.failure', 'Broken counting streaks'],
 ];
 
 function getDashboardGuild(client) {
@@ -77,7 +78,7 @@ function sameOrigin(req) {
   }
 }
 
-function publicConfigState(client, guild, config, welcomeConfig) {
+function publicConfigState(client, guild, config, welcomeConfig, recentActivity = []) {
   const snapshot = getCommandAccessSnapshot(client, config);
   const channels = guild.channels.cache
     .filter(channel => channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement)
@@ -116,6 +117,7 @@ function publicConfigState(client, guild, config, welcomeConfig) {
     database: client.db?.getStatus?.() || null,
     channels,
     roles: manageableRoles,
+    recentActivity,
     owners,
     categories: snapshot.categories
       .filter(category => isSlashCommandCategoryEnabled(category.folder))
@@ -195,11 +197,18 @@ export function registerDashboard(app, client) {
   router.get('/state', async (req, res) => {
     const guild = getDashboardGuild(client);
     if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
-    const [config, welcomeConfig] = await Promise.all([
+    const [config, welcomeConfig, recentActivity] = await Promise.all([
       getGuildConfig(client, guild.id),
       getWelcomeConfig(client, guild.id),
+      getRecentActivity(client, guild.id),
     ]);
-    return res.json(publicConfigState(client, guild, config, welcomeConfig));
+    return res.json(publicConfigState(client, guild, config, welcomeConfig, recentActivity));
+  });
+
+  router.get('/activity', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
+    return res.json({ activity: await getRecentActivity(client, guild.id) });
   });
 
   router.get('/youtube/latest', async (req, res) => {
@@ -220,6 +229,10 @@ export function registerDashboard(app, client) {
     if (enabled) await enableCategory(client, guild.id, category);
     else await disableCategory(client, guild.id, category);
     await syncGuildCommandRegistration(client, guild.id);
+    await recordRecentActivity(client, guild.id, 'dashboard.config', {
+      title: `${category} module ${enabled ? 'enabled' : 'disabled'}`,
+      description: 'Command access was changed from the private dashboard.',
+    });
     return res.json({ ok: true });
   });
 

@@ -8,6 +8,7 @@ let safetyAdvancedDirty = false;
 let levelingSettingsDirty = false;
 let levelingRewardsDirty = false;
 let levelRewardDraft = [];
+let activityExpanded = false;
 const $ = id => document.getElementById(id);
 const toast = (message, error = false, detail = '') => {
   const type = typeof error === 'string' ? error : (error ? 'error' : 'success');
@@ -89,6 +90,7 @@ function renderModulePage(pageName) {
       await post('category', { category: category.key, enabled });
       category.enabled = enabled;
       category.enabledCommands = enabled ? category.totalCommands : 0;
+      void refreshRecentActivity();
       toast(`${details.label} ${enabled ? 'enabled' : 'disabled'}`);
       renderModulePage(pageName);
     } catch (error) {
@@ -171,6 +173,42 @@ function updateLoggingUi() {
   document.querySelectorAll('.logging-group').forEach(group => { const all = group.querySelectorAll('[data-group=logging]').length; const on = group.querySelectorAll('[data-group=logging]:checked').length; group.querySelector('.group-count').textContent = `${on}/${all} enabled`; });
 }
 
+function relativeActivityTime(timestamp) {
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000));
+  if (seconds < 10) return 'just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function renderRecentActivity() {
+  if (!state) return;
+  const activities = Array.isArray(state.recentActivity) ? state.recentActivity : [];
+  const visible = activities.slice(0, activityExpanded ? 20 : 5);
+  $('view-logs').textContent = activities.length > 5 ? (activityExpanded ? 'Show less' : 'View all') : 'Up to date';
+  $('view-logs').disabled = activities.length <= 5;
+  if (!visible.length) {
+    $('recent-activity').innerHTML = '<div class="empty-state"><span class="empty-icon">≡</span><strong>No recent activity</strong><p>New DexzuBot events will appear here.</p></div>';
+    return;
+  }
+  const activityIcons = { moderation: '◆', message: '≡', member: '✦', voice: '◖', leveling: '↗', counting: '#', role: '◇', channel: '#', dashboard: '⌘', guild: '⌂', invite: '↗', emoji: '✦', sticker: '▣' };
+  $('recent-activity').innerHTML = visible.map(activity => `<div class="activity-row"><span class="activity-type ${escapeHtml(activity.category)}">${activityIcons[activity.category] || '•'}</span><div><strong>${escapeHtml(activity.title)}</strong>${activity.detail ? `<p>${escapeHtml(activity.detail)}</p>` : ''}</div><time datetime="${escapeHtml(activity.timestamp)}" title="${escapeHtml(new Date(activity.timestamp).toLocaleString())}">${relativeActivityTime(activity.timestamp)}</time></div>`).join('');
+}
+
+async function refreshRecentActivity() {
+  if (!state) return;
+  try {
+    const response = await fetch('/dashboard/api/activity', { cache: 'no-store' });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Activity unavailable');
+    state.recentActivity = data.activity;
+    renderRecentActivity();
+  } catch { /* Keep the last successfully loaded activity feed. */ }
+}
+
 document.querySelectorAll('[data-page]').forEach(button => {
   button.onclick = () => showPage(button.dataset.page);
 });
@@ -184,7 +222,7 @@ const setSidebarCollapsed = collapsed => {
 };
 setSidebarCollapsed(localStorage.getItem('dexzu-sidebar-collapsed') === 'true');
 $('sidebar-collapse').onclick = () => setSidebarCollapsed(!document.body.classList.contains('sidebar-collapsed'));
-$('view-logs').onclick = () => showPage('logging');
+$('view-logs').onclick = () => { activityExpanded = !activityExpanded; renderRecentActivity(); };
 
 function render(current) {
   state = current;
@@ -219,10 +257,11 @@ function render(current) {
     ['Uptime', `${uptimeHours}h ${Math.floor((current.bot.uptimeSeconds % 3600) / 60)}m`, Math.min(100, current.bot.uptimeSeconds / 864)],
     ['Commands loaded', current.bot.loadedCommands, Math.min(100, current.bot.loadedCommands)],
   ].map(([label, value, meter]) => `<div class="performance-row"><div><span>${label}</span><strong>${value}</strong></div><i><b style="width:${meter}%"></b></i></div>`).join('');
+  renderRecentActivity();
   document.querySelectorAll('[data-category]').forEach(element => { element.onchange = async () => {
     const row = element.closest('.toggle-row'); const enabled = element.checked; const name = element.dataset.name;
     row.classList.toggle('module-disabled', !enabled); row.classList.add('module-updating'); element.disabled = true;
-    try { await post('category', { category: element.dataset.category, enabled }); const category = state.categories.find(item => item.key === element.dataset.category); if (category) { category.enabled = enabled; category.enabledCommands = enabled ? category.totalCommands : 0; } row.classList.add('module-flash'); setTimeout(() => row.classList.remove('module-flash'), 500); toast(`${name} ${enabled ? 'enabled' : 'disabled'}`, false, `${name} commands are now ${enabled ? 'active' : 'inactive'}.`); }
+    try { await post('category', { category: element.dataset.category, enabled }); const category = state.categories.find(item => item.key === element.dataset.category); if (category) { category.enabled = enabled; category.enabledCommands = enabled ? category.totalCommands : 0; } void refreshRecentActivity(); row.classList.add('module-flash'); setTimeout(() => row.classList.remove('module-flash'), 500); toast(`${name} ${enabled ? 'enabled' : 'disabled'}`, false, `${name} commands are now ${enabled ? 'active' : 'inactive'}.`); }
     catch (error) { element.checked = !enabled; row.classList.toggle('module-disabled', enabled); toast(`Couldn't update ${name}.`, true, error.message); }
     finally { row.classList.remove('module-updating'); element.disabled = false; }
   }; });
@@ -459,4 +498,5 @@ $('test-youtube').onclick = async () => {
   finally { button.disabled = false; }
 };
 load().catch(error => toast(error.message, true));
+setInterval(() => { if (!document.hidden) void refreshRecentActivity(); }, 30000);
 window.addEventListener('beforeunload', event => { if (!dirtyPages.size) return; event.preventDefault(); event.returnValue = ''; });

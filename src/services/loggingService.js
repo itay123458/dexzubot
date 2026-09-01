@@ -10,9 +10,59 @@ import {
   fieldsToLines,
   splitComparisonFields,
 } from '../utils/logging/logEmbeds.js';
+import { Mutex } from '../utils/mutex.js';
 
 const LOG_DESTINATIONS = ['audit', 'applications', 'reports'];
 const recentBotModerationActions = new Map();
+const DASHBOARD_ACTIVITY_LIMIT = 50;
+
+function activityKey(guildId) {
+  return `dashboardActivity:${guildId}`;
+}
+
+function cleanActivityText(value, fallback = '') {
+  return String(value || fallback)
+    .replace(/<@!?\d+>/g, 'a member')
+    .replace(/<@&\d+>/g, 'a role')
+    .replace(/<#\d+>/g, 'a channel')
+    .replace(/[*_`~>|#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180);
+}
+
+export async function recordRecentActivity(client, guildId, eventType, data = {}) {
+  if (!client?.db || !guildId || !eventType) return null;
+  return Mutex.runExclusive(`dashboard-activity:${guildId}`, async () => {
+    try {
+      const stored = await client.db.get(activityKey(guildId));
+      const current = Array.isArray(stored) ? stored : [];
+      const activity = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: eventType,
+        category: eventType.split('.')[0],
+        title: cleanActivityText(data.title, formatEventType(eventType)),
+        detail: cleanActivityText(data.headline || data.description || data.lines?.[0] || ''),
+        timestamp: new Date().toISOString(),
+      };
+      await client.db.set(activityKey(guildId), [activity, ...current].slice(0, DASHBOARD_ACTIVITY_LIMIT));
+      return activity;
+    } catch (error) {
+      logger.debug('Could not store dashboard activity:', error.message);
+      return null;
+    }
+  });
+}
+
+export async function getRecentActivity(client, guildId, limit = 20) {
+  try {
+    const stored = await client.db.get(activityKey(guildId));
+    return (Array.isArray(stored) ? stored : []).slice(0, Math.min(Math.max(Number(limit) || 20, 1), 50));
+  } catch (error) {
+    logger.debug('Could not load dashboard activity:', error.message);
+    return [];
+  }
+}
 
 export function markBotModerationAction(guildId, action, userId) {
   recentBotModerationActions.set(`${guildId}:${action}:${userId}`, Date.now() + 15000);
@@ -90,6 +140,7 @@ const EVENT_TYPES = {
 
   COUNTER_UPDATE: 'counter.update',
   COUNTER_CONFIG: 'counter.config',
+  COUNTING_FAILURE: 'counting.failure',
 
   APPLICATION_SUBMIT: 'application.submit',
   APPLICATION_REVIEW: 'application.review',
@@ -151,6 +202,7 @@ const EVENT_COLORS = {
   'giveaway.delete': 0xE74C3C,
   'counter.update': 0x0099ff,
   'counter.config': 0x5865F2,
+  'counting.failure': 0xED4245,
   'application.submit': 0x5865F2,
   'application.review': 0x57F287,
   'report.file': 0xED4245,
@@ -191,6 +243,7 @@ const EVENT_ICONS = {
   'giveaway.delete': '🗑️',
   'counter.update': '📊',
   'counter.config': '⚙️',
+  'counting.failure': '❌',
   'application.submit': '📝',
   'application.review': '📋',
   'report.file': '🚨',
@@ -276,6 +329,8 @@ export async function logEvent({
     if (data?.channelId && ignore.channels?.includes(data.channelId)) {
       return null;
     }
+
+    await recordRecentActivity(client, guildId, eventType, data);
 
     if (!isEventEnabled(config, eventType)) {
       return null;

@@ -13,6 +13,7 @@ import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abusePr
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
 import { handleAutoModeration } from '../services/autoModerationService.js';
+import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -190,6 +191,17 @@ async function handleCountingGame(message, client) {
         });
       });
       await message.channel.send(`❌ Count broken by <@${message.author.id}>. The sequence has been reset to **1**.`);
+      await logEvent({
+        client,
+        guildId: message.guild.id,
+        eventType: EVENT_TYPES.COUNTING_FAILURE,
+        data: {
+          title: 'Counting streak broken',
+          lines: [`${message.author.tag} entered an incorrect number in #${message.channel.name}.`],
+          userId: message.author.id,
+          channelId: message.channel.id,
+        },
+      });
 
       return true;
     }
