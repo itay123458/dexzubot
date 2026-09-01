@@ -6,7 +6,9 @@ import { getBotOwners } from '../config/bot.js';
 import { isSlashCommandCategoryEnabled } from '../config/commands/slashCommandCategories.js';
 import {
   disableCategory,
+  disableCommand,
   enableCategory,
+  enableCommand,
   getCommandAccessSnapshot,
   resetCategoryCommands,
 } from '../services/commandAccessService.js';
@@ -127,6 +129,12 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
         enabled: !category.categoryDisabled,
         enabledCommands: category.enabledCount,
         totalCommands: category.totalCount,
+        commands: category.commands.map(command => ({
+          name: command.name,
+          description: command.description,
+          protected: command.protected || false,
+          enabled: category.enabledCommands.includes(command.name),
+        })),
       })),
     antiPromo: {
       enabled: config.autoModeration?.antiPromo === true,
@@ -231,6 +239,22 @@ export function registerDashboard(app, client) {
     await syncGuildCommandRegistration(client, guild.id);
     await recordRecentActivity(client, guild.id, 'dashboard.config', {
       title: `${category} module ${enabled ? 'enabled' : 'disabled'}`,
+      description: 'Command access was changed from the private dashboard.',
+    });
+    return res.json({ ok: true });
+  });
+
+  router.post('/command', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const { command, enabled } = req.body || {};
+    if (!guild || typeof command !== 'string' || typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'Invalid command update.' });
+    }
+    if (enabled) await enableCommand(client, guild.id, command, { actorId: req.dashboardUserId });
+    else await disableCommand(client, guild.id, command, { actorId: req.dashboardUserId });
+    await syncGuildCommandRegistration(client, guild.id);
+    await recordRecentActivity(client, guild.id, 'dashboard.config', {
+      title: `/${command} ${enabled ? 'enabled' : 'disabled'}`,
       description: 'Command access was changed from the private dashboard.',
     });
     return res.json({ ok: true });

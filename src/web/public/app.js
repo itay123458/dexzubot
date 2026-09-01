@@ -72,6 +72,27 @@ const moduleDetails = {
   serverstats: { icon: '▥', label: 'Server Stats', eyebrow: 'LIVE COUNTERS', description: 'Voice-channel counters that display live server totals.', examples: ['/serverstats create', '/serverstats list', '/serverstats update', '/serverstats delete'] },
 };
 
+function bindModuleCommandControls(pageName, category) {
+  const search = $('module-command-search');
+  if (search) search.oninput = () => {
+    const query = search.value.trim().toLowerCase();
+    document.querySelectorAll('.module-access-row').forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(query); });
+  };
+  document.querySelectorAll('[data-module-command]').forEach(toggle => { toggle.onchange = async () => {
+    const enabled = toggle.checked; const command = toggle.dataset.moduleCommand; const row = toggle.closest('.module-access-row');
+    toggle.disabled = true; row.classList.toggle('command-disabled', !enabled);
+    try {
+      await post('command', { command, enabled });
+      toast(`/${command} ${enabled ? 'enabled' : 'disabled'}`);
+      await load();
+      void refreshRecentActivity();
+    } catch (error) {
+      toggle.checked = !enabled; row.classList.toggle('command-disabled', enabled);
+      toast(`Couldn't update /${command}`, true, error.message);
+    } finally { toggle.disabled = false; }
+  }; });
+}
+
 function renderModulePage(pageName) {
   if (!state || !pageName.startsWith('module-')) return;
   const key = pageName.slice(7);
@@ -81,23 +102,23 @@ function renderModulePage(pageName) {
     $('module-page-content').innerHTML = '<article class="card module-detail-card"><h2>Module unavailable</h2><p>This module is not currently registered with DexzuBot.</p></article>';
     return;
   }
-  $('module-page-content').innerHTML = `<div class="feature-heading module-heading"><div><p class="eyebrow">${details.eyebrow}</p><h2>${details.label}</h2><p>${details.description}</p></div><span class="module-page-icon">${details.icon}</span></div><div class="module-page-grid"><article class="card module-detail-card ${category.enabled ? '' : 'module-disabled'}"><div class="card-head"><div><p class="eyebrow">MODULE ACCESS</p><h2>${details.label} Commands</h2><p>Changes apply instantly in Discord and are remembered after restarts.</p></div><label class="switch"><input id="module-page-toggle" type="checkbox" ${category.enabled ? 'checked' : ''} aria-label="Toggle ${details.label}"><span></span></label></div><div class="module-health"><div><small>Status</small><strong><i class="status-dot ${category.enabled ? 'good' : ''}"></i>${category.enabled ? 'Enabled' : 'Disabled'}</strong></div><div><small>Available commands</small><strong>${category.enabledCommands} / ${category.totalCommands}</strong></div></div><p class="module-disabled-note">Disabled modules are hidden from the help menu and their slash commands are removed from this server.</p></article><article class="card module-command-card"><p class="eyebrow">QUICK REFERENCE</p><h2>Popular Commands</h2><p>Use these commands directly in Discord.</p><div class="module-command-list">${details.examples.map(command => `<code>${command}</code>`).join('')}</div></article></div>`;
+  const commands = category.commands || [];
+  $('module-page-content').innerHTML = `<div class="feature-heading module-heading"><div><p class="eyebrow">${details.eyebrow}</p><h2>${details.label}</h2><p>${details.description}</p></div><span class="module-page-icon">${details.icon}</span></div><div class="module-page-grid"><article class="card module-detail-card ${category.enabled ? '' : 'module-disabled'}"><div class="card-head"><div><p class="eyebrow">MODULE ACCESS</p><h2>${details.label} Commands</h2><p>Changes apply instantly in Discord and are remembered after restarts.</p></div><label class="switch"><input id="module-page-toggle" type="checkbox" ${category.enabled ? 'checked' : ''} aria-label="Toggle ${details.label}"><span></span></label></div><div class="module-health"><div><small>Status</small><strong><i class="status-dot ${category.enabled ? 'good' : ''}"></i>${category.enabled ? 'Enabled' : 'Disabled'}</strong></div><div><small>Available commands</small><strong>${category.enabledCommands} / ${category.totalCommands}</strong></div></div><div class="module-progress"><i><b style="width:${category.totalCommands ? Math.round(category.enabledCommands / category.totalCommands * 100) : 0}%"></b></i><span>${category.enabledCommands} enabled</span></div><p class="module-disabled-note">Disabled modules are hidden from the help menu and their slash commands are removed from this server.</p></article><article class="card module-command-card"><p class="eyebrow">QUICK START</p><h2>Popular Commands</h2><p>Use these commands directly in Discord.</p><div class="module-command-list">${details.examples.map(command => `<code>${command}</code>`).join('')}</div></article></div><article class="card module-access-card"><div class="card-head"><div><p class="eyebrow">COMMAND ACCESS</p><h2>All ${details.label} Commands</h2><p>Enable or disable individual commands for this server.</p></div><span class="status-note">${commands.length} command paths</span></div><input id="module-command-search" class="search-input" type="search" placeholder="Search ${details.label.toLowerCase()} commands…"><div class="module-access-list">${commands.map(command => `<div class="module-access-row ${command.enabled && category.enabled ? '' : 'command-disabled'}"><div><code>/${escapeHtml(command.name)}</code><p>${escapeHtml(command.description)}</p>${command.protected ? '<small>Required command</small>' : ''}</div><label class="switch"><input data-module-command="${escapeHtml(command.name)}" type="checkbox" ${command.enabled && category.enabled ? 'checked' : ''} ${command.protected || !category.enabled ? 'disabled' : ''} aria-label="Toggle /${escapeHtml(command.name)}"><span></span></label></div>`).join('')}</div></article>`;
   const toggle = $('module-page-toggle');
   toggle.onchange = async () => {
     const enabled = toggle.checked; const card = toggle.closest('.module-detail-card');
     toggle.disabled = true; card.classList.toggle('module-disabled', !enabled);
     try {
       await post('category', { category: category.key, enabled });
-      category.enabled = enabled;
-      category.enabledCommands = enabled ? category.totalCommands : 0;
-      void refreshRecentActivity();
       toast(`${details.label} ${enabled ? 'enabled' : 'disabled'}`);
-      renderModulePage(pageName);
+      await load();
+      void refreshRecentActivity();
     } catch (error) {
       toggle.checked = !enabled; card.classList.toggle('module-disabled', enabled);
       toast(`Couldn't update ${details.label}`, true, error.message);
     } finally { toggle.disabled = false; }
   };
+  bindModuleCommandControls(pageName, category);
 }
 
 function showPage(pageName) {
@@ -261,7 +282,7 @@ function render(current) {
   document.querySelectorAll('[data-category]').forEach(element => { element.onchange = async () => {
     const row = element.closest('.toggle-row'); const enabled = element.checked; const name = element.dataset.name;
     row.classList.toggle('module-disabled', !enabled); row.classList.add('module-updating'); element.disabled = true;
-    try { await post('category', { category: element.dataset.category, enabled }); const category = state.categories.find(item => item.key === element.dataset.category); if (category) { category.enabled = enabled; category.enabledCommands = enabled ? category.totalCommands : 0; } void refreshRecentActivity(); row.classList.add('module-flash'); setTimeout(() => row.classList.remove('module-flash'), 500); toast(`${name} ${enabled ? 'enabled' : 'disabled'}`, false, `${name} commands are now ${enabled ? 'active' : 'inactive'}.`); }
+    try { await post('category', { category: element.dataset.category, enabled }); row.classList.add('module-flash'); setTimeout(() => row.classList.remove('module-flash'), 500); toast(`${name} ${enabled ? 'enabled' : 'disabled'}`, false, `${name} commands are now ${enabled ? 'active' : 'inactive'}.`); await load(); void refreshRecentActivity(); }
     catch (error) { element.checked = !enabled; row.classList.toggle('module-disabled', enabled); toast(`Couldn't update ${name}.`, true, error.message); }
     finally { row.classList.remove('module-updating'); element.disabled = false; }
   }; });
