@@ -127,6 +127,13 @@ function publicConfigState(client, guild, config, welcomeConfig) {
       enabled: config.autoModeration?.antiPing === true,
       protectedUserIds: config.autoModeration?.antiPingUserIds || [],
     },
+    safetyAdvanced: {
+      antiSpam: config.autoModeration?.antiSpam === true,
+      spamMaxMessages: config.autoModeration?.spamMaxMessages || 5,
+      spamIntervalSeconds: config.autoModeration?.spamIntervalSeconds || 8,
+      antiMassMentions: config.autoModeration?.antiMassMentions === true,
+      maxMentions: config.autoModeration?.maxMentions || 5,
+    },
     youtube: {
       enabled: config.youtubeAlert?.enabled === true,
       channelId: config.youtubeAlert?.channelId || null,
@@ -229,6 +236,19 @@ export function registerDashboard(app, client) {
     await patchGuildConfig(client, guild.id, {
       autoModeration: { antiPing: protectedUserIds.length > 0, antiPingUserIds: protectedUserIds },
     });
+    return res.json({ ok: true });
+  });
+
+  router.post('/safety/advanced', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const { antiSpam, spamMaxMessages, spamIntervalSeconds, antiMassMentions, maxMentions } = req.body || {};
+    if (!guild || typeof antiSpam !== 'boolean' || typeof antiMassMentions !== 'boolean' ||
+      !Number.isInteger(spamMaxMessages) || spamMaxMessages < 3 || spamMaxMessages > 10 ||
+      !Number.isInteger(spamIntervalSeconds) || spamIntervalSeconds < 3 || spamIntervalSeconds > 30 ||
+      !Number.isInteger(maxMentions) || maxMentions < 2 || maxMentions > 20) {
+      return res.status(400).json({ error: 'Choose valid advanced safety settings.' });
+    }
+    await patchGuildConfig(client, guild.id, { autoModeration: { antiSpam, spamMaxMessages, spamIntervalSeconds, antiMassMentions, maxMentions } });
     return res.json({ ok: true });
   });
 

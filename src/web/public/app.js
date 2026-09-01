@@ -4,6 +4,7 @@ let youtubeLatestLoaded = false;
 const dirtyPages = new Set();
 let safetyPromoDirty = false;
 let safetyPingDirty = false;
+let safetyAdvancedDirty = false;
 const $ = id => document.getElementById(id);
 const toast = (message, error = false, detail = '') => {
   const type = typeof error === 'string' ? error : (error ? 'error' : 'success');
@@ -84,7 +85,7 @@ function updateSafetyUi() {
   const pingCount = document.querySelectorAll('[data-group=ping]:checked').length;
   $('promo-count').textContent = `${promoCount} channel${promoCount === 1 ? '' : 's'} selected`;
   $('ping-count').textContent = `${pingCount} member${pingCount === 1 ? '' : 's'} protected`;
-  $('safety-summary').innerHTML = `<span><i class="status-dot ${$('promo-enabled').checked ? 'good' : ''}"></i>Promotion Filter <b>${$('promo-enabled').checked ? 'Enabled' : 'Disabled'}</b></span><span><i class="status-dot ${pingCount ? 'good' : ''}"></i>Mention Protection <b>${pingCount ? 'Enabled' : 'Disabled'}</b></span>`;
+  $('safety-summary').innerHTML = [['Promotion Filter',$('promo-enabled').checked],['Mention Protection',pingCount > 0],['Anti Spam',$('spam-enabled').checked],['Mention Limit',$('mentions-enabled').checked]].map(([label,enabled]) => `<span><i class="status-dot ${enabled ? 'good' : ''}"></i>${label} <b>${enabled ? 'Enabled' : 'Disabled'}</b></span>`).join('');
 }
 function updateGreetingUi() {
   const welcomeChannel = channelName($('welcome-channel').value); const goodbyeChannel = channelName($('goodbye-channel').value);
@@ -171,6 +172,11 @@ function render(current) {
   $('promo-enabled').checked = current.antiPromo.enabled;
   $('promo-channels').innerHTML = current.channels.map(channel => checkbox(channel.id, `#${channel.name}`, current.antiPromo.allowedChannelIds.includes(channel.id), 'promo')).join('');
   $('ping-owners').innerHTML = current.owners.map(owner => `<label class="check-row owner-row"><input type="checkbox" data-group="ping" value="${owner.id}" ${current.antiPing.protectedUserIds.includes(owner.id) ? 'checked' : ''}><span class="owner-avatar">${owner.avatar ? `<img src="${escapeHtml(owner.avatar)}" alt="">` : '@'}</span><span><b>${escapeHtml(owner.name)}</b><small>Protected from direct mentions</small></span></label>`).join('');
+  $('spam-enabled').checked = current.safetyAdvanced.antiSpam;
+  $('spam-max').value = current.safetyAdvanced.spamMaxMessages;
+  $('spam-seconds').value = current.safetyAdvanced.spamIntervalSeconds;
+  $('mentions-enabled').checked = current.safetyAdvanced.antiMassMentions;
+  $('mentions-max').value = current.safetyAdvanced.maxMentions;
   $('greeting-cards').checked = current.greetings.cardEnabled;
   $('welcome-enabled').checked = current.greetings.welcomeEnabled;
   $('welcome-channel').innerHTML = channelOptions(current.channels, current.greetings.welcomeChannelId, 'Choose a welcome channel');
@@ -198,7 +204,7 @@ function render(current) {
   $('youtube-channel').innerHTML = channelOptions(current.channels, current.youtube.channelId, 'Choose a channel');
   $('youtube-preview-avatar').src = current.bot.avatar;
   updateSafetyUi(); updateGreetingUi(); validateLeveling(); updateLoggingUi();
-  safetyPromoDirty = false; safetyPingDirty = false;
+  safetyPromoDirty = false; safetyPingDirty = false; safetyAdvancedDirty = false;
   ['safety','greetings','leveling','logging'].forEach(page => setDirty(page, false));
   bindControlEvents();
   updateYouTubeSummary();
@@ -214,6 +220,7 @@ function bindControlEvents() {
   $('promo-enabled').onchange = () => { safetyPromoDirty = true; setDirty('safety'); updateSafetyUi(); };
   document.querySelectorAll('[data-group=promo],[data-group=ping]').forEach(input => { input.onchange = () => { if (input.dataset.group === 'promo') safetyPromoDirty = true; else safetyPingDirty = true; setDirty('safety'); updateSafetyUi(); input.closest('.check-row')?.classList.toggle('selected', input.checked); }; input.closest('.check-row')?.classList.toggle('selected', input.checked); });
   $('promo-search').oninput = () => { const query = $('promo-search').value.trim().toLowerCase(); document.querySelectorAll('[data-group=promo]').forEach(input => { input.closest('.check-row').hidden = !input.closest('.check-row').textContent.toLowerCase().includes(query); }); };
+  ['spam-enabled','spam-max','spam-seconds','mentions-enabled','mentions-max'].forEach(id => { $(id).oninput = $(id).onchange = () => { safetyAdvancedDirty = true; setDirty('safety'); updateSafetyUi(); }; });
   bind(['greeting-cards','welcome-enabled','welcome-channel','welcome-message','goodbye-enabled','goodbye-channel','goodbye-message'], 'greetings', updateGreetingUi);
   bind(['leveling-enabled','leveling-announce','leveling-channel','leveling-xp-min','leveling-xp-max','leveling-cooldown','leveling-multiplier'], 'leveling', validateLeveling);
   bind(['logging-enabled','logging-channel'], 'logging', updateLoggingUi);
@@ -299,8 +306,9 @@ $('refresh-dashboard').onclick = async () => {
   finally { button.classList.remove('loading'); button.disabled = false; }
 };
 
-$('save-promo').onclick = async () => { try { const allowedChannelIds = [...document.querySelectorAll('[data-group=promo]:checked')].map(input => input.value); await post('anti-promo', { enabled: $('promo-enabled').checked, allowedChannelIds }); state.antiPromo = { enabled: $('promo-enabled').checked, allowedChannelIds }; safetyPromoDirty = false; setDirty('safety', safetyPingDirty); toast('Promotion filter saved'); } catch (error) { toast("Couldn't save promotion filter", true, error.message); } };
-$('save-ping').onclick = async () => { try { const protectedUserIds = [...document.querySelectorAll('[data-group=ping]:checked')].map(input => input.value); await post('anti-ping', { protectedUserIds }); state.antiPing.protectedUserIds = protectedUserIds; safetyPingDirty = false; setDirty('safety', safetyPromoDirty); toast('Mention protection saved'); } catch (error) { toast("Couldn't save mention protection", true, error.message); } };
+$('save-promo').onclick = async () => { try { const allowedChannelIds = [...document.querySelectorAll('[data-group=promo]:checked')].map(input => input.value); await post('anti-promo', { enabled: $('promo-enabled').checked, allowedChannelIds }); state.antiPromo = { enabled: $('promo-enabled').checked, allowedChannelIds }; safetyPromoDirty = false; setDirty('safety', safetyPingDirty || safetyAdvancedDirty); toast('Promotion filter saved'); } catch (error) { toast("Couldn't save promotion filter", true, error.message); } };
+$('save-ping').onclick = async () => { try { const protectedUserIds = [...document.querySelectorAll('[data-group=ping]:checked')].map(input => input.value); await post('anti-ping', { protectedUserIds }); state.antiPing.protectedUserIds = protectedUserIds; safetyPingDirty = false; setDirty('safety', safetyPromoDirty || safetyAdvancedDirty); toast('Mention protection saved'); } catch (error) { toast("Couldn't save mention protection", true, error.message); } };
+$('save-safety-advanced').onclick = async () => { const settings = { antiSpam: $('spam-enabled').checked, spamMaxMessages: Number($('spam-max').value), spamIntervalSeconds: Number($('spam-seconds').value), antiMassMentions: $('mentions-enabled').checked, maxMentions: Number($('mentions-max').value) }; try { await post('safety/advanced', settings); state.safetyAdvanced = settings; safetyAdvancedDirty = false; setDirty('safety', safetyPromoDirty || safetyPingDirty); toast('Advanced safety settings saved'); } catch (error) { toast("Couldn't save advanced safety settings", true, error.message); } };
 $('save-greetings').onclick = async () => { try { const settings = { cardEnabled: $('greeting-cards').checked, welcomeEnabled: $('welcome-enabled').checked, welcomeChannelId: $('welcome-channel').value, welcomeMessage: $('welcome-message').value, goodbyeEnabled: $('goodbye-enabled').checked, goodbyeChannelId: $('goodbye-channel').value, goodbyeMessage: $('goodbye-message').value }; await post('greetings', settings); state.greetings = { ...state.greetings, ...settings }; setDirty('greetings', false); toast('Greeting settings saved'); } catch (error) { toast("Couldn't save greeting settings", true, error.message); } };
 $('save-leveling').onclick = async () => {
   const button = $('save-leveling');

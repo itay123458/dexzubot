@@ -42,6 +42,11 @@ export const DEFAULT_GUILD_CONFIG = {
     autoModeration: {
         antiPromo: false,
         antiPing: false,
+        antiSpam: false,
+        antiMassMentions: false,
+        spamMaxMessages: 5,
+        spamIntervalSeconds: 8,
+        maxMentions: 5,
         promoAllowedChannelIds: [],
         antiPingUserIds: [],
     },

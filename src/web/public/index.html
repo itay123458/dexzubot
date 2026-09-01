@@ -75,7 +75,12 @@
               <div class="card-actions"><span id="ping-count">0 members protected</span><button id="save-ping">✓ Save Changes</button></div>
             </article>
           </div>
-          <article class="card how-card"><p class="eyebrow">HOW IT WORKS</p><div><span><b>Promotion Filter</b> Promotional content is only allowed in selected channels.</span><span><b>Mention Protection</b> Selected members are protected from direct mentions.</span></div></article>
+          <div class="split-grid control-grid advanced-safety" data-dirty-form="safety-advanced">
+            <article class="card control-card"><div class="card-head"><div class="feature-title"><span class="feature-icon">≋</span><div><p class="eyebrow">ANTI SPAM</p><h2>Message Rate Protection</h2><p>Remove messages when members send too many too quickly.</p></div></div><label class="switch"><input id="spam-enabled" type="checkbox"><span></span></label></div><div class="safety-number-grid"><label>Messages allowed<input id="spam-max" type="number" min="3" max="10"></label><label>Time window<input id="spam-seconds" type="number" min="3" max="30"><small>seconds</small></label></div></article>
+            <article class="card control-card"><div class="card-head"><div class="feature-title"><span class="feature-icon">＠</span><div><p class="eyebrow">MASS MENTIONS</p><h2>Mention Limit</h2><p>Remove messages that ping too many users or roles.</p></div></div><label class="switch"><input id="mentions-enabled" type="checkbox"><span></span></label></div><div class="safety-number-grid one"><label>Maximum mentions per message<input id="mentions-max" type="number" min="2" max="20"></label></div></article>
+          </div>
+          <div class="page-save-row safety-advanced-save"><span class="dirty-label">● Unsaved advanced settings</span><button id="save-safety-advanced">✓ Save Advanced Safety</button></div>
+          <article class="card how-card"><p class="eyebrow">HOW IT WORKS</p><div><span><b>Promotion Filter</b> Links are allowed only in selected channels.</span><span><b>Mention Protection</b> Protects selected owners.</span><span><b>Anti Spam</b> Limits rapid messages.</span><span><b>Mention Limit</b> Blocks mass pings.</span></div></article>
         </section>
 
         <section class="page" data-panel="greetings">
