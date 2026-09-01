@@ -223,7 +223,9 @@ function updateLoggingUi() {
   document.querySelectorAll('[data-group=logging]').forEach(input => input.closest('.check-row')?.classList.toggle('selected', input.checked));
   const checked = document.querySelectorAll('[data-group=logging]:checked').length;
   const total = document.querySelectorAll('[data-group=logging]').length;
-  $('logging-enabled-count').textContent = `${checked} of ${total} events enabled`;
+  const searchQuery = $('logging-search').value.trim();
+  const visible = [...document.querySelectorAll('[data-group=logging]')].filter(input => !input.closest('.check-row').hidden).length;
+  $('logging-enabled-count').textContent = searchQuery ? `${visible} event${visible === 1 ? '' : 's'} found` : `${checked} / ${total} events enabled`;
   $('logging-bar-count').textContent = `${checked} events enabled`;
   const destination = channelName($('logging-channel').value);
   $('logging-summary').innerHTML = [['Logging', $('logging-enabled').checked ? 'Enabled' : 'Disabled'], ['Destination', `${destination === 'Not configured' ? '' : '#'}${destination}`], ['Events', `${checked} enabled`]].map(([label,value]) => `<article class="summary-card"><small>${label}</small><strong>${escapeHtml(value)}</strong></article>`).join('');
@@ -366,7 +368,17 @@ function render(current) {
     logGroups[group].push(event);
   });
   const loggingIcons = { Moderation: '◆', Messages: '≡', Voice: '◖', Members: '✦', Channels: '#', Server: '▣' };
-  $('logging-events').innerHTML = Object.entries(logGroups).filter(([,events]) => events.length).map(([group, events]) => `<details class="logging-group" open><summary><span class="group-title"><i>${loggingIcons[group]}</i>${group}</span><b class="group-count">${events.filter(event => event.enabled).length} / ${events.length} enabled</b></summary><div class="group-body"><div class="group-actions"><button type="button" data-log-action="on">Enable All</button><button type="button" data-log-action="off">Disable All</button></div><div class="group-events">${events.map(event => checkbox(event.key, event.label, event.enabled, 'logging')).join('')}</div></div></details>`).join('');
+  let collapsedLoggingGroups = {};
+  try { collapsedLoggingGroups = JSON.parse(localStorage.getItem('dexzu-logging-collapsed') || '{}'); } catch { /* Ignore invalid local preferences. */ }
+  const renderLoggingGroup = group => {
+    const events = logGroups[group];
+    if (!events?.length) return '';
+    const open = collapsedLoggingGroups[group] !== true;
+    return `<details class="logging-group" data-log-group="${group}" ${open ? 'open' : ''}><summary><span class="group-title"><i>${loggingIcons[group]}</i><span>${group}</span></span><b class="group-count">${events.filter(event => event.enabled).length} / ${events.length} enabled</b></summary><div class="group-body"><div class="group-actions"><button type="button" data-log-action="on">Enable All</button><button type="button" data-log-action="off">Disable All</button></div><div class="group-events">${events.map(event => checkbox(event.key, event.label, event.enabled, 'logging')).join('')}</div></div></details>`;
+  };
+  const leftGroups = ['Moderation', 'Channels', 'Voice'];
+  const rightGroups = ['Messages', 'Members', 'Server'];
+  $('logging-events').innerHTML = `<div class="logging-column">${leftGroups.map(renderLoggingGroup).join('')}</div><div class="logging-column">${rightGroups.map(renderLoggingGroup).join('')}</div>`;
   $('youtube-enabled').checked = current.youtube.enabled;
   $('youtube-channel').innerHTML = channelOptions(current.channels, current.youtube.channelId, 'Choose a channel');
   $('youtube-preview-avatar').src = current.bot.avatar;
@@ -394,9 +406,10 @@ function bindControlEvents() {
   bind(['logging-enabled','logging-channel'], 'logging', updateLoggingUi);
   document.querySelectorAll('[data-group=logging]').forEach(input => { input.onchange = () => { setDirty('logging'); updateLoggingUi(); }; });
   document.querySelectorAll('[data-log-action]').forEach(button => { button.onclick = () => { button.closest('.logging-group').querySelectorAll('[data-group=logging]').forEach(input => { input.checked = button.dataset.logAction === 'on'; }); setDirty('logging'); updateLoggingUi(); }; });
+  document.querySelectorAll('.logging-group').forEach(group => { group.ontoggle = () => { if ($('logging-search').value.trim()) return; let collapsed = {}; try { collapsed = JSON.parse(localStorage.getItem('dexzu-logging-collapsed') || '{}'); } catch { /* Replace invalid local preferences. */ } collapsed[group.dataset.logGroup] = !group.open; localStorage.setItem('dexzu-logging-collapsed', JSON.stringify(collapsed)); }; });
   $('logging-all').onclick = () => { document.querySelectorAll('[data-group=logging]').forEach(input => { input.checked = true; }); setDirty('logging'); updateLoggingUi(); };
   $('logging-none').onclick = () => { document.querySelectorAll('[data-group=logging]').forEach(input => { input.checked = false; }); setDirty('logging'); updateLoggingUi(); };
-  $('logging-search').oninput = () => { const query = $('logging-search').value.trim().toLowerCase(); document.querySelectorAll('.logging-group').forEach(group => { let visible = 0; group.querySelectorAll('.check-row').forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(query); if (!row.hidden) visible += 1; }); group.hidden = visible === 0; if (query && visible) group.open = true; }); };
+  $('logging-search').oninput = () => { const query = $('logging-search').value.trim().toLowerCase(); document.querySelectorAll('.logging-group').forEach(group => { let visible = 0; group.querySelectorAll('.check-row').forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(query); if (!row.hidden) visible += 1; }); group.hidden = visible === 0; if (query && visible) group.open = true; }); updateLoggingUi(); };
   $('logging-discard').onclick = () => { dirtyPages.delete('logging'); render(state); };
 }
 
