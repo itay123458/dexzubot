@@ -220,6 +220,7 @@ function renderLevelRewards() {
   }; });
 }
 function updateLoggingUi() {
+  document.querySelectorAll('[data-group=logging]').forEach(input => input.closest('.check-row')?.classList.toggle('selected', input.checked));
   const checked = document.querySelectorAll('[data-group=logging]:checked').length;
   const total = document.querySelectorAll('[data-group=logging]').length;
   $('logging-enabled-count').textContent = `${checked} of ${total} events enabled`;
@@ -364,7 +365,8 @@ function render(current) {
     const group = prefix === 'moderation' ? 'Moderation' : prefix === 'message' ? 'Messages' : prefix === 'voice' ? 'Voice' : prefix === 'member' ? 'Members' : prefix === 'channel' ? 'Channels' : 'Server';
     logGroups[group].push(event);
   });
-  $('logging-events').innerHTML = Object.entries(logGroups).filter(([,events]) => events.length).map(([group, events]) => `<details class="logging-group" open><summary><span>${group}</span><b class="group-count">${events.filter(event => event.enabled).length}/${events.length} enabled</b></summary><div class="group-actions"><button type="button" data-log-action="on">Enable All</button><button type="button" data-log-action="off">Disable All</button></div><div class="group-events">${events.map(event => checkbox(event.key, event.label, event.enabled, 'logging')).join('')}</div></details>`).join('');
+  const loggingIcons = { Moderation: '◆', Messages: '≡', Voice: '◖', Members: '✦', Channels: '#', Server: '▣' };
+  $('logging-events').innerHTML = Object.entries(logGroups).filter(([,events]) => events.length).map(([group, events]) => `<details class="logging-group" open><summary><span class="group-title"><i>${loggingIcons[group]}</i>${group}</span><b class="group-count">${events.filter(event => event.enabled).length} / ${events.length} enabled</b></summary><div class="group-body"><div class="group-actions"><button type="button" data-log-action="on">Enable All</button><button type="button" data-log-action="off">Disable All</button></div><div class="group-events">${events.map(event => checkbox(event.key, event.label, event.enabled, 'logging')).join('')}</div></div></details>`).join('');
   $('youtube-enabled').checked = current.youtube.enabled;
   $('youtube-channel').innerHTML = channelOptions(current.channels, current.youtube.channelId, 'Choose a channel');
   $('youtube-preview-avatar').src = current.bot.avatar;
