@@ -25,7 +25,7 @@ function exceedsSpamLimit(message, settings) {
 }
 
 function mentionCount(message) {
-  return message.mentions.users.size + message.mentions.roles.size + (message.mentions.everyone ? 1000 : 0);
+  return message.mentions.users.size + message.mentions.roles.size;
 }
 
 async function rejectMessage(message, reason) {
