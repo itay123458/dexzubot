@@ -9,6 +9,10 @@ let levelingSettingsDirty = false;
 let levelingRewardsDirty = false;
 let levelRewardDraft = [];
 let activityExpanded = false;
+let hasAnimatedStats = false;
+let previousMetricValues = null;
+let previousPerformanceValues = null;
+let latestActivityId = null;
 const $ = id => document.getElementById(id);
 const toast = (message, error = false, detail = '') => {
   const type = typeof error === 'string' ? error : (error ? 'error' : 'success');
@@ -41,6 +45,36 @@ const post = async (path, body) => {
 const checkbox = (id, label, checked, group) => `<label class="check-row"><input type="checkbox" data-group="${group}" value="${id}" ${checked ? 'checked' : ''}><span>${label}</span></label>`;
 const channelOptions = (channels, selected, placeholder) => `<option value="">${placeholder}</option>${channels.map(channel => `<option value="${channel.id}" ${channel.id === selected ? 'selected' : ''}>#${channel.name}</option>`).join('')}`;
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function animateNumber(element, from, to, duration) {
+  if (!element || reducedMotion() || from === to) { if (element) element.textContent = String(to); return; }
+  const started = performance.now();
+  const frame = now => {
+    const progress = Math.min(1, (now - started) / duration);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    element.textContent = String(Math.round(from + (to - from) * eased));
+    if (progress < 1) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
+function showSaved(button, originalLabel = '✓ Save Changes') {
+  if (!button) return;
+  clearTimeout(button._savedTimer);
+  requestAnimationFrame(() => { button.classList.add('saved-feedback'); button.textContent = '✓ Saved'; });
+  button._savedTimer = setTimeout(() => { button.classList.remove('saved-feedback'); button.textContent = originalLabel; }, 1300);
+}
+
+function updateNavIndicator() {
+  const nav = document.querySelector('.dashboard-nav');
+  const active = nav?.querySelector('.nav-item.active');
+  const indicator = $('nav-active-indicator');
+  if (!nav || !active || !indicator || window.innerWidth <= 680) return;
+  indicator.style.setProperty('--indicator-y', `${active.offsetTop + 10}px`);
+  indicator.style.setProperty('--indicator-height', `${Math.max(20, active.offsetHeight - 20)}px`);
+  indicator.classList.add('ready');
+}
 const icon = paths => `<svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
 const icons = {
   members: icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
@@ -132,6 +166,7 @@ function showPage(pageName) {
   }
   document.querySelectorAll('[data-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === selectedPanel));
   document.querySelectorAll('[data-page]').forEach(button => button.classList.toggle('active', button.dataset.page === selected));
+  requestAnimationFrame(updateNavIndicator);
   $('page-title').textContent = pageDetails[selected][0];
   $('breadcrumb-page').textContent = pageDetails[selected][0];
   $('page-description').textContent = pageDetails[selected][1];
@@ -216,7 +251,8 @@ function renderRecentActivity() {
     return;
   }
   const activityIcons = { moderation: '◆', message: '≡', member: '✦', voice: '◖', leveling: '↗', counting: '#', role: '◇', channel: '#', dashboard: '⌘', guild: '⌂', invite: '↗', emoji: '✦', sticker: '▣' };
-  $('recent-activity').innerHTML = visible.map(activity => `<div class="activity-row"><span class="activity-type ${escapeHtml(activity.category)}">${activityIcons[activity.category] || '•'}</span><div><strong>${escapeHtml(activity.title)}</strong>${activity.detail ? `<p>${escapeHtml(activity.detail)}</p>` : ''}</div><time datetime="${escapeHtml(activity.timestamp)}" title="${escapeHtml(new Date(activity.timestamp).toLocaleString())}">${relativeActivityTime(activity.timestamp)}</time></div>`).join('');
+  $('recent-activity').innerHTML = visible.map((activity, index) => `<div class="activity-row ${index === 0 && activity.id === latestActivityId ? 'activity-new' : ''}"><span class="activity-type ${escapeHtml(activity.category)}">${activityIcons[activity.category] || '•'}</span><div><strong>${escapeHtml(activity.title)}</strong>${activity.detail ? `<p>${escapeHtml(activity.detail)}</p>` : ''}</div><time datetime="${escapeHtml(activity.timestamp)}" title="${escapeHtml(new Date(activity.timestamp).toLocaleString())}">${relativeActivityTime(activity.timestamp)}</time></div>`).join('');
+  if (latestActivityId) setTimeout(() => { document.querySelector('.activity-new')?.classList.remove('activity-new'); latestActivityId = null; }, 1100);
 }
 
 async function refreshRecentActivity() {
@@ -225,7 +261,9 @@ async function refreshRecentActivity() {
     const response = await fetch('/dashboard/api/activity', { cache: 'no-store' });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Activity unavailable');
+    const previousTopId = state.recentActivity?.[0]?.id;
     state.recentActivity = data.activity;
+    if (previousTopId && data.activity?.[0]?.id !== previousTopId) latestActivityId = data.activity[0].id;
     renderRecentActivity();
   } catch { /* Keep the last successfully loaded activity feed. */ }
 }
@@ -242,7 +280,7 @@ const setSidebarCollapsed = collapsed => {
   localStorage.setItem('dexzu-sidebar-collapsed', String(collapsed));
 };
 setSidebarCollapsed(localStorage.getItem('dexzu-sidebar-collapsed') === 'true');
-$('sidebar-collapse').onclick = () => setSidebarCollapsed(!document.body.classList.contains('sidebar-collapsed'));
+$('sidebar-collapse').onclick = () => { setSidebarCollapsed(!document.body.classList.contains('sidebar-collapsed')); requestAnimationFrame(updateNavIndicator); };
 $('view-logs').onclick = () => { activityExpanded = !activityExpanded; renderRecentActivity(); };
 
 function render(current) {
@@ -255,7 +293,11 @@ function render(current) {
   $('online-pill').className = `pill ${current.bot.online ? 'online' : ''}`;
   const metricIcons = { Members: icons.members, Commands: icons.command, Channels: icons.hash, Uptime: icons.clock };
   const uptimeHours = Math.floor(current.bot.uptimeSeconds / 3600);
-  $('metrics').innerHTML = [['Members', current.server.members, `${current.server.members} total`], ['Commands', current.bot.loadedCommands, `${current.bot.loadedCommands} loaded`], ['Channels', current.server.channels, 'Server total'], ['Uptime', `${uptimeHours}h`, 'Since restart']].map(([key, value, secondary]) => `<div class="metric"><div class="metric-icon">${metricIcons[key]}</div><strong>${value}</strong><span>${key}</span><small>${secondary}</small></div>`).join('');
+  const metricValues = { Members: current.server.members, Commands: current.bot.loadedCommands, Channels: current.server.channels };
+  $('metrics').innerHTML = [['Members', metricValues.Members, `${current.server.members} total`], ['Commands', metricValues.Commands, `${current.bot.loadedCommands} loaded`], ['Channels', metricValues.Channels, 'Server total'], ['Uptime', `${uptimeHours}h`, 'Since restart']].map(([key, value, secondary]) => `<div class="metric"><div class="metric-icon">${metricIcons[key]}</div><strong data-metric="${key}">${key === 'Uptime' ? value : (previousMetricValues?.[key] ?? (hasAnimatedStats ? value : 0))}</strong><span>${key}</span><small>${secondary}</small></div>`).join('');
+  for (const [key, value] of Object.entries(metricValues)) animateNumber(document.querySelector(`[data-metric="${key}"]`), previousMetricValues?.[key] ?? (hasAnimatedStats ? value : 0), value, hasAnimatedStats ? 190 : 650);
+  previousMetricValues = metricValues;
+  hasAnimatedStats = true;
   const moduleMeta = {
     core: [icons.command, 'Essential bot functionality'], counting: [icons.hash, 'Server counting game'], economy: [icons.wallet, 'Currency and economy commands'],
     leveling: [icons.trend, 'XP and member progression'], moderation: [icons.shield, 'Staff moderation tools'], serverstats: [icons.chart, 'Live server statistics'],
@@ -273,11 +315,14 @@ function render(current) {
     ...(current.database ? [['Database', databaseReady ? 'Connected' : 'Degraded', databaseReady ? 'good' : 'warning']] : []),
     ['Dashboard API', 'Connected', 'good'],
     ['Uptime', `${uptimeHours}h ${Math.floor((current.bot.uptimeSeconds % 3600) / 60)}m`, current.bot.online ? 'good' : 'bad'],
-  ].map(([label, value, status]) => `<div class="status-row"><span>${label}</span><strong><i class="status-dot ${status}"></i>${value}</strong></div>`).join('');
-  $('performance').innerHTML = [
+  ].map(([label, value, status], index) => `<div class="status-row status-updated" style="--row-delay:${index * 30}ms"><span>${label}</span><strong><i class="status-dot ${status}"></i>${value}</strong></div>`).join('');
+  const performanceRows = [
     ['Uptime', `${uptimeHours}h ${Math.floor((current.bot.uptimeSeconds % 3600) / 60)}m`, Math.min(100, current.bot.uptimeSeconds / 864)],
     ['Commands loaded', current.bot.loadedCommands, Math.min(100, current.bot.loadedCommands)],
-  ].map(([label, value, meter]) => `<div class="performance-row"><div><span>${label}</span><strong>${value}</strong></div><i><b style="width:${meter}%"></b></i></div>`).join('');
+  ];
+  $('performance').innerHTML = performanceRows.map(([label, value]) => `<div class="performance-row"><div><span>${label}</span><strong class="live-value">${value}</strong></div><i><b data-performance="${escapeHtml(label)}" style="width:${previousPerformanceValues?.[label] ?? 0}%"></b></i></div>`).join('');
+  requestAnimationFrame(() => performanceRows.forEach(([label,,meter]) => { const bar = document.querySelector(`[data-performance="${label}"]`); if (bar) bar.style.width = `${meter}%`; }));
+  previousPerformanceValues = Object.fromEntries(performanceRows.map(([label,,meter]) => [label, meter]));
   renderRecentActivity();
   document.querySelectorAll('[data-category]').forEach(element => { element.onchange = async () => {
     const row = element.closest('.toggle-row'); const enabled = element.checked; const name = element.dataset.name;
@@ -423,14 +468,14 @@ $('refresh-dashboard').onclick = async () => {
   button.classList.add('loading');
   button.disabled = true;
   try { await load(); toast('Refreshed', false, 'System status updated.'); }
-  catch (error) { toast(error.message, true); }
+  catch (error) { button.classList.add('refresh-failed'); setTimeout(() => button.classList.remove('refresh-failed'), 350); toast(error.message, true); }
   finally { button.classList.remove('loading'); button.disabled = false; }
 };
 
-$('save-promo').onclick = async () => { try { const allowedChannelIds = [...document.querySelectorAll('[data-group=promo]:checked')].map(input => input.value); await post('anti-promo', { enabled: $('promo-enabled').checked, allowedChannelIds }); state.antiPromo = { enabled: $('promo-enabled').checked, allowedChannelIds }; safetyPromoDirty = false; setDirty('safety', safetyPingDirty || safetyAdvancedDirty); toast('Promotion filter saved'); } catch (error) { toast("Couldn't save promotion filter", true, error.message); } };
-$('save-ping').onclick = async () => { try { const protectedUserIds = [...document.querySelectorAll('[data-group=ping]:checked')].map(input => input.value); await post('anti-ping', { protectedUserIds }); state.antiPing.protectedUserIds = protectedUserIds; safetyPingDirty = false; setDirty('safety', safetyPromoDirty || safetyAdvancedDirty); toast('Mention protection saved'); } catch (error) { toast("Couldn't save mention protection", true, error.message); } };
-$('save-safety-advanced').onclick = async () => { const settings = { antiSpam: $('spam-enabled').checked, spamMaxMessages: Number($('spam-max').value), spamIntervalSeconds: Number($('spam-seconds').value), antiMassMentions: $('mentions-enabled').checked, maxMentions: Number($('mentions-max').value) }; try { await post('safety/advanced', settings); state.safetyAdvanced = settings; safetyAdvancedDirty = false; setDirty('safety', safetyPromoDirty || safetyPingDirty); toast('Advanced safety settings saved'); } catch (error) { toast("Couldn't save advanced safety settings", true, error.message); } };
-$('save-greetings').onclick = async () => { try { const settings = { cardEnabled: $('greeting-cards').checked, welcomeEnabled: $('welcome-enabled').checked, welcomeChannelId: $('welcome-channel').value, welcomeMessage: $('welcome-message').value, goodbyeEnabled: $('goodbye-enabled').checked, goodbyeChannelId: $('goodbye-channel').value, goodbyeMessage: $('goodbye-message').value }; await post('greetings', settings); state.greetings = { ...state.greetings, ...settings }; setDirty('greetings', false); toast('Greeting settings saved'); } catch (error) { toast("Couldn't save greeting settings", true, error.message); } };
+$('save-promo').onclick = async () => { try { const allowedChannelIds = [...document.querySelectorAll('[data-group=promo]:checked')].map(input => input.value); await post('anti-promo', { enabled: $('promo-enabled').checked, allowedChannelIds }); state.antiPromo = { enabled: $('promo-enabled').checked, allowedChannelIds }; safetyPromoDirty = false; setDirty('safety', safetyPingDirty || safetyAdvancedDirty); showSaved($('save-promo')); toast('Promotion filter saved'); } catch (error) { toast("Couldn't save promotion filter", true, error.message); } };
+$('save-ping').onclick = async () => { try { const protectedUserIds = [...document.querySelectorAll('[data-group=ping]:checked')].map(input => input.value); await post('anti-ping', { protectedUserIds }); state.antiPing.protectedUserIds = protectedUserIds; safetyPingDirty = false; setDirty('safety', safetyPromoDirty || safetyAdvancedDirty); showSaved($('save-ping')); toast('Mention protection saved'); } catch (error) { toast("Couldn't save mention protection", true, error.message); } };
+$('save-safety-advanced').onclick = async () => { const settings = { antiSpam: $('spam-enabled').checked, spamMaxMessages: Number($('spam-max').value), spamIntervalSeconds: Number($('spam-seconds').value), antiMassMentions: $('mentions-enabled').checked, maxMentions: Number($('mentions-max').value) }; try { await post('safety/advanced', settings); state.safetyAdvanced = settings; safetyAdvancedDirty = false; setDirty('safety', safetyPromoDirty || safetyPingDirty); showSaved($('save-safety-advanced'), '✓ Save Advanced Safety'); toast('Advanced safety settings saved'); } catch (error) { toast("Couldn't save advanced safety settings", true, error.message); } };
+$('save-greetings').onclick = async () => { try { const settings = { cardEnabled: $('greeting-cards').checked, welcomeEnabled: $('welcome-enabled').checked, welcomeChannelId: $('welcome-channel').value, welcomeMessage: $('welcome-message').value, goodbyeEnabled: $('goodbye-enabled').checked, goodbyeChannelId: $('goodbye-channel').value, goodbyeMessage: $('goodbye-message').value }; await post('greetings', settings); state.greetings = { ...state.greetings, ...settings }; setDirty('greetings', false); showSaved($('save-greetings')); toast('Greeting settings saved'); } catch (error) { toast("Couldn't save greeting settings", true, error.message); } };
 $('save-leveling').onclick = async () => {
   const button = $('save-leveling');
   if (button.disabled) return;
@@ -449,6 +494,7 @@ $('save-leveling').onclick = async () => {
     };
     await post('leveling', settings);
     state.leveling = { ...state.leveling, ...settings }; levelingSettingsDirty = false; setDirty('leveling', levelingRewardsDirty);
+    showSaved(button);
     toast('Leveling settings saved');
   } catch (error) {
     toast(error.message, true);
@@ -478,12 +524,13 @@ $('save-level-rewards').onclick = async () => {
     const result = await post('leveling/rewards', { roleRewards: levelRewardDraft });
     state.leveling.roleRewards = levelRewardDraft.map(reward => ({ ...reward }));
     levelingRewardsDirty = false; setDirty('leveling', levelingSettingsDirty);
+    showSaved(button, '✓ Save Role Rewards');
     toast('Level role rewards saved', false, result.rolesAwarded ? `${result.rolesAwarded} existing role assignment${result.rolesAwarded === 1 ? '' : 's'} added.` : 'New rewards apply automatically.');
   } catch (error) { toast("Couldn't save level role rewards", true, error.message); }
   finally { button.disabled = false; }
 };
 $('reset-leveling').onclick = async () => { if (!confirm(`Reset all XP?\n\nThis will permanently reset XP and levels for every member in ${state.server.name}. This action cannot be undone.`)) return; const confirmation = prompt(`Type ${state.server.name} to confirm the reset:`); if (confirmation === null) return; try { const result = await post('leveling/reset', { confirm: confirmation }); toast(`Reset XP for ${result.resetCount} members`); } catch (error) { toast(error.message, true); } };
-$('save-logging').onclick = async () => { try { const enabledEventTypes = [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value); const enabled = $('logging-enabled').checked; const channelId = $('logging-channel').value; await post('logging', { enabled, channelId, enabledEventTypes }); state.logging.enabled = enabled; state.logging.channelId = channelId; state.logging.events.forEach(event => { event.enabled = enabledEventTypes.includes(event.key); }); setDirty('logging', false); toast('Logging settings saved'); } catch (error) { toast("Couldn't save logging settings", true, error.message); } };
+$('save-logging').onclick = async () => { try { const enabledEventTypes = [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value); const enabled = $('logging-enabled').checked; const channelId = $('logging-channel').value; await post('logging', { enabled, channelId, enabledEventTypes }); state.logging.enabled = enabled; state.logging.channelId = channelId; state.logging.events.forEach(event => { event.enabled = enabledEventTypes.includes(event.key); }); setDirty('logging', false); showSaved($('save-logging')); toast('Logging settings saved'); } catch (error) { toast("Couldn't save logging settings", true, error.message); } };
 $('youtube-channel').onchange = () => { document.querySelector('.youtube-config').classList.add('dirty'); updateYouTubeSummary(); };
 $('youtube-enabled').onchange = async () => {
   const input = $('youtube-enabled'); const previous = !input.checked; const enabled = input.checked;
@@ -505,6 +552,7 @@ $('save-youtube').onclick = async () => {
     await post('youtube', { enabled, channelId });
     state.youtube.enabled = enabled; state.youtube.channelId = channelId || state.youtube.channelId;
     document.querySelector('.youtube-config').classList.remove('dirty'); updateYouTubeSummary();
+    showSaved(button);
     toast('YouTube settings saved');
   } catch (error) { toast("Couldn't save YouTube settings", true, error.message); }
   finally { button.disabled = false; }
@@ -520,4 +568,37 @@ $('test-youtube').onclick = async () => {
 };
 load().catch(error => toast(error.message, true));
 setInterval(() => { if (!document.hidden) void refreshRecentActivity(); }, 30000);
+window.addEventListener('resize', updateNavIndicator, { passive: true });
+document.querySelector('.sidebar')?.addEventListener('scroll', updateNavIndicator, { passive: true });
+
+document.addEventListener('pointermove', event => {
+  const card = event.target.closest?.('.card');
+  if (!card || card.classList.contains('danger-card') || reducedMotion()) return;
+  const bounds = card.getBoundingClientRect();
+  card.classList.add('mouse-light');
+  card.style.setProperty('--card-x', `${event.clientX - bounds.left}px`);
+  card.style.setProperty('--card-y', `${event.clientY - bounds.top}px`);
+}, { passive: true });
+document.addEventListener('pointerout', event => {
+  const card = event.target.closest?.('.card');
+  if (card && !card.contains(event.relatedTarget)) card.classList.remove('mouse-light');
+}, { passive: true });
+
+function setupBackgroundParallax() {
+  const connection = navigator.connection;
+  if (reducedMotion() || matchMedia('(pointer: coarse)').matches || connection?.saveData || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2)) return;
+  let targetX = 0, targetY = 0, currentX = 0, currentY = 0, running = false;
+  const tick = () => {
+    currentX += (targetX - currentX) * .08; currentY += (targetY - currentY) * .08;
+    document.documentElement.style.setProperty('--parallax-x', `${currentX.toFixed(2)}px`);
+    document.documentElement.style.setProperty('--parallax-y', `${currentY.toFixed(2)}px`);
+    if (Math.abs(targetX - currentX) > .03 || Math.abs(targetY - currentY) > .03) requestAnimationFrame(tick); else running = false;
+  };
+  window.addEventListener('pointermove', event => {
+    targetX = ((event.clientX / innerWidth) - .5) * 8; targetY = ((event.clientY / innerHeight) - .5) * 8;
+    if (!running) { running = true; requestAnimationFrame(tick); }
+  }, { passive: true });
+}
+setupBackgroundParallax();
+if (!reducedMotion() && (!location.hash || location.hash === '#overview')) { document.body.classList.add('initializing'); setTimeout(() => document.body.classList.remove('initializing'), 1300); }
 window.addEventListener('beforeunload', event => { if (!dirtyPages.size) return; event.preventDefault(); event.returnValue = ''; });
