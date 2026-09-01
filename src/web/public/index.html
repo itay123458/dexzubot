@@ -30,6 +30,12 @@
         <button class="nav-item" data-page="leveling" title="Leveling"><span class="nav-icon">↗</span><span>Leveling</span></button>
         <button class="nav-item" data-page="logging" title="Logging"><span class="nav-icon">≡</span><span>Logging</span></button>
         <button class="nav-item" data-page="youtube" title="YouTube"><span class="nav-icon">▶</span><span>YouTube</span></button>
+        <p class="nav-label nav-group">Modules</p>
+        <button class="nav-item" data-page="module-counting" title="Counting"><span class="nav-icon">#</span><span>Counting</span></button>
+        <button class="nav-item" data-page="module-economy" title="Economy"><span class="nav-icon">◇</span><span>Economy</span></button>
+        <button class="nav-item" data-page="module-moderation" title="Moderation"><span class="nav-icon">◆</span><span>Moderation</span></button>
+        <button class="nav-item" data-page="module-ticket" title="Tickets"><span class="nav-icon">▣</span><span>Tickets</span></button>
+        <button class="nav-item" data-page="module-serverstats" title="Server Stats"><span class="nav-icon">▥</span><span>Server Stats</span></button>
       </nav>
 
       <div class="sidebar-footer">
@@ -109,6 +115,10 @@
             <div class="card-actions"><span>DexzuBot can only assign roles below its highest role.</span><button id="save-level-rewards" type="button">✓ Save Role Rewards</button></div>
           </article>
           <article class="card danger-card"><div><p class="eyebrow">DANGER ZONE</p><h2>Reset All XP</h2><p>Permanently reset every member's XP and level to 0. This action cannot be undone.</p></div><button id="reset-leveling" class="danger-button">Reset Everyone</button></article>
+        </section>
+
+        <section class="page" data-panel="module">
+          <div id="module-page-content"></div>
         </section>
 
         <section class="page" data-panel="logging">

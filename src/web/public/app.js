@@ -56,22 +56,64 @@ const pageDetails = {
   leveling: ['Leveling', 'XP rewards, announcements, and progression.'],
   logging: ['Logging', 'Choose which server events are recorded.'],
   youtube: ['YouTube', 'Automatic upload alerts for DexzuGtag.'],
+  'module-counting': ['Counting', 'Manage the server counting game commands.'],
+  'module-economy': ['Economy', 'Manage currency, rewards, shops, and economy commands.'],
+  'module-moderation': ['Moderation', 'Manage staff moderation and member safety commands.'],
+  'module-ticket': ['Tickets', 'Manage private support ticket commands.'],
+  'module-serverstats': ['Server Stats', 'Manage live server statistic counter commands.'],
 };
+
+const moduleDetails = {
+  counting: { icon: '#', label: 'Counting', eyebrow: 'COMMUNITY GAME', description: 'Keep a shared counting sequence running with streaks and leaderboards.', examples: ['/count setup', '/count status', '/count reset', '/count leaderboard'] },
+  economy: { icon: '◇', label: 'Economy', eyebrow: 'SERVER ECONOMY', description: 'Currency, work, games, inventory, shops, and staff balance controls.', examples: ['/balance', '/daily', '/shop', '/economy dashboard'] },
+  moderation: { icon: '◆', label: 'Moderation', eyebrow: 'STAFF TOOLS', description: 'Bans, kicks, timeouts, warnings, locks, notes, and other staff actions.', examples: ['/ban', '/timeout', '/warn', '/cases'] },
+  ticket: { icon: '▣', label: 'Tickets', eyebrow: 'MEMBER SUPPORT', description: 'Private support tickets, priorities, staff access, and ticket panels.', examples: ['/ticket setup', '/ticket dashboard', '/claim', '/close'] },
+  serverstats: { icon: '▥', label: 'Server Stats', eyebrow: 'LIVE COUNTERS', description: 'Voice-channel counters that display live server totals.', examples: ['/serverstats create', '/serverstats list', '/serverstats update', '/serverstats delete'] },
+};
+
+function renderModulePage(pageName) {
+  if (!state || !pageName.startsWith('module-')) return;
+  const key = pageName.slice(7);
+  const details = moduleDetails[key];
+  const category = state.categories.find(item => item.key.toLowerCase() === key || item.name.toLowerCase().replaceAll(' ', '') === key);
+  if (!details || !category) {
+    $('module-page-content').innerHTML = '<article class="card module-detail-card"><h2>Module unavailable</h2><p>This module is not currently registered with DexzuBot.</p></article>';
+    return;
+  }
+  $('module-page-content').innerHTML = `<div class="feature-heading module-heading"><div><p class="eyebrow">${details.eyebrow}</p><h2>${details.label}</h2><p>${details.description}</p></div><span class="module-page-icon">${details.icon}</span></div><div class="module-page-grid"><article class="card module-detail-card ${category.enabled ? '' : 'module-disabled'}"><div class="card-head"><div><p class="eyebrow">MODULE ACCESS</p><h2>${details.label} Commands</h2><p>Changes apply instantly in Discord and are remembered after restarts.</p></div><label class="switch"><input id="module-page-toggle" type="checkbox" ${category.enabled ? 'checked' : ''} aria-label="Toggle ${details.label}"><span></span></label></div><div class="module-health"><div><small>Status</small><strong><i class="status-dot ${category.enabled ? 'good' : ''}"></i>${category.enabled ? 'Enabled' : 'Disabled'}</strong></div><div><small>Available commands</small><strong>${category.enabledCommands} / ${category.totalCommands}</strong></div></div><p class="module-disabled-note">Disabled modules are hidden from the help menu and their slash commands are removed from this server.</p></article><article class="card module-command-card"><p class="eyebrow">QUICK REFERENCE</p><h2>Popular Commands</h2><p>Use these commands directly in Discord.</p><div class="module-command-list">${details.examples.map(command => `<code>${command}</code>`).join('')}</div></article></div>`;
+  const toggle = $('module-page-toggle');
+  toggle.onchange = async () => {
+    const enabled = toggle.checked; const card = toggle.closest('.module-detail-card');
+    toggle.disabled = true; card.classList.toggle('module-disabled', !enabled);
+    try {
+      await post('category', { category: category.key, enabled });
+      category.enabled = enabled;
+      category.enabledCommands = enabled ? category.totalCommands : 0;
+      toast(`${details.label} ${enabled ? 'enabled' : 'disabled'}`);
+      renderModulePage(pageName);
+    } catch (error) {
+      toggle.checked = !enabled; card.classList.toggle('module-disabled', enabled);
+      toast(`Couldn't update ${details.label}`, true, error.message);
+    } finally { toggle.disabled = false; }
+  };
+}
 
 function showPage(pageName) {
   const selected = pageDetails[pageName] ? pageName : 'overview';
+  const selectedPanel = selected.startsWith('module-') ? 'module' : selected;
   const currentPage = document.querySelector('[data-panel].active')?.dataset.panel;
   if (currentPage && currentPage !== selected && dirtyPages.has(currentPage)) {
     if (!confirm('Discard unsaved changes?')) return;
     dirtyPages.delete(currentPage);
     if (state) render(state);
   }
-  document.querySelectorAll('[data-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === selected));
+  document.querySelectorAll('[data-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === selectedPanel));
   document.querySelectorAll('[data-page]').forEach(button => button.classList.toggle('active', button.dataset.page === selected));
   $('page-title').textContent = pageDetails[selected][0];
   $('breadcrumb-page').textContent = pageDetails[selected][0];
   $('page-description').textContent = pageDetails[selected][1];
   history.replaceState(null, '', `#${selected}`);
+  renderModulePage(selected);
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (selected === 'youtube') void loadYouTubeLatest();
 }
@@ -180,7 +222,7 @@ function render(current) {
   document.querySelectorAll('[data-category]').forEach(element => { element.onchange = async () => {
     const row = element.closest('.toggle-row'); const enabled = element.checked; const name = element.dataset.name;
     row.classList.toggle('module-disabled', !enabled); row.classList.add('module-updating'); element.disabled = true;
-    try { await post('category', { category: element.dataset.category, enabled }); row.classList.add('module-flash'); setTimeout(() => row.classList.remove('module-flash'), 500); toast(`${name} ${enabled ? 'enabled' : 'disabled'}`, false, `${name} commands are now ${enabled ? 'active' : 'inactive'}.`); }
+    try { await post('category', { category: element.dataset.category, enabled }); const category = state.categories.find(item => item.key === element.dataset.category); if (category) { category.enabled = enabled; category.enabledCommands = enabled ? category.totalCommands : 0; } row.classList.add('module-flash'); setTimeout(() => row.classList.remove('module-flash'), 500); toast(`${name} ${enabled ? 'enabled' : 'disabled'}`, false, `${name} commands are now ${enabled ? 'active' : 'inactive'}.`); }
     catch (error) { element.checked = !enabled; row.classList.toggle('module-disabled', enabled); toast(`Couldn't update ${name}.`, true, error.message); }
     finally { row.classList.remove('module-updating'); element.disabled = false; }
   }; });
@@ -227,6 +269,7 @@ function render(current) {
   bindControlEvents();
   updateYouTubeSummary();
   renderYouTubeLatest();
+  renderModulePage(location.hash.slice(1));
 }
 
 function selectedYouTubeChannel() {
