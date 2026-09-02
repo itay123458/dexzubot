@@ -85,6 +85,25 @@ export async function getYouTubeAlertStatus(client, guildId) {
     return { deliveries: state.deliveries.slice(0, 10), lastCheckedAt: state.lastCheckedAt, lastSuccessfulCheckAt: state.lastSuccessfulCheckAt, lastError: state.lastError };
 }
 
+export async function runYouTubeAlertCheck(client, guild) {
+    const videos = await fetchYouTubeVideos();
+    await checkGuild(client, guild, videos);
+    return getYouTubeAlertStatus(client, guild.id);
+}
+
+export async function retryFailedYouTubeAlerts(client, guild) {
+    const state = await getAlertState(client, guild.id);
+    let queued = 0;
+    state.deliveries = state.deliveries.map(delivery => {
+        if (delivery.status !== 'failed') return delivery;
+        queued += 1;
+        return { ...delivery, nextRetryAt: null };
+    });
+    await saveAlertState(client, guild.id, state);
+    if (queued) await runYouTubeAlertCheck(client, guild);
+    return { queued, ...(await getYouTubeAlertStatus(client, guild.id)) };
+}
+
 export async function sendYouTubeAlert(channel, video, { test = false } = {}) {
     const embed = new EmbedBuilder().setColor(0xff0000).setAuthor({ name: 'Dexzu', iconURL: channel.client.user.displayAvatarURL(), url: YOUTUBE_CHANNEL_URL })
         .setTitle(video.title || 'New Dexzu video').setURL(video.url).setDescription('Dexzu published a new video on YouTube!')

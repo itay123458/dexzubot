@@ -31,6 +31,7 @@
         <button class="nav-item" data-page="leveling" title="Leveling"><span class="nav-icon">↗</span><span>Leveling</span></button>
         <button class="nav-item" data-page="logging" title="Logging"><span class="nav-icon">≡</span><span>Logging</span></button>
         <button class="nav-item" data-page="youtube" title="YouTube"><span class="nav-icon">▶</span><span>YouTube</span></button>
+        <button class="nav-item" data-page="operations" title="Operations"><span class="nav-icon">⚙</span><span>Operations</span></button>
         <p class="nav-label nav-group">Modules</p>
         <button class="nav-item" data-page="module-counting" title="Counting"><span class="nav-icon">#</span><span>Counting</span></button>
         <button class="nav-item" data-page="module-economy" title="Economy"><span class="nav-icon">◇</span><span>Economy</span></button>
@@ -125,7 +126,7 @@
         <section class="page" data-panel="logging">
           <div class="feature-heading"><div><p class="eyebrow">AUDIT LOG</p><h2>Server Logging</h2><p>Choose which server events DexzuBot records.</p></div><label class="switch feature-switch"><input id="logging-enabled" type="checkbox"><span></span></label></div>
           <div id="logging-summary" class="summary-grid four"></div>
-          <article class="card destination-card" data-dirty-form="logging"><div class="card-head"><div><p class="eyebrow">LOG DESTINATIONS</p><h2>Logging Channels</h2><p>Send moderation actions and general server activity to different channels.</p></div></div><div class="logging-destination-grid"><label><span>Moderation Logs</span><small>Bans, kicks, timeouts, warnings, purges, and staff actions</small><select id="logging-moderation-channel"></select></label><label><span>Server Logs</span><small>Messages, members, roles, channels, voice, and server changes</small><select id="logging-server-channel"></select></label></div></article>
+          <article class="card destination-card" data-dirty-form="logging"><div class="card-head"><div><p class="eyebrow">LOG DESTINATIONS</p><h2>Logging Channels</h2><p>Send moderation actions and general server activity to different channels.</p></div></div><div class="logging-destination-grid"><label><span>Moderation Logs</span><small>Bans, kicks, timeouts, warnings, purges, and staff actions</small><select id="logging-moderation-channel"></select><button id="test-moderation-log" class="secondary-button compact-button" type="button">Send test log</button></label><label><span>Server Logs</span><small>Messages, members, roles, channels, voice, and server changes</small><select id="logging-server-channel"></select><button id="test-server-log" class="secondary-button compact-button" type="button">Send test log</button></label></div></article>
           <article class="card logging-events-card"><div class="card-head"><div><p class="eyebrow">EVENT CATEGORIES</p><h2>Recorded Events</h2></div><p id="logging-enabled-count" class="logging-total">0 events enabled</p></div><div class="logging-toolbar"><input id="logging-search" class="search-input" type="search" placeholder="Search events…"><div class="event-global-actions"><button id="logging-all" class="secondary-button">Enable All</button><button id="logging-none" class="secondary-button">Disable All</button></div></div><div id="logging-events" class="logging-groups"></div></article>
           <div id="logging-save-bar" class="logging-save-bar"><span><b>● Unsaved changes</b><small id="logging-bar-count">0 events enabled</small></span><button id="logging-discard" class="secondary-button">Discard</button><button id="save-logging">✓ Save Changes</button></div>
         </section>
@@ -143,7 +144,7 @@
                 <div class="card-head"><div><p class="eyebrow">ALERT SETTINGS</p><h2>Alert Configuration</h2><p>Choose where new upload notifications are sent.</p></div></div>
                 <label class="field-label" for="youtube-channel">Discord destination channel</label>
                 <div class="channel-select"><span>#</span><select id="youtube-channel"></select></div>
-                <div class="youtube-actions"><button id="save-youtube"><span>✓</span> Save Changes</button><button id="test-youtube" class="secondary-button" type="button"><span>▶</span> Send Test Notification</button></div>
+                <div class="youtube-actions"><button id="save-youtube"><span>✓</span> Save Changes</button><button id="test-youtube" class="secondary-button" type="button"><span>▶</span> Send Test Notification</button><button id="check-youtube" class="secondary-button" type="button"><span>↻</span> Check Feed Now</button><button id="retry-youtube" class="secondary-button" type="button">Retry Failed</button></div>
                 <div class="duplicate-row"><span class="shield-mark">✓</span><div><strong>Duplicate Protection</strong><p>Prevents DexzuBot from posting the same upload more than once.</p></div><b>Enabled</b></div>
               </article>
 
@@ -158,6 +159,17 @@
               <article class="card recent-youtube-card"><div class="card-head"><div><p class="eyebrow">HISTORY</p><h2>Recent Notifications</h2><p>Recently detected YouTube uploads.</p></div></div><div id="youtube-notifications" class="youtube-empty compact"><span>≡</span><strong>No notifications yet</strong><p>New DexzuGtag upload notifications will appear here.</p></div></article>
               <article class="card youtube-service-card"><div class="card-head"><div><p class="eyebrow">SERVICE</p><h2>Alert Status</h2></div></div><div id="youtube-service-status" class="system-status"></div></article>
             </div>
+          </div>
+        </section>
+
+        <section class="page" data-panel="operations">
+          <div class="feature-heading"><div><p class="eyebrow">RELIABILITY CENTER</p><h2>Operations</h2><p>Health checks, access roles, backups, and active timed punishments.</p></div><button id="run-health-check" class="secondary-button">Run health check</button></div>
+          <div id="operations-summary" class="summary-grid four"></div>
+          <div class="operations-grid">
+            <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">PERMISSIONS & HEALTH</p><h2>Live Diagnostics</h2><p>DexzuBot checks required Discord and database access every five minutes.</p></div></div><div id="operations-health" class="operations-list"></div></article>
+            <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">COMMAND ACCESS</p><h2>Staff Roles</h2><p>Members with any selected role can use staff-only commands.</p></div></div><div id="access-role-list" class="operations-list scroll-list"></div><div class="card-actions"><span id="access-role-count">0 roles selected</span><button id="save-access-roles">✓ Save Roles</button></div></article>
+            <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">TIMED PUNISHMENTS</p><h2>Active Softbans</h2><p>Review schedules restored automatically after a restart.</p></div></div><div id="timed-softbans" class="operations-list"></div></article>
+            <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">BACKUP & RECOVERY</p><h2>Configuration Snapshots</h2><p>Store a server configuration checkpoint or download a portable copy.</p></div></div><div id="config-snapshots" class="operations-list"></div><div class="card-actions"><a class="secondary-button button-link" href="/dashboard/api/operations/export" download>Download config</a><button id="create-snapshot">Create snapshot</button></div></article>
           </div>
         </section>
       </main>

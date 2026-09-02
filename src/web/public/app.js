@@ -91,6 +91,7 @@ const pageDetails = {
   leveling: ['Leveling', 'XP rewards, announcements, and progression.'],
   logging: ['Logging', 'Choose which server events are recorded.'],
   youtube: ['YouTube', 'Automatic upload alerts for DexzuGtag.'],
+  operations: ['Operations', 'Health checks, staff access, backups, and timed punishments.'],
   'module-counting': ['Counting', 'Manage the server counting game commands.'],
   'module-economy': ['Economy', 'Manage currency, rewards, shops, and economy commands.'],
   'module-moderation': ['Moderation', 'Manage staff moderation and member safety commands.'],
@@ -259,6 +260,29 @@ function renderRecentActivity() {
   if (latestActivityId) setTimeout(() => { document.querySelector('.activity-new')?.classList.remove('activity-new'); latestActivityId = null; }, 1100);
 }
 
+function renderOperations() {
+  if (!state?.operations) return;
+  const health = state.operations.health || { checks: [], failed: 0, warnings: 0 };
+  const softbans = state.operations.softbans || [];
+  const snapshots = state.operations.snapshots || [];
+  const selectedRoles = new Set(state.commandAccessRoleIds || []);
+  $('operations-summary').innerHTML = [
+    ['Health', health.failed ? `${health.failed} failed` : 'Healthy'],
+    ['Warnings', String(health.warnings || 0)],
+    ['Staff Roles', String(selectedRoles.size)],
+    ['Timed Softbans', String(softbans.length)],
+  ].map(([label, value]) => `<article class="summary-card"><small>${label}</small><strong>${escapeHtml(value)}</strong></article>`).join('');
+  $('operations-health').innerHTML = health.checks?.length ? health.checks.map(check => `<div class="operation-row"><span><i class="status-dot ${check.ok ? 'good' : check.warning ? 'warning' : 'bad'}"></i><b>${escapeHtml(check.label)}</b><small>${escapeHtml(check.detail)}</small></span><strong>${check.ok ? 'Ready' : check.warning ? 'Optional' : 'Fix needed'}</strong></div>`).join('') : '<div class="empty-state"><strong>No health result yet</strong></div>';
+  const accessRoles = state.accessRoles || state.roles || [];
+  $('access-role-list').innerHTML = accessRoles.length ? accessRoles.map(role => checkbox(role.id, role.name, selectedRoles.has(role.id), 'access-role')).join('') : '<div class="empty-state"><strong>No roles found</strong></div>';
+  $('access-role-count').textContent = `${selectedRoles.size} role${selectedRoles.size === 1 ? '' : 's'} selected`;
+  document.querySelectorAll('[data-group=access-role]').forEach(input => { input.onchange = () => { const count = document.querySelectorAll('[data-group=access-role]:checked').length; $('access-role-count').textContent = `${count} role${count === 1 ? '' : 's'} selected`; input.closest('.check-row')?.classList.toggle('selected', input.checked); }; input.closest('.check-row')?.classList.toggle('selected', input.checked); });
+  $('timed-softbans').innerHTML = softbans.length ? softbans.map(item => `<div class="operation-row"><span><b>User ${escapeHtml(item.userId)}</b><small>Ends ${escapeHtml(new Date(item.expiresAt).toLocaleString())} · ${escapeHtml(item.reason || 'No reason')}</small></span><button class="danger-secondary" data-release-softban="${escapeHtml(item.userId)}">Release now</button></div>`).join('') : '<div class="empty-state compact-empty"><strong>No active timed softbans</strong><p>Scheduled softbans will appear here.</p></div>';
+  $('config-snapshots').innerHTML = snapshots.length ? snapshots.map(item => `<div class="operation-row"><span><b>Configuration snapshot</b><small>${escapeHtml(new Date(item.createdAt).toLocaleString())}</small></span><button class="secondary-button" data-restore-snapshot="${escapeHtml(item.id)}">Restore</button></div>`).join('') : '<div class="empty-state compact-empty"><strong>No snapshots yet</strong><p>Create one before a large settings change.</p></div>';
+  document.querySelectorAll('[data-release-softban]').forEach(button => { button.onclick = async () => { if (!confirm('End this timed softban now and send the return invite?')) return; button.disabled = true; try { await post('operations/softban/release', { userId: button.dataset.releaseSoftban }); toast('Timed softban ended'); await load(); } catch (error) { toast("Couldn't release timed softban", true, error.message); } finally { button.disabled = false; } }; });
+  document.querySelectorAll('[data-restore-snapshot]').forEach(button => { button.onclick = async () => { if (!confirm('Restore this snapshot? Current server settings will be replaced.')) return; const confirmation = prompt(`Type ${state.server.name} to confirm:`); if (confirmation === null) return; button.disabled = true; try { await post('operations/snapshot/restore', { snapshotId: button.dataset.restoreSnapshot, confirm: confirmation }); toast('Configuration restored'); await load(); } catch (error) { toast("Couldn't restore snapshot", true, error.message); } finally { button.disabled = false; } }; });
+}
+
 async function refreshRecentActivity() {
   if (!state) return;
   try {
@@ -328,6 +352,7 @@ function render(current) {
   requestAnimationFrame(() => performanceRows.forEach(([label,,meter]) => { const bar = document.querySelector(`[data-performance="${label}"]`); if (bar) bar.style.width = `${meter}%`; }));
   previousPerformanceValues = Object.fromEntries(performanceRows.map(([label,,meter]) => [label, meter]));
   renderRecentActivity();
+  renderOperations();
   document.querySelectorAll('[data-category]').forEach(element => { element.onchange = async () => {
     const row = element.closest('.toggle-row'); const enabled = element.checked; const name = element.dataset.name;
     row.classList.toggle('module-disabled', !enabled); row.classList.add('module-updating'); element.disabled = true;
@@ -559,6 +584,9 @@ $('save-level-rewards').onclick = async () => {
 };
 $('reset-leveling').onclick = async () => { if (!confirm(`Reset all XP?\n\nThis will permanently reset XP and levels for every member in ${state.server.name}. This action cannot be undone.`)) return; const confirmation = prompt(`Type ${state.server.name} to confirm the reset:`); if (confirmation === null) return; try { const result = await post('leveling/reset', { confirm: confirmation }); toast(`Reset XP for ${result.resetCount} members`); } catch (error) { toast(error.message, true); } };
 $('save-logging').onclick = async () => { try { const enabledEventTypes = [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value); const enabled = $('logging-enabled').checked; const moderationChannelId = $('logging-moderation-channel').value; const serverChannelId = $('logging-server-channel').value; await post('logging', { enabled, moderationChannelId, serverChannelId, enabledEventTypes }); state.logging.enabled = enabled; state.logging.moderationChannelId = moderationChannelId; state.logging.serverChannelId = serverChannelId; state.logging.events.forEach(event => { event.enabled = enabledEventTypes.includes(event.key); }); setDirty('logging', false); showSaved($('save-logging')); toast('Logging settings saved'); } catch (error) { toast("Couldn't save logging settings", true, error.message); } };
+for (const [id, destination] of [['test-moderation-log', 'moderation'], ['test-server-log', 'server']]) {
+  $(id).onclick = async () => { const button = $(id); button.disabled = true; try { const result = await post('logging/test', { destination }); toast(`${destination === 'moderation' ? 'Moderation' : 'Server'} test log sent`, false, `Delivered to #${result.channelName}.`); } catch (error) { toast("Couldn't send test log", true, error.message); } finally { button.disabled = false; } };
+}
 $('youtube-channel').onchange = () => { document.querySelector('.youtube-config').classList.add('dirty'); updateYouTubeSummary(); };
 $('youtube-enabled').onchange = async () => {
   const input = $('youtube-enabled'); const previous = !input.checked; const enabled = input.checked;
@@ -594,6 +622,11 @@ $('test-youtube').onclick = async () => {
   catch (error) { toast("Couldn't send test notification", true, error.message); }
   finally { button.disabled = false; }
 };
+$('check-youtube').onclick = async () => { const button = $('check-youtube'); button.disabled = true; try { const result = await post('youtube/check', {}); state.youtube = { ...state.youtube, ...result.status }; updateYouTubeSummary(); renderYouTubeNotifications(); toast(result.status.lastError ? 'YouTube check completed with a warning' : 'YouTube feed is healthy', result.status.lastError ? 'warning' : false, result.status.lastError || 'Delivery history is up to date.'); } catch (error) { toast("Couldn't check YouTube", true, error.message); } finally { button.disabled = false; } };
+$('retry-youtube').onclick = async () => { const button = $('retry-youtube'); button.disabled = true; try { const result = await post('youtube/retry', {}); state.youtube = { ...state.youtube, ...result.status }; updateYouTubeSummary(); renderYouTubeNotifications(); toast(result.status.queued ? `Retried ${result.status.queued} failed alert(s)` : 'No failed alerts to retry'); } catch (error) { toast("Couldn't retry YouTube alerts", true, error.message); } finally { button.disabled = false; } };
+$('run-health-check').onclick = async () => { const button = $('run-health-check'); button.disabled = true; try { const result = await post('operations/health', {}); state.operations.health = result.health; renderOperations(); toast(result.health.failed ? 'Health check found problems' : 'All required checks passed', result.health.failed ? 'warning' : false); } catch (error) { toast('Health check failed', true, error.message); } finally { button.disabled = false; } };
+$('save-access-roles').onclick = async () => { const button = $('save-access-roles'); button.disabled = true; try { const roleIds = [...document.querySelectorAll('[data-group=access-role]:checked')].map(input => input.value); const result = await post('operations/access-roles', { roleIds }); state.commandAccessRoleIds = result.roleIds; showSaved(button, '✓ Save Roles'); toast('Staff command roles saved', false, 'Discord command access was synchronized.'); await load(); } catch (error) { toast("Couldn't save staff roles", true, error.message); } finally { button.disabled = false; } };
+$('create-snapshot').onclick = async () => { const button = $('create-snapshot'); button.disabled = true; try { await post('operations/snapshot', {}); toast('Configuration snapshot created'); await load(); } catch (error) { toast("Couldn't create snapshot", true, error.message); } finally { button.disabled = false; } };
 load().catch(error => toast(error.message, true));
 setInterval(() => { if (!document.hidden) void refreshRecentActivity(); }, 30000);
 window.addEventListener('resize', updateNavIndicator, { passive: true });

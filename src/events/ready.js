@@ -8,6 +8,7 @@ import { initRiffyAfterReady } from "../services/music/riffySetup.js";
 import { initializePresenceMirror } from "../services/presenceMirrorService.js";
 import { initializeYouTubeAlerts } from "../services/youtubeAlertService.js";
 import { initializeTimedSoftbans } from "../services/moderation/timedSoftbanService.js";
+import { initializeOperationsHealthChecks } from "../services/dashboardOperationsService.js";
 
 export default {
   name: Events.ClientReady,
@@ -18,6 +19,7 @@ export default {
       await initializePresenceMirror(client);
       initializeYouTubeAlerts(client);
       const restoredSoftbans = await initializeTimedSoftbans(client);
+      client.operationsHealthTimer = initializeOperationsHealthChecks(client);
 
       startupLog(`Ready! Logged in as ${client.user.tag}`);
       startupLog(`Serving ${client.guilds.cache.size} guild(s)`);

@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ChannelType } from 'discord.js';
+import { ChannelType, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getBotOwners } from '../config/bot.js';
 import { isSlashCommandCategoryEnabled } from '../config/commands/slashCommandCategories.js';
 import {
@@ -13,13 +13,15 @@ import {
   resetCategoryCommands,
 } from '../services/commandAccessService.js';
 import { getGuildConfig, patchGuildConfig } from '../services/config/guildConfig.js';
-import { fetchLatestYouTubeVideo, getYouTubeAlertStatus, sendYouTubeAlert } from '../services/youtubeAlertService.js';
+import { fetchLatestYouTubeVideo, getYouTubeAlertStatus, retryFailedYouTubeAlerts, runYouTubeAlertCheck, sendYouTubeAlert } from '../services/youtubeAlertService.js';
 import { syncGuildCommandRegistration } from '../handlers/loaders/commandLoader.js';
 import { logger } from '../utils/logger.js';
 import { EVENT_TYPES, getRecentActivity, recordRecentActivity } from '../services/loggingService.js';
 import { PERMANENT_LEVEL_UP_MESSAGE, resetGuildLevelData, saveLevelingConfig } from '../services/leveling/leveling.js';
 import { reconcileLevelRoles } from '../services/leveling/levelRoleSyncService.js';
 import { getWelcomeConfig, saveWelcomeConfig } from '../utils/database.js';
+import { createConfigSnapshot, exportGuildConfiguration, getOperationsHealth, inspectGuildOperations, listConfigSnapshots, restoreConfigSnapshot } from '../services/dashboardOperationsService.js';
+import { listTimedSoftbans, releaseTimedSoftban } from '../services/moderation/timedSoftbanService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, 'public');
@@ -80,7 +82,16 @@ function sameOrigin(req) {
   }
 }
 
-function publicConfigState(client, guild, config, welcomeConfig, recentActivity = [], youtubeStatus = {}) {
+function channelSendError(guild, channel, { embeds = false } = {}) {
+  if (!channel?.isTextBased?.()) return 'Choose a valid text channel.';
+  const permissions = channel.permissionsFor(guild.members.me);
+  const required = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages];
+  if (embeds) required.push(PermissionFlagsBits.EmbedLinks);
+  if (!permissions?.has(required)) return `DexzuBot is missing required permissions in #${channel.name}.`;
+  return null;
+}
+
+function publicConfigState(client, guild, config, welcomeConfig, recentActivity = [], youtubeStatus = {}, operations = {}) {
   const snapshot = getCommandAccessSnapshot(client, config);
   const channels = guild.channels.cache
     .filter(channel => channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement)
@@ -100,6 +111,10 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
     .filter(role => role.id !== guild.id && !role.managed && botHighestRole && role.position < botHighestRole.position)
     .map(role => ({ id: role.id, name: role.name, color: role.hexColor }))
     .sort((a, b) => a.name.localeCompare(b.name));
+  const accessRoles = guild.roles.cache
+    .filter(role => role.id !== guild.id && !role.managed)
+    .sort((a, b) => b.position - a.position)
+    .map(role => ({ id: role.id, name: role.name, color: role.hexColor }));
 
   return {
     bot: {
@@ -119,6 +134,9 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
     database: client.db?.getStatus?.() || null,
     channels,
     roles: manageableRoles,
+    accessRoles,
+    commandAccessRoleIds: Array.isArray(config.commandAccessRoleIds) ? config.commandAccessRoleIds : [],
+    operations,
     recentActivity,
     owners,
     categories: snapshot.categories
@@ -206,17 +224,38 @@ export function registerDashboard(app, client) {
     }
     next();
   });
+  router.use((req, res, next) => {
+    if (req.method === 'POST') {
+      res.on('finish', () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) return;
+        const guild = getDashboardGuild(client);
+        if (!guild) return;
+        void recordRecentActivity(client, guild.id, 'dashboard.config', {
+          title: 'Dashboard action completed',
+          description: req.path.replace(/^\//, '').replaceAll('/', ' → '),
+        });
+      });
+    }
+    next();
+  });
 
   router.get('/state', async (req, res) => {
     const guild = getDashboardGuild(client);
     if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
-    const [config, welcomeConfig, recentActivity, youtubeStatus] = await Promise.all([
+    const [config, welcomeConfig, recentActivity, youtubeStatus, health, softbans, snapshots] = await Promise.all([
       getGuildConfig(client, guild.id),
       getWelcomeConfig(client, guild.id),
       getRecentActivity(client, guild.id),
       getYouTubeAlertStatus(client, guild.id),
+      getOperationsHealth(client, guild),
+      listTimedSoftbans(client, guild.id),
+      listConfigSnapshots(client, guild.id),
     ]);
-    return res.json(publicConfigState(client, guild, config, welcomeConfig, recentActivity, youtubeStatus));
+    return res.json(publicConfigState(client, guild, config, welcomeConfig, recentActivity, youtubeStatus, {
+      health,
+      softbans,
+      snapshots: snapshots.map(({ id, createdAt, createdBy }) => ({ id, createdAt, createdBy })),
+    }));
   });
 
   router.get('/activity', async (req, res) => {
@@ -313,6 +352,8 @@ export function registerDashboard(app, client) {
     if (!guild || typeof enabled !== 'boolean' || (enabled && !channel?.isTextBased?.())) {
       return res.status(400).json({ error: 'Choose a valid YouTube alert channel.' });
     }
+    const youtubePermissionError = enabled ? channelSendError(guild, channel, { embeds: true }) : null;
+    if (youtubePermissionError) return res.status(400).json({ error: youtubePermissionError });
     const config = await getGuildConfig(client, guild.id);
     const current = config.youtubeAlert || {};
     let lastVideoId = current.lastVideoId;
@@ -337,6 +378,20 @@ export function registerDashboard(app, client) {
     return res.json({ ok: true });
   });
 
+  router.post('/youtube/check', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
+    const status = await runYouTubeAlertCheck(client, guild);
+    await recordRecentActivity(client, guild.id, 'dashboard.youtube', { title: 'YouTube feed checked manually', description: status.lastError || 'Feed and delivery ledger are healthy.' });
+    return res.json({ ok: true, status });
+  });
+
+  router.post('/youtube/retry', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
+    return res.json({ ok: true, status: await retryFailedYouTubeAlerts(client, guild) });
+  });
+
   router.post('/logging', async (req, res) => {
     const guild = getDashboardGuild(client);
     const { enabled, moderationChannelId, serverChannelId, enabledEventTypes } = req.body || {};
@@ -352,6 +407,11 @@ export function registerDashboard(app, client) {
       enabledEventTypes.some(type => !validEventTypes.has(type))
     ) {
       return res.status(400).json({ error: 'Choose valid moderation and server logging channels and event types.' });
+    }
+    if (enabled) {
+      const moderationError = channelSendError(guild, moderationChannel, { embeds: true });
+      const serverError = channelSendError(guild, serverChannel, { embeds: true });
+      if (moderationError || serverError) return res.status(400).json({ error: moderationError || serverError });
     }
 
     const selected = new Set(enabledEventTypes);
@@ -375,6 +435,80 @@ export function registerDashboard(app, client) {
     return res.json({ ok: true });
   });
 
+  router.post('/logging/test', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const destination = req.body?.destination;
+    const config = guild ? await getGuildConfig(client, guild.id) : null;
+    const channelId = destination === 'moderation' ? config?.logging?.channels?.moderation : destination === 'server' ? config?.logging?.channels?.server : null;
+    const channel = guild?.channels.cache.get(channelId);
+    if (!guild || !channel?.isTextBased?.()) return res.status(400).json({ error: `Configure a valid ${destination || 'log'} channel first.` });
+    const permissions = channel.permissionsFor(guild.members.me);
+    if (!permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
+      return res.status(400).json({ error: `DexzuBot cannot send embeds in #${channel.name}. Check its channel permissions.` });
+    }
+    const embed = new EmbedBuilder().setColor(destination === 'moderation' ? 0xed4245 : 0x55e2d5)
+      .setTitle(`${destination === 'moderation' ? 'Moderation' : 'Server'} logging test`)
+      .setDescription('This test confirms that DexzuBot can send logs to this channel.')
+      .addFields({ name: 'Status', value: 'All required channel permissions are available.' })
+      .setFooter({ text: 'Sent from the private DexzuBot dashboard' }).setTimestamp();
+    await channel.send({ embeds: [embed] });
+    await recordRecentActivity(client, guild.id, 'dashboard.logging', { title: `${destination} logging tested`, description: `Test delivered to #${channel.name}.` });
+    return res.json({ ok: true, channelName: channel.name });
+  });
+
+  router.post('/operations/health', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
+    return res.json({ ok: true, health: await inspectGuildOperations(client, guild) });
+  });
+
+  router.post('/operations/snapshot', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
+    const snapshot = await createConfigSnapshot(client, guild.id, req.dashboardUserId);
+    await recordRecentActivity(client, guild.id, 'dashboard.backup', { title: 'Configuration snapshot created', description: `Snapshot ${snapshot.id} is stored in the persistent database.` });
+    return res.json({ ok: true, snapshot });
+  });
+
+  router.get('/operations/export', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
+    const exported = await exportGuildConfiguration(client, guild.id);
+    res.set('Content-Disposition', `attachment; filename="dexzubot-${guild.id}-config.json"`);
+    return res.json(exported);
+  });
+
+  router.post('/operations/snapshot/restore', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const snapshotId = String(req.body?.snapshotId || '');
+    if (!guild || req.body?.confirm !== guild.name || !snapshotId) return res.status(400).json({ error: 'Type the exact server name to restore this snapshot.' });
+    const restored = await restoreConfigSnapshot(client, guild.id, snapshotId);
+    await syncGuildCommandRegistration(client, guild.id);
+    await recordRecentActivity(client, guild.id, 'dashboard.backup', { title: 'Configuration snapshot restored', description: `Restored snapshot ${restored.id}.` });
+    return res.json({ ok: true, restored });
+  });
+
+  router.post('/operations/softban/release', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const userId = String(req.body?.userId || '');
+    if (!guild || !/^\d{17,20}$/.test(userId)) return res.status(400).json({ error: 'Choose a valid active timed softban.' });
+    await releaseTimedSoftban(client, guild.id, userId);
+    await recordRecentActivity(client, guild.id, 'moderation.softban', { title: 'Timed softban ended early', description: `User ${userId} was unbanned and sent their return invite.` });
+    return res.json({ ok: true });
+  });
+
+  router.post('/operations/access-roles', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const requested = Array.isArray(req.body?.roleIds) ? [...new Set(req.body.roleIds.map(String))] : null;
+    if (!guild || !requested || requested.length > 10) return res.status(400).json({ error: 'Choose up to 10 valid command access roles.' });
+    const roleIds = requested.filter(id => { const role = guild.roles.cache.get(id); return role && !role.managed && role.id !== guild.id; });
+    if (roleIds.length !== requested.length) return res.status(400).json({ error: 'One or more command access roles are invalid.' });
+    await patchGuildConfig(client, guild.id, { commandAccessRoleIds: roleIds });
+    await syncGuildCommandRegistration(client, guild.id);
+    await recordRecentActivity(client, guild.id, 'dashboard.access', { title: 'Staff command roles updated', description: `${roleIds.length} role(s) may use staff commands.` });
+    return res.json({ ok: true, roleIds });
+  });
+
   router.post('/leveling', async (req, res) => {
     const guild = getDashboardGuild(client);
     const { enabled, announceLevelUp, channelId, xpMin, xpMax, cooldown, multiplier } = req.body || {};
@@ -390,6 +524,8 @@ export function registerDashboard(app, client) {
       (enabled && announceLevelUp && (!channel || !channel.isTextBased?.()))) {
       return res.status(400).json({ error: 'Choose valid leveling settings and an announcement channel.' });
     }
+    const levelingPermissionError = enabled && announceLevelUp ? channelSendError(guild, channel, { embeds: true }) : null;
+    if (levelingPermissionError) return res.status(400).json({ error: levelingPermissionError });
     const config = await getGuildConfig(client, guild.id);
     const access = getCommandAccessSnapshot(client, config);
     const levelingAccess = access.categories.find(category => category.key === 'leveling');
@@ -459,6 +595,9 @@ export function registerDashboard(app, client) {
       (welcomeEnabled && !welcomeChannel?.isTextBased?.()) || (goodbyeEnabled && !goodbyeChannel?.isTextBased?.())) {
       return res.status(400).json({ error: 'Choose valid welcome/goodbye channels and messages.' });
     }
+    const welcomePermissionError = welcomeEnabled ? channelSendError(guild, welcomeChannel, { embeds: cardEnabled }) : null;
+    const goodbyePermissionError = goodbyeEnabled ? channelSendError(guild, goodbyeChannel, { embeds: cardEnabled }) : null;
+    if (welcomePermissionError || goodbyePermissionError) return res.status(400).json({ error: welcomePermissionError || goodbyePermissionError });
     const current = await getWelcomeConfig(client, guild.id);
     const saved = await saveWelcomeConfig(client, guild.id, {
       ...current, cardEnabled, enabled: welcomeEnabled, channelId: welcomeChannelId || null,

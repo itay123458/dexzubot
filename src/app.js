@@ -163,16 +163,26 @@ class TitanBot extends Client {
     app.get('/health', (req, res) => {
       const dbStatus = this.db?.getStatus?.() || { isDegraded: 'unknown' };
       const status = {
-        status: 'healthy',
+        status: this.isReady() && !dbStatus.isDegraded ? 'healthy' : 'degraded',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         database: {
           connected: dbStatus.connectionType !== 'none',
           degraded: dbStatus.isDegraded,
           type: dbStatus.connectionType
-        }
+        },
+        discord: {
+          ready: this.isReady(),
+          websocketPingMs: Number.isFinite(this.ws?.ping) ? this.ws.ping : null,
+          guilds: this.guilds?.cache?.size || 0,
+        },
+        memory: {
+          rssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+          heapUsedMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        },
+        commands: this.commands?.size || 0,
       };
-      res.status(200).json(status);
+      res.status(status.status === 'healthy' ? 200 : 503).json(status);
     });
 
     app.get('/ready', (req, res) => {
@@ -348,6 +358,7 @@ class TitanBot extends Client {
       
       logger.info('Stopping cron jobs...');
       cron.getTasks().forEach(task => task.stop());
+      clearInterval(this.operationsHealthTimer);
       logger.info('✅ Cron jobs stopped');
 
       logger.info('Stopping music players...');

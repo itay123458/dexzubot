@@ -15,6 +15,12 @@ async function getRecords(client, guildId) {
   return Array.isArray(records) ? records : [];
 }
 
+export async function listTimedSoftbans(client, guildId) {
+  return (await getRecords(client, guildId))
+    .map(record => ({ ...record, inviteUrl: undefined }))
+    .sort((a, b) => new Date(a.expiresAt) - new Date(b.expiresAt));
+}
+
 async function saveRecords(client, guildId, records) {
   if (records.length) await client.db.set(recordKey(guildId), records);
   else await client.db.delete(recordKey(guildId));
@@ -79,6 +85,13 @@ async function completeTimedSoftban(client, record) {
 
   await removeRecord(client, record.guildId, record.userId);
   logger.info('[TIMED_SOFTBAN] Completed', { guildId: guild.id, userId: record.userId, inviteCreated: Boolean(inviteUrl) });
+}
+
+export async function releaseTimedSoftban(client, guildId, userId) {
+  const record = (await getRecords(client, guildId)).find(item => item.userId === userId);
+  if (!record) throw new Error('That timed softban is no longer active.');
+  await completeTimedSoftban(client, record);
+  return record;
 }
 
 function scheduleRecord(client, record) {

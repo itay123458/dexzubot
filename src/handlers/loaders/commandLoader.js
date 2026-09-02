@@ -190,6 +190,9 @@ function collectCommandPayloads(client, guildConfig = null) {
             logger.debug(`Skipping command with no enabled subcommands: ${command.category}/${commandName}`);
             continue;
         }
+        if (Array.isArray(guildConfig?.commandAccessRoleIds) && guildConfig.commandAccessRoleIds.length && commandJson.default_member_permissions != null) {
+            commandJson.default_member_permissions = null;
+        }
         commands.push(commandJson);
         totalSubcommands += getSubcommandInfo(commandJson).length;
 

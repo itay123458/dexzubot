@@ -103,6 +103,11 @@ export function memberMeetsCommandPermissions(member, permissionBitfield, option
 
   const { guildConfig = null, commandCategory = null } = options;
 
+  const accessRoleIds = Array.isArray(guildConfig?.commandAccessRoleIds) ? guildConfig.commandAccessRoleIds : [];
+  if (accessRoleIds.some(roleId => member.roles?.cache?.has(roleId))) {
+    return true;
+  }
+
   if (isModerationCategory(commandCategory)) {
     return memberHasModerationCommandAccess(member, guildConfig, permissionBitfield);
   }
