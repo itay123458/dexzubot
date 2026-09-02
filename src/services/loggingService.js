@@ -12,7 +12,7 @@ import {
 } from '../utils/logging/logEmbeds.js';
 import { Mutex } from '../utils/mutex.js';
 
-const LOG_DESTINATIONS = ['audit', 'applications', 'reports'];
+const LOG_DESTINATIONS = ['audit', 'moderation', 'server', 'applications', 'reports'];
 const recentBotModerationActions = new Map();
 const DASHBOARD_ACTIVITY_LIMIT = 50;
 
@@ -250,6 +250,7 @@ const EVENT_ICONS = {
 };
 
 const CATEGORY_DESTINATION = {
+  moderation: 'moderation',
   application: 'applications',
   report: 'reports',
 };
@@ -261,6 +262,9 @@ export function resolveLogChannel(config, destination) {
   }
   if (destination === 'audit') {
     return channels.audit ?? config?.logging?.channelId ?? config?.logChannelId ?? null;
+  }
+  if (destination === 'moderation' || destination === 'server') {
+    return channels[destination] ?? channels.audit ?? config?.logging?.channelId ?? config?.logChannelId ?? null;
   }
   return channels[destination] ?? null;
 }
@@ -298,7 +302,7 @@ function getLogChannelForEvent(config, eventType, overrideChannelId = null) {
   }
 
   const category = eventType?.split('.')[0];
-  const destination = CATEGORY_DESTINATION[category] || 'audit';
+  const destination = CATEGORY_DESTINATION[category] || 'server';
   return resolveLogChannel(config, destination);
 }
 
@@ -464,7 +468,7 @@ export async function getLoggingStatus(client, guildId) {
 
   return {
     enabled: logging.enabled || false,
-    channels: logging.channels || { audit: null, applications: null, reports: null },
+    channels: logging.channels || { audit: null, moderation: null, server: null, applications: null, reports: null },
     channelId: logging.channels?.audit ?? null,
     ignore: getIgnoreList(config),
     enabledEvents: logging.enabledEvents || {},

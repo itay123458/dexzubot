@@ -13,10 +13,12 @@ export const LogIgnoreSchema = z
 export const LoggingChannelsSchema = z
   .object({
     audit: z.string().nullable().optional(),
+    moderation: z.string().nullable().optional(),
+    server: z.string().nullable().optional(),
     applications: z.string().nullable().optional(),
     reports: z.string().nullable().optional(),
   })
-  .default({ audit: null, applications: null, reports: null });
+  .default({ audit: null, moderation: null, server: null, applications: null, reports: null });
 
 export const LoggingConfigSchema = z
   .object({
@@ -113,7 +115,7 @@ export const EconomyDataSchema = z
 
 const DEFAULT_LOGGING = {
   enabled: false,
-  channels: { audit: null, applications: null, reports: null },
+  channels: { audit: null, moderation: null, server: null, applications: null, reports: null },
   ignore: { users: [], channels: [] },
   enabledEvents: {},
 };
@@ -134,6 +136,8 @@ function migrateLoggingConfig(raw = {}, legacy = {}) {
     null;
 
   const applicationsChannel = base.channels?.applications ?? null;
+  const moderationChannel = base.channels?.moderation ?? auditChannel;
+  const serverChannel = base.channels?.server ?? auditChannel;
 
   const reportsChannel =
     base.channels?.reports ??
@@ -160,6 +164,8 @@ function migrateLoggingConfig(raw = {}, legacy = {}) {
     enabled,
     channels: {
       audit: auditChannel,
+      moderation: moderationChannel,
+      server: serverChannel,
       applications: applicationsChannel,
       reports: reportsChannel,
     },

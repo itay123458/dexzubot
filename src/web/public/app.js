@@ -227,8 +227,9 @@ function updateLoggingUi() {
   const visible = [...document.querySelectorAll('[data-group=logging]')].filter(input => !input.closest('.check-row').hidden).length;
   $('logging-enabled-count').textContent = searchQuery ? `${visible} event${visible === 1 ? '' : 's'} found` : `${checked} / ${total} events enabled`;
   $('logging-bar-count').textContent = `${checked} events enabled`;
-  const destination = channelName($('logging-channel').value);
-  $('logging-summary').innerHTML = [['Logging', $('logging-enabled').checked ? 'Enabled' : 'Disabled'], ['Destination', `${destination === 'Not configured' ? '' : '#'}${destination}`], ['Events', `${checked} enabled`]].map(([label,value]) => `<article class="summary-card"><small>${label}</small><strong>${escapeHtml(value)}</strong></article>`).join('');
+  const moderationDestination = channelName($('logging-moderation-channel').value);
+  const serverDestination = channelName($('logging-server-channel').value);
+  $('logging-summary').innerHTML = [['Logging', $('logging-enabled').checked ? 'Enabled' : 'Disabled'], ['Moderation Logs', `${moderationDestination === 'Not configured' ? '' : '#'}${moderationDestination}`], ['Server Logs', `${serverDestination === 'Not configured' ? '' : '#'}${serverDestination}`], ['Events', `${checked} enabled`]].map(([label,value]) => `<article class="summary-card"><small>${label}</small><strong>${escapeHtml(value)}</strong></article>`).join('');
   document.querySelectorAll('.logging-group').forEach(group => { const all = group.querySelectorAll('[data-group=logging]').length; const on = group.querySelectorAll('[data-group=logging]:checked').length; group.querySelector('.group-count').textContent = `${on}/${all} enabled`; });
 }
 
@@ -360,7 +361,8 @@ function render(current) {
   $('level-reward-role').innerHTML = `<option value="">Choose a role</option>${current.roles.map(role => `<option value="${role.id}">${escapeHtml(role.name)}</option>`).join('')}`;
   renderLevelRewards();
   $('logging-enabled').checked = current.logging.enabled;
-  $('logging-channel').innerHTML = channelOptions(current.channels, current.logging.channelId, 'Choose a log channel');
+  $('logging-moderation-channel').innerHTML = channelOptions(current.channels, current.logging.moderationChannelId, 'Choose a moderation log channel');
+  $('logging-server-channel').innerHTML = channelOptions(current.channels, current.logging.serverChannelId, 'Choose a server log channel');
   const logGroups = { Moderation: [], Messages: [], Voice: [], Members: [], Channels: [], Server: [] };
   current.logging.events.forEach(event => {
     const prefix = event.key.split('.')[0];
@@ -403,7 +405,7 @@ function bindControlEvents() {
   ['spam-enabled','spam-max','spam-seconds','mentions-enabled','mentions-max'].forEach(id => { $(id).oninput = $(id).onchange = () => { safetyAdvancedDirty = true; setDirty('safety'); updateSafetyUi(); }; });
   bind(['greeting-cards','welcome-enabled','welcome-channel','welcome-message','goodbye-enabled','goodbye-channel','goodbye-message'], 'greetings', updateGreetingUi);
   ['leveling-enabled','leveling-announce','leveling-channel','leveling-xp-min','leveling-xp-max','leveling-cooldown','leveling-multiplier'].forEach(id => { $(id).oninput = $(id).onchange = () => { levelingSettingsDirty = true; setDirty('leveling'); validateLeveling(); }; });
-  bind(['logging-enabled','logging-channel'], 'logging', updateLoggingUi);
+  bind(['logging-enabled','logging-moderation-channel','logging-server-channel'], 'logging', updateLoggingUi);
   document.querySelectorAll('[data-group=logging]').forEach(input => { input.onchange = () => { setDirty('logging'); updateLoggingUi(); }; });
   document.querySelectorAll('[data-log-action]').forEach(button => { button.onclick = () => { button.closest('.logging-group').querySelectorAll('[data-group=logging]').forEach(input => { input.checked = button.dataset.logAction === 'on'; }); setDirty('logging'); updateLoggingUi(); }; });
   document.querySelectorAll('.logging-group').forEach(group => { group.ontoggle = () => { if ($('logging-search').value.trim()) return; let collapsed = {}; try { collapsed = JSON.parse(localStorage.getItem('dexzu-logging-collapsed') || '{}'); } catch { /* Replace invalid local preferences. */ } collapsed[group.dataset.logGroup] = !group.open; localStorage.setItem('dexzu-logging-collapsed', JSON.stringify(collapsed)); }; });
@@ -556,7 +558,7 @@ $('save-level-rewards').onclick = async () => {
   finally { button.disabled = false; }
 };
 $('reset-leveling').onclick = async () => { if (!confirm(`Reset all XP?\n\nThis will permanently reset XP and levels for every member in ${state.server.name}. This action cannot be undone.`)) return; const confirmation = prompt(`Type ${state.server.name} to confirm the reset:`); if (confirmation === null) return; try { const result = await post('leveling/reset', { confirm: confirmation }); toast(`Reset XP for ${result.resetCount} members`); } catch (error) { toast(error.message, true); } };
-$('save-logging').onclick = async () => { try { const enabledEventTypes = [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value); const enabled = $('logging-enabled').checked; const channelId = $('logging-channel').value; await post('logging', { enabled, channelId, enabledEventTypes }); state.logging.enabled = enabled; state.logging.channelId = channelId; state.logging.events.forEach(event => { event.enabled = enabledEventTypes.includes(event.key); }); setDirty('logging', false); showSaved($('save-logging')); toast('Logging settings saved'); } catch (error) { toast("Couldn't save logging settings", true, error.message); } };
+$('save-logging').onclick = async () => { try { const enabledEventTypes = [...document.querySelectorAll('[data-group=logging]:checked')].map(input => input.value); const enabled = $('logging-enabled').checked; const moderationChannelId = $('logging-moderation-channel').value; const serverChannelId = $('logging-server-channel').value; await post('logging', { enabled, moderationChannelId, serverChannelId, enabledEventTypes }); state.logging.enabled = enabled; state.logging.moderationChannelId = moderationChannelId; state.logging.serverChannelId = serverChannelId; state.logging.events.forEach(event => { event.enabled = enabledEventTypes.includes(event.key); }); setDirty('logging', false); showSaved($('save-logging')); toast('Logging settings saved'); } catch (error) { toast("Couldn't save logging settings", true, error.message); } };
 $('youtube-channel').onchange = () => { document.querySelector('.youtube-config').classList.add('dirty'); updateYouTubeSummary(); };
 $('youtube-enabled').onchange = async () => {
   const input = $('youtube-enabled'); const previous = !input.checked; const enabled = input.checked;

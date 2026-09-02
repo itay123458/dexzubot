@@ -43,7 +43,8 @@ export async function buildLoggingDashboardView(interaction, client) {
   const auditEnabled = Boolean(loggingStatus.enabled);
   const channels = loggingStatus.channels || {};
 
-  const auditChannel = await formatChannelMention(interaction.guild, channels.audit);
+  const moderationChannel = await formatChannelMention(interaction.guild, channels.moderation || channels.audit);
+  const serverChannel = await formatChannelMention(interaction.guild, channels.server || channels.audit);
   const applicationsChannel = await formatChannelMention(interaction.guild, channels.applications);
   const reportsChannel = await formatChannelMention(interaction.guild, channels.reports);
   const lifecycleChannel = await formatChannelMention(interaction.guild, guildConfig.ticketLogsChannelId);
@@ -75,7 +76,8 @@ export async function buildLoggingDashboardView(interaction, client) {
       {
         name: 'Log Channels',
         value: [
-          `**Audit:** ${auditChannel}`,
+          `**Moderation:** ${moderationChannel}`,
+          `**Server:** ${serverChannel}`,
           `**Applications:** ${applicationsChannel}`,
           `**Reports:** ${reportsChannel}`,
         ].join('\n'),
@@ -111,7 +113,7 @@ export async function buildLoggingCategoriesView(interaction, client) {
     .setTitle('📋 Event Categories')
     .setDescription(
       auditEnabled
-        ? 'Toggle which types of events are logged to your audit channel.'
+        ? 'Toggle which event types are sent to their moderation or server log channel.'
         : '⚠️ Logging is disabled. Enable it from the main dashboard to send logs.',
     )
     .setColor(getColor('info'))

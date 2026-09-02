@@ -7,6 +7,8 @@ import { logger } from '../../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
 const DESTINATION_LABELS = {
   audit: 'Audit Log',
+  moderation: 'Moderation Logs',
+  server: 'Server Logs',
   applications: 'Applications',
   reports: 'Reports',
 };

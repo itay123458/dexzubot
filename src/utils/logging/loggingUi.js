@@ -95,10 +95,15 @@ export function createLoggingMainMenuSelect() {
       .setPlaceholder('Choose a setting to configure…')
       .addOptions(
         new StringSelectMenuOptionBuilder()
-          .setLabel('Set Audit Log Channel')
-          .setDescription('Moderation, messages, members, roles, etc.')
-          .setValue('set:audit')
+          .setLabel('Set Moderation Logs Channel')
+          .setDescription('Bans, kicks, timeouts, warnings, and staff actions')
+          .setValue('set:moderation')
           .setEmoji('🧾'),
+        new StringSelectMenuOptionBuilder()
+          .setLabel('Set Server Logs Channel')
+          .setDescription('Messages, members, roles, channels, voice, and server events')
+          .setValue('set:server')
+          .setEmoji('📋'),
         new StringSelectMenuOptionBuilder()
           .setLabel('Set Applications Channel')
           .setDescription('New applications and review updates')
@@ -110,8 +115,12 @@ export function createLoggingMainMenuSelect() {
           .setValue('set:reports')
           .setEmoji('🚨'),
         new StringSelectMenuOptionBuilder()
-          .setLabel('Clear Audit Channel')
-          .setValue('clear:audit')
+          .setLabel('Clear Moderation Logs Channel')
+          .setValue('clear:moderation')
+          .setEmoji('🗑️'),
+        new StringSelectMenuOptionBuilder()
+          .setLabel('Clear Server Logs Channel')
+          .setValue('clear:server')
           .setEmoji('🗑️'),
         new StringSelectMenuOptionBuilder()
           .setLabel('Clear Applications Channel')

@@ -163,7 +163,8 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
     },
     logging: {
       enabled: config.logging?.enabled === true,
-      channelId: config.logging?.channels?.audit || config.logging?.channelId || config.logChannelId || null,
+      moderationChannelId: config.logging?.channels?.moderation || config.logging?.channels?.audit || config.logging?.channelId || config.logChannelId || null,
+      serverChannelId: config.logging?.channels?.server || config.logging?.channels?.audit || config.logging?.channelId || config.logChannelId || null,
       events: loggingEvents,
     },
     leveling: {
@@ -338,17 +339,19 @@ export function registerDashboard(app, client) {
 
   router.post('/logging', async (req, res) => {
     const guild = getDashboardGuild(client);
-    const { enabled, channelId, enabledEventTypes } = req.body || {};
-    const channel = guild?.channels.cache.get(channelId);
+    const { enabled, moderationChannelId, serverChannelId, enabledEventTypes } = req.body || {};
+    const moderationChannel = guild?.channels.cache.get(moderationChannelId);
+    const serverChannel = guild?.channels.cache.get(serverChannelId);
+    const validLogChannel = channel => channel && (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement);
     const validEventTypes = new Set(Object.values(EVENT_TYPES));
     if (
       !guild ||
       typeof enabled !== 'boolean' ||
       !Array.isArray(enabledEventTypes) ||
-      (enabled && (!channel || (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement))) ||
+      (enabled && (!validLogChannel(moderationChannel) || !validLogChannel(serverChannel))) ||
       enabledEventTypes.some(type => !validEventTypes.has(type))
     ) {
-      return res.status(400).json({ error: 'Choose a valid logging channel and event types.' });
+      return res.status(400).json({ error: 'Choose valid moderation and server logging channels and event types.' });
     }
 
     const selected = new Set(enabledEventTypes);
@@ -361,7 +364,11 @@ export function registerDashboard(app, client) {
       logging: {
         ...(config.logging || {}),
         enabled,
-        channels: { ...(config.logging?.channels || {}), audit: channelId || null },
+        channels: {
+          ...(config.logging?.channels || {}),
+          moderation: moderationChannelId || null,
+          server: serverChannelId || null,
+        },
         enabledEvents,
       },
     });
