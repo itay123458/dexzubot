@@ -41,8 +41,22 @@ export default {
 
     try {
       const fetched = await channel.messages.fetch({ limit: amount });
-      const deleted = await channel.bulkDelete(fetched, true);
-      const deletedCount = deleted.size;
+      const bulkDeleteCutoff = Date.now() - (14 * 24 * 60 * 60 * 1000) + 10_000;
+      const recentMessages = fetched.filter(message => message.createdTimestamp > bulkDeleteCutoff);
+      const olderMessages = fetched.filter(message => message.createdTimestamp <= bulkDeleteCutoff);
+      const bulkDeleted = recentMessages.size ? await channel.bulkDelete(recentMessages, true) : new Map();
+      let individuallyDeleted = 0;
+      let failed = recentMessages.size - bulkDeleted.size;
+      for (const message of olderMessages.values()) {
+        try {
+          await message.delete();
+          individuallyDeleted += 1;
+        } catch (error) {
+          failed += 1;
+          logger.warn('Purge could not individually delete an older message', { channelId: channel.id, messageId: message.id, error: error.message });
+        }
+      }
+      const deletedCount = bulkDeleted.size + individuallyDeleted;
 
       await logEvent({
         client,
@@ -56,7 +70,10 @@ export default {
             channelId: channel.id,
             messageCount: deletedCount,
             requestedAmount: amount,
-            moderatorId: interaction.user.id
+            moderatorId: interaction.user.id,
+            bulkDeleted: bulkDeleted.size,
+            individuallyDeleted,
+            failed
           }
         }
       });
@@ -65,7 +82,9 @@ export default {
         embeds: [
           successEmbed(
             "Messages Purged",
-            `Deleted ${deletedCount} messages in ${channel}.`,
+            `Deleted **${deletedCount}** of **${fetched.size}** fetched messages in ${channel}.` +
+              `${individuallyDeleted ? `\n**Older messages deleted individually:** ${individuallyDeleted}` : ''}` +
+              `${failed ? `\n**Could not delete:** ${failed} (check permissions or message availability)` : ''}`,
           ),
         ],
         flags: MessageFlags.Ephemeral,
@@ -78,7 +97,7 @@ export default {
       }, 3000);
     } catch (error) {
       logger.error('Purge command error:', error);
-      await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An unexpected error occurred during message deletion. Note: Messages older than 14 days cannot be bulk deleted.' });
+      await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Message deletion failed. Check that DexzuBot has **Manage Messages**, **View Channel**, and **Read Message History** permissions in this channel.' });
     }
   }
 };

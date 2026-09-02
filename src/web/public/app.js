@@ -426,12 +426,27 @@ function updateYouTubeSummary() {
     ['YouTube alerts', enabled ? 'Active' : 'Disabled', enabled ? 'good' : ''],
     ['Destination', channel ? `#${channel.name}` : 'Not configured', channel ? 'good' : 'warning'],
     ['Duplicate protection', 'Enabled', 'good'],
+    ...(state.youtube.lastCheckedAt ? [['Last feed check', new Date(state.youtube.lastCheckedAt).toLocaleString(), state.youtube.lastError ? 'warning' : 'good']] : []),
     ...(state.youtube.lastPostedAt ? [['Last notification', new Date(state.youtube.lastPostedAt).toLocaleString(), 'good']] : []),
+    ...(state.youtube.lastError ? [['Alert health', state.youtube.lastError, 'bad']] : [['Alert health', 'Healthy', 'good']]),
   ].map(([label, value, status]) => `<div class="status-row"><span>${escapeHtml(label)}</span><strong><i class="status-dot ${status}"></i>${escapeHtml(value)}</strong></div>`).join('');
+}
+
+function renderYouTubeNotifications() {
+  const container = $('youtube-notifications');
+  const deliveries = state?.youtube?.deliveries || [];
+  if (!deliveries.length) {
+    container.className = 'youtube-empty compact';
+    container.innerHTML = '<span>≡</span><strong>No notifications yet</strong><p>New DexzuGtag upload notifications will appear here.</p>';
+    return;
+  }
+  container.className = 'youtube-notification-list';
+  container.innerHTML = deliveries.map(delivery => `<a class="notification-item" href="${escapeHtml(delivery.url)}" target="_blank" rel="noopener"><img src="${escapeHtml(delivery.thumbnailUrl)}" alt=""><span><strong>${escapeHtml(delivery.title)}</strong><small>${escapeHtml(new Date(delivery.sentAt || delivery.detectedAt).toLocaleString())} · ${delivery.attempts || 1} attempt${delivery.attempts === 1 ? '' : 's'}</small><em class="delivery-${escapeHtml(delivery.status)}">${escapeHtml(delivery.status)}</em></span></a>`).join('');
 }
 
 function renderYouTubeLatest() {
   if (!state) return;
+  renderYouTubeNotifications();
   const latest = $('youtube-latest');
   const previewMedia = $('youtube-preview-media');
   const latestLink = $('youtube-latest-link');
@@ -451,10 +466,6 @@ function renderYouTubeLatest() {
   latestLink.href = youtubeLatest.url; previewLink.href = youtubeLatest.url;
   $('youtube-preview-title').textContent = youtubeLatest.title;
   previewMedia.innerHTML = `<img src="${escapeHtml(youtubeLatest.thumbnailUrl)}" alt="Latest upload preview">`;
-  if (notified) {
-    $('youtube-notifications').className = 'latest-video notification-item';
-    $('youtube-notifications').innerHTML = `<img src="${escapeHtml(youtubeLatest.thumbnailUrl)}" alt=""><div><h3>${escapeHtml(youtubeLatest.title)}</h3><p>${escapeHtml(new Date(state.youtube.lastPostedAt).toLocaleString())} • ${escapeHtml($('youtube-destination').textContent)}</p><span class="sent-status">✓ Sent</span></div>`;
-  }
 }
 
 async function loadYouTubeLatest() {

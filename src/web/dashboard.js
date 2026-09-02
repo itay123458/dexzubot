@@ -13,7 +13,7 @@ import {
   resetCategoryCommands,
 } from '../services/commandAccessService.js';
 import { getGuildConfig, patchGuildConfig } from '../services/config/guildConfig.js';
-import { fetchLatestYouTubeVideo, sendYouTubeAlert } from '../services/youtubeAlertService.js';
+import { fetchLatestYouTubeVideo, getYouTubeAlertStatus, sendYouTubeAlert } from '../services/youtubeAlertService.js';
 import { syncGuildCommandRegistration } from '../handlers/loaders/commandLoader.js';
 import { logger } from '../utils/logger.js';
 import { EVENT_TYPES, getRecentActivity, recordRecentActivity } from '../services/loggingService.js';
@@ -80,7 +80,7 @@ function sameOrigin(req) {
   }
 }
 
-function publicConfigState(client, guild, config, welcomeConfig, recentActivity = []) {
+function publicConfigState(client, guild, config, welcomeConfig, recentActivity = [], youtubeStatus = {}) {
   const snapshot = getCommandAccessSnapshot(client, config);
   const channels = guild.channels.cache
     .filter(channel => channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement)
@@ -156,6 +156,10 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
       channelId: config.youtubeAlert?.channelId || null,
       lastVideoId: config.youtubeAlert?.lastVideoId || null,
       lastPostedAt: config.youtubeAlert?.lastPostedAt || null,
+      deliveries: youtubeStatus.deliveries || [],
+      lastCheckedAt: youtubeStatus.lastCheckedAt || null,
+      lastSuccessfulCheckAt: youtubeStatus.lastSuccessfulCheckAt || null,
+      lastError: youtubeStatus.lastError || null,
     },
     logging: {
       enabled: config.logging?.enabled === true,
@@ -205,12 +209,13 @@ export function registerDashboard(app, client) {
   router.get('/state', async (req, res) => {
     const guild = getDashboardGuild(client);
     if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
-    const [config, welcomeConfig, recentActivity] = await Promise.all([
+    const [config, welcomeConfig, recentActivity, youtubeStatus] = await Promise.all([
       getGuildConfig(client, guild.id),
       getWelcomeConfig(client, guild.id),
       getRecentActivity(client, guild.id),
+      getYouTubeAlertStatus(client, guild.id),
     ]);
-    return res.json(publicConfigState(client, guild, config, welcomeConfig, recentActivity));
+    return res.json(publicConfigState(client, guild, config, welcomeConfig, recentActivity, youtubeStatus));
   });
 
   router.get('/activity', async (req, res) => {
