@@ -22,6 +22,7 @@ import { reconcileLevelRoles } from '../services/leveling/levelRoleSyncService.j
 import { getWelcomeConfig, saveWelcomeConfig } from '../utils/database.js';
 import { createConfigSnapshot, exportGuildConfiguration, getOperationsHealth, inspectGuildOperations, listConfigSnapshots, restoreConfigSnapshot } from '../services/dashboardOperationsService.js';
 import { listTimedSoftbans, releaseTimedSoftban } from '../services/moderation/timedSoftbanService.js';
+import { getCountingGameConfig, setCountingEditAction } from '../services/countingGameService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, 'public');
@@ -91,7 +92,7 @@ function channelSendError(guild, channel, { embeds = false } = {}) {
   return null;
 }
 
-function publicConfigState(client, guild, config, welcomeConfig, recentActivity = [], youtubeStatus = {}, operations = {}) {
+function publicConfigState(client, guild, config, welcomeConfig, recentActivity = [], youtubeStatus = {}, operations = {}, counting = {}) {
   const snapshot = getCommandAccessSnapshot(client, config);
   const channels = guild.channels.cache
     .filter(channel => channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement)
@@ -137,6 +138,12 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
     accessRoles,
     commandAccessRoleIds: Array.isArray(config.commandAccessRoleIds) ? config.commandAccessRoleIds : [],
     operations,
+    counting: {
+      enabled: counting.enabled === true,
+      channelId: counting.channelId || null,
+      nextNumber: counting.nextNumber || 1,
+      editedMessageAction: counting.editedMessageAction === 'reset' ? 'reset' : 'continue',
+    },
     recentActivity,
     owners,
     categories: snapshot.categories
@@ -242,7 +249,7 @@ export function registerDashboard(app, client) {
   router.get('/state', async (req, res) => {
     const guild = getDashboardGuild(client);
     if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
-    const [config, welcomeConfig, recentActivity, youtubeStatus, health, softbans, snapshots] = await Promise.all([
+    const [config, welcomeConfig, recentActivity, youtubeStatus, health, softbans, snapshots, counting] = await Promise.all([
       getGuildConfig(client, guild.id),
       getWelcomeConfig(client, guild.id),
       getRecentActivity(client, guild.id),
@@ -250,12 +257,13 @@ export function registerDashboard(app, client) {
       getOperationsHealth(client, guild),
       listTimedSoftbans(client, guild.id),
       listConfigSnapshots(client, guild.id),
+      getCountingGameConfig(client, guild.id),
     ]);
     return res.json(publicConfigState(client, guild, config, welcomeConfig, recentActivity, youtubeStatus, {
       health,
       softbans,
       snapshots: snapshots.map(({ id, createdAt, createdBy }) => ({ id, createdAt, createdBy })),
-    }));
+    }, counting));
   });
 
   router.get('/activity', async (req, res) => {
@@ -303,6 +311,18 @@ export function registerDashboard(app, client) {
       description: 'Command access was changed from the private dashboard.',
     });
     return res.json({ ok: true });
+  });
+
+  router.post('/counting/edit-action', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const action = req.body?.action;
+    if (!guild || !['continue', 'reset'].includes(action)) return res.status(400).json({ error: 'Choose a valid edited message action.' });
+    const counting = await setCountingEditAction(client, guild.id, action);
+    await recordRecentActivity(client, guild.id, 'dashboard.counting', {
+      title: 'Counting edit protection updated',
+      description: action === 'reset' ? 'Edited counts reset the sequence.' : 'Edited counts keep the sequence and show the next number.',
+    });
+    return res.json({ ok: true, editedMessageAction: counting.editedMessageAction });
   });
 
   router.post('/anti-promo', async (req, res) => {

@@ -10,6 +10,7 @@ import {
   getCountingSystemChoices,
   getCountingSystemLabel,
   getExpectedCountValue,
+  setCountingEditAction,
 } from '../../services/countingGameService.js';
 import { logger } from '../../utils/logger.js';
 
@@ -58,6 +59,16 @@ export default {
     )
     .addSubcommand((subcommand) =>
       subcommand.setName('leaderboard').setDescription('Show the counting game leaderboard'),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('edit-action')
+        .setDescription('Choose what happens when an accepted count is edited')
+        .addStringOption(option => option.setName('action').setDescription('How DexzuBot should handle the edit').setRequired(true)
+          .addChoices(
+            { name: 'Continue and show the next number', value: 'continue' },
+            { name: 'Reset the sequence to 1', value: 'reset' },
+          )),
     ),
   category: 'Fun',
 
@@ -122,6 +133,7 @@ export default {
           { name: 'Best streak', value: `${config.bestStreak || 0}`, inline: true },
           { name: 'Last counter', value: config.lastUserId ? `<@${config.lastUserId}>` : 'None', inline: true },
           { name: 'Edit protection', value: 'Enabled', inline: true },
+          { name: 'Edited message action', value: config.editedMessageAction === 'reset' ? 'Reset to 1' : 'Continue and show next number', inline: true },
         ];
 
         return await InteractionHelper.safeEditReply(interaction, {
@@ -151,6 +163,19 @@ export default {
               `The counting sequence has been reset. Start again with **${startNumber}** in <#${config.channelId}>.`,
             ),
           ],
+        });
+      }
+
+      if (subcommand === 'edit-action') {
+        const action = interaction.options.getString('action', true);
+        await setCountingEditAction(interaction.client, guildId, action);
+        return await InteractionHelper.safeEditReply(interaction, {
+          embeds: [successEmbed(
+            'Counting Edit Protection Updated',
+            action === 'reset'
+              ? 'Editing an accepted count will now reset the sequence to **1**.'
+              : 'Editing an accepted count will keep the sequence and show the **next correct number**.',
+          )],
         });
       }
 

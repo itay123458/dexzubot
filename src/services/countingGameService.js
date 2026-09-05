@@ -179,6 +179,7 @@ const DEFAULT_COUNTING_GAME = {
   bestStreak: 0,
   leaderboard: {},
   acceptedMessages: {},
+  editedMessageAction: 'continue',
 };
 
 function normalizeCountingGame(state) {
@@ -194,6 +195,7 @@ function normalizeCountingGame(state) {
   normalized.acceptedMessages = normalized.acceptedMessages && typeof normalized.acceptedMessages === 'object'
     ? { ...normalized.acceptedMessages }
     : {};
+  normalized.editedMessageAction = normalized.editedMessageAction === 'reset' ? 'reset' : 'continue';
 
   return normalized;
 }
@@ -267,14 +269,26 @@ export async function invalidateEditedCount(client, guildId, messageId, newConte
   if (!config.enabled || !config.acceptedMessages?.[messageId]) return null;
   const accepted = config.acceptedMessages[messageId];
   if (String(newContent || '').trim() === accepted.content) return null;
-  await saveCountingGameConfig(client, guildId, {
+  const shouldReset = config.editedMessageAction === 'reset';
+  const acceptedMessages = { ...config.acceptedMessages };
+  delete acceptedMessages[messageId];
+  const updated = await saveCountingGameConfig(client, guildId, shouldReset ? {
     ...config,
     nextNumber: 1,
     lastUserId: null,
     currentStreak: 0,
     acceptedMessages: {},
+  } : {
+    ...config,
+    acceptedMessages,
   });
-  return accepted;
+  return { accepted, action: shouldReset ? 'reset' : 'continue', config: updated };
+}
+
+export async function setCountingEditAction(client, guildId, action) {
+  if (!['continue', 'reset'].includes(action)) throw new Error('Invalid edited message action.');
+  const config = await getCountingGameConfig(client, guildId);
+  return saveCountingGameConfig(client, guildId, { ...config, editedMessageAction: action });
 }
 
 export function getCountingSystemChoices() {

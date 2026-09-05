@@ -3,6 +3,7 @@ import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 import { formatLogLine } from '../utils/logging/logEmbeds.js';
 import { invalidateEditedCount } from '../services/countingGameService.js';
+import { getExpectedCountValue } from '../services/countingGameService.js';
 
 const MAX_LOGGED_EDIT_CONTENT_LENGTH = 512;
 
@@ -24,14 +25,18 @@ export default {
           messageId: newMessage.id,
           error: error.message,
         }));
-        await newMessage.channel.send(`❌ Count broken by <@${newMessage.author.id}> editing an accepted number. The sequence has been reset to **1**.`).catch(() => {});
+        const nextNumber = getExpectedCountValue(editedCount.config);
+        const resultText = editedCount.action === 'reset'
+          ? 'The sequence has been reset to **1**.'
+          : `The sequence was kept. The next number is **${nextNumber}**.`;
+        await newMessage.channel.send(`❌ <@${newMessage.author.id}> edited an accepted counting message. ${resultText}`).catch(() => {});
         await logEvent({
           client: newMessage.client,
           guildId: newMessage.guild.id,
           eventType: EVENT_TYPES.COUNTING_FAILURE,
           data: {
             title: 'Counting message edited',
-            lines: [`${newMessage.author.tag} edited the accepted count ${editedCount.count} in #${newMessage.channel.name}.`],
+            lines: [`${newMessage.author.tag} edited the accepted count ${editedCount.accepted.count} in #${newMessage.channel.name}. Action: ${editedCount.action}.`],
             userId: newMessage.author.id,
             channelId: newMessage.channel.id,
           },
