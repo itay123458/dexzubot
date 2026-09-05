@@ -178,6 +178,7 @@ const DEFAULT_COUNTING_GAME = {
   currentStreak: 0,
   bestStreak: 0,
   leaderboard: {},
+  acceptedMessages: {},
 };
 
 function normalizeCountingGame(state) {
@@ -189,6 +190,9 @@ function normalizeCountingGame(state) {
   normalized.system = COUNTING_SYSTEMS[normalized.system] ? normalized.system : 'decimal';
   normalized.leaderboard = normalized.leaderboard && typeof normalized.leaderboard === 'object'
     ? { ...normalized.leaderboard }
+    : {};
+  normalized.acceptedMessages = normalized.acceptedMessages && typeof normalized.acceptedMessages === 'object'
+    ? { ...normalized.acceptedMessages }
     : {};
 
   return normalized;
@@ -226,13 +230,24 @@ export async function resetCountingGame(client, guildId, startNumber = 1) {
     nextNumber: startNumber,
     lastUserId: null,
     currentStreak: 0,
+    acceptedMessages: {},
   });
 }
 
-export async function recordCorrectCount(client, guildId, userId) {
+export async function recordCorrectCount(client, guildId, userId, message = null) {
   const config = await getCountingGameConfig(client, guildId);
   const leaderboard = { ...config.leaderboard };
   leaderboard[userId] = (leaderboard[userId] || 0) + 1;
+  const acceptedMessages = { ...(config.acceptedMessages || {}) };
+  if (message?.id) {
+    acceptedMessages[message.id] = {
+      userId,
+      content: String(message.content || '').trim(),
+      count: config.nextNumber || 1,
+      acceptedAt: new Date().toISOString(),
+    };
+  }
+  const recentAcceptedMessages = Object.fromEntries(Object.entries(acceptedMessages).slice(-100));
 
   const updatedConfig = {
     ...config,
@@ -241,9 +256,25 @@ export async function recordCorrectCount(client, guildId, userId) {
     currentStreak: (config.currentStreak || 0) + 1,
     bestStreak: Math.max(config.bestStreak || 0, (config.currentStreak || 0) + 1),
     nextNumber: (config.nextNumber || 1) + 1,
+    acceptedMessages: recentAcceptedMessages,
   };
 
   return saveCountingGameConfig(client, guildId, updatedConfig);
+}
+
+export async function invalidateEditedCount(client, guildId, messageId, newContent) {
+  const config = await getCountingGameConfig(client, guildId);
+  if (!config.enabled || !config.acceptedMessages?.[messageId]) return null;
+  const accepted = config.acceptedMessages[messageId];
+  if (String(newContent || '').trim() === accepted.content) return null;
+  await saveCountingGameConfig(client, guildId, {
+    ...config,
+    nextNumber: 1,
+    lastUserId: null,
+    currentStreak: 0,
+    acceptedMessages: {},
+  });
+  return accepted;
 }
 
 export function getCountingSystemChoices() {
@@ -297,6 +328,7 @@ export async function activateCountingGame(client, guildId, channelId, system = 
     currentStreak: 0,
     bestStreak: 0,
     leaderboard: {},
+    acceptedMessages: {},
   });
 
   return saveCountingGameConfig(client, guildId, config);

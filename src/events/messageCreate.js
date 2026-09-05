@@ -180,6 +180,7 @@ async function handleCountingGame(message, client) {
         nextNumber: 1,
         lastUserId: null,
         currentStreak: 0,
+        acceptedMessages: {},
       });
 
       await message.react('❌').catch(error => {
@@ -206,7 +207,7 @@ async function handleCountingGame(message, client) {
       return true;
     }
 
-    await recordCorrectCount(client, message.guild.id, message.author.id);
+    await recordCorrectCount(client, message.guild.id, message.author.id, message);
     await message.react('✅').catch(error => {
       logger.warn('Failed to react to a correct counting message:', {
         guildId: message.guild.id,

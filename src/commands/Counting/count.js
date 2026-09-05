@@ -93,7 +93,7 @@ export default {
           embeds: [
             successEmbed(
               'Counting Game Enabled',
-              `The counting game is now active in ${channel} using the **${getCountingSystemLabel(system)}** system. Players must count up from **1** and may not post two numbers in a row.`,
+              `The counting game is now active in ${channel} using the **${getCountingSystemLabel(system)}** system. Players must count up from **1**, may not post two numbers in a row, and cannot edit accepted counts.`,
             ),
           ],
         });
@@ -121,6 +121,7 @@ export default {
           { name: 'Current streak', value: `${config.currentStreak}`, inline: true },
           { name: 'Best streak', value: `${config.bestStreak || 0}`, inline: true },
           { name: 'Last counter', value: config.lastUserId ? `<@${config.lastUserId}>` : 'None', inline: true },
+          { name: 'Edit protection', value: 'Enabled', inline: true },
         ];
 
         return await InteractionHelper.safeEditReply(interaction, {
@@ -174,4 +175,3 @@ export default {
     }
   },
 };
-

@@ -2,6 +2,7 @@ import { Events } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 import { formatLogLine } from '../utils/logging/logEmbeds.js';
+import { invalidateEditedCount } from '../services/countingGameService.js';
 
 const MAX_LOGGED_EDIT_CONTENT_LENGTH = 512;
 
@@ -14,6 +15,28 @@ export default {
       if (!newMessage.guild || newMessage.author?.bot) return;
 
       if (oldMessage.content === newMessage.content) return;
+
+      const editedCount = await invalidateEditedCount(newMessage.client, newMessage.guild.id, newMessage.id, newMessage.content);
+      if (editedCount) {
+        await newMessage.react('❌').catch(error => logger.warn('Failed to react to an edited counting message:', {
+          guildId: newMessage.guild.id,
+          channelId: newMessage.channel.id,
+          messageId: newMessage.id,
+          error: error.message,
+        }));
+        await newMessage.channel.send(`❌ Count broken by <@${newMessage.author.id}> editing an accepted number. The sequence has been reset to **1**.`).catch(() => {});
+        await logEvent({
+          client: newMessage.client,
+          guildId: newMessage.guild.id,
+          eventType: EVENT_TYPES.COUNTING_FAILURE,
+          data: {
+            title: 'Counting message edited',
+            lines: [`${newMessage.author.tag} edited the accepted count ${editedCount.count} in #${newMessage.channel.name}.`],
+            userId: newMessage.author.id,
+            channelId: newMessage.channel.id,
+          },
+        });
+      }
 
       const metaLines = [
         formatLogLine('Channel', newMessage.channel ? `${newMessage.channel.name} ${newMessage.channel.toString()}` : 'Unknown'),
