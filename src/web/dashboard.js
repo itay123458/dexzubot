@@ -144,6 +144,9 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
       nextNumber: counting.nextNumber || 1,
       editedMessageAction: counting.editedMessageAction === 'reset' ? 'reset' : 'continue',
     },
+    economy: {
+      channelId: config.economy?.channelId || null,
+    },
     recentActivity,
     owners,
     categories: snapshot.categories
@@ -323,6 +326,22 @@ export function registerDashboard(app, client) {
       description: action === 'reset' ? 'Edited counts reset the sequence.' : 'Edited counts keep the sequence and show the next number.',
     });
     return res.json({ ok: true, editedMessageAction: counting.editedMessageAction });
+  });
+
+  router.post('/economy/channel', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    const channelId = String(req.body?.channelId || '');
+    const channel = guild?.channels.cache.get(channelId);
+    if (!guild || !channel?.isTextBased?.()) return res.status(400).json({ error: 'Choose a valid economy text channel.' });
+    const permissionError = channelSendError(guild, channel, { embeds: true });
+    if (permissionError) return res.status(400).json({ error: permissionError });
+    const config = await getGuildConfig(client, guild.id);
+    await patchGuildConfig(client, guild.id, { economy: { ...(config.economy || {}), channelId } });
+    await recordRecentActivity(client, guild.id, 'dashboard.economy', {
+      title: 'Economy channel updated',
+      description: `Economy commands are restricted to #${channel.name}.`,
+    });
+    return res.json({ ok: true, channelId, channelName: channel.name });
   });
 
   router.post('/anti-promo', async (req, res) => {

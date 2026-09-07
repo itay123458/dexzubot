@@ -127,6 +127,18 @@ async function handlePrefixCommand(message, client) {
       return;
     }
 
+    const economyChannelId = guildConfig?.economy?.channelId;
+    if (command.category?.toLowerCase() === 'economy' && economyChannelId && message.channel.id !== economyChannelId) {
+      await message.channel.send({
+        embeds: [createEmbed({
+          title: 'Economy Channel Only',
+          description: `Economy commands can only be used in <#${economyChannelId}>.`,
+          color: 'warning',
+        })],
+      }).catch(() => {});
+      return;
+    }
+
     const mockInteractionForProtection = {
       guildId: message.guild.id,
       user: message.author,

@@ -159,6 +159,15 @@ export default {
                   withTraceContext({ commandName: accessKey, guildId: interaction.guild.id }, interactionTraceContext)
                 );
               }
+              const economyChannelId = guildConfig?.economy?.channelId;
+              if (command.category?.toLowerCase() === 'economy' && economyChannelId && interaction.channelId !== economyChannelId) {
+                throw createError(
+                  `Economy command used outside configured channel ${economyChannelId}`,
+                  ErrorTypes.PERMISSION,
+                  `Economy commands can only be used in <#${economyChannelId}>.`,
+                  withTraceContext({ commandName: accessKey, guildId: interaction.guild.id, economyChannelId }, interactionTraceContext)
+                );
+              }
             }
 
             const permissionAllowed = await enforceDefaultCommandPermissions(interaction, command, {
