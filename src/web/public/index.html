@@ -10,20 +10,20 @@
   <link rel="stylesheet" href="/dashboard/dashboard-polish.css">
   <link rel="stylesheet" href="/dashboard/youtube-dashboard.css">
   <link rel="stylesheet" href="/dashboard/control-pages.css">
-  <link rel="stylesheet" href="/dashboard/motion.css">
-  <link rel="stylesheet" href="/dashboard/layouts.css">
-  <script src="/dashboard/layouts.js" defer></script>
+  <link rel="stylesheet" href="/dashboard/workspace.css">
 </head>
 <body>
+  <a class="skip-link" href="#dashboard-main">Skip to content</a>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-avatar"><img id="bot-avatar" alt="DexzuBot avatar"></div>
         <div><span>CONTROL PANEL</span><strong>DexzuBot</strong></div>
         <button id="sidebar-collapse" class="collapse-button" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">‹</button>
+        <button id="mobile-navigation" class="mobile-navigation" type="button" aria-expanded="false" aria-controls="dashboard-navigation">Menu</button>
       </div>
 
-      <nav class="dashboard-nav" aria-label="Dashboard sections">
+      <nav id="dashboard-navigation" class="dashboard-nav" aria-label="Dashboard sections">
         <i id="nav-active-indicator" class="nav-active-indicator" aria-hidden="true"></i>
         <p class="nav-label">Control</p>
         <button class="nav-item active" data-page="overview" title="Overview"><span class="nav-icon">⌂</span><span>Overview</span></button>
@@ -50,46 +50,22 @@
 
     <div class="workspace">
       <header class="topbar">
-        <label class="layout-picker" for="dashboard-layout">Layout
-          <select id="dashboard-layout" aria-describedby="layout-hint">
-            <option value="classic">Classic sidebar</option>
-            <option value="compact">Compact workspace</option>
-            <option value="topnav">Top navigation</option>
-            <option value="studio">Studio</option>
-            <option value="focus">Focus</option>
-            <option value="command">Command Center</option>
-          </select>
-          <small id="layout-hint" role="status">Saved on this browser</small>
-        </label>
-        <details class="layout-gallery">
-          <summary>Explore layouts <span>6 workspaces · your choice</span></summary>
-          <div class="layout-options" role="group" aria-label="Choose dashboard layout">
-            <button type="button" data-layout-choice="classic" aria-pressed="true"><span class="layout-wire classic" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Classic</strong><small>Familiar sidebar and balanced cards.</small></button>
-            <button type="button" data-layout-choice="compact" aria-pressed="false"><span class="layout-wire compact" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Compact</strong><small>More controls in less space.</small></button>
-            <button type="button" data-layout-choice="topnav" aria-pressed="false"><span class="layout-wire topnav" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Top navigation</strong><small>Full-width pages with tabs above.</small></button>
-            <button type="button" data-layout-choice="studio" aria-pressed="false"><span class="layout-wire studio" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Studio</strong><small>Floating navigation and a framed workspace.</small></button>
-            <button type="button" data-layout-choice="focus" aria-pressed="false"><span class="layout-wire focus" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Focus</strong><small>A calm, single-column editing flow.</small></button>
-            <button type="button" data-layout-choice="command" aria-pressed="false"><span class="layout-wire command" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Command Center</strong><small>Wide controls with a monitoring rail.</small></button>
-          </div>
-          <p>Changes only your view. Bot settings and unsaved edits stay untouched.</p>
-        </details>
         <div><p class="breadcrumb">DexzuBot <span>/</span> <b id="breadcrumb-page">Overview</b></p><h1 id="page-title">Overview</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
         <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small>Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
       </header>
 
-      <main>
+      <main id="dashboard-main" tabindex="-1">
         <section class="page active" data-panel="overview">
           <section class="metrics" id="metrics" aria-label="Server statistics"><div class="metric skeleton"></div><div class="metric skeleton"></div><div class="metric skeleton"></div><div class="metric skeleton"></div></section>
-          <div class="overview-grid">
+          <div class="overview-grid overview-modules">
           <article class="card modules-card">
             <div class="card-head"><div><p class="eyebrow">ACCESS</p><h2>Command Modules</h2><p>Enable or disable bot systems for this server.</p></div><span class="status-note"><i></i> Applies instantly</span></div>
             <div id="categories" class="toggle-grid"></div>
           </article>
-          <aside class="overview-rail"><article class="card status-card"><div class="card-head"><div><p class="eyebrow">LIVE SYSTEM</p><h2>System Status</h2></div><button id="refresh-dashboard" class="icon-button" title="Refresh dashboard" aria-label="Refresh dashboard">↻</button></div><div id="system-status" class="system-status"><div class="status-row skeleton-line"></div><div class="status-row skeleton-line"></div></div></article></aside>
           </div>
           <div class="insight-grid">
             <article class="card activity-card"><div class="card-head"><div><p class="eyebrow">EVENT STREAM</p><h2>Recent Activity</h2><p>Latest events from DexzuBot.</p></div><button id="view-logs" class="secondary-button">View all</button></div><div id="recent-activity" class="activity-feed"><div class="empty-state"><span class="empty-icon">≡</span><strong>No recent activity</strong><p>New DexzuBot events will appear here.</p></div></div></article>
-            <article class="card performance-card"><div class="card-head"><div><p class="eyebrow">RUNTIME</p><h2>Bot Performance</h2><p>Live values from the current process.</p></div></div><div id="performance" class="performance-list"><div class="skeleton-line"></div><div class="skeleton-line"></div></div></article>
+            <aside class="overview-rail"><article class="card status-card"><div class="card-head"><div><p class="eyebrow">LIVE SYSTEM</p><h2>System Status</h2></div><button id="refresh-dashboard" class="icon-button" title="Refresh dashboard" aria-label="Refresh dashboard">↻</button></div><div id="system-status" class="system-status"><div class="status-row skeleton-line"></div><div class="status-row skeleton-line"></div></div></article><article class="card performance-card"><div class="card-head"><div><p class="eyebrow">RUNTIME</p><h2>Bot Performance</h2></div></div><div id="performance" class="performance-list"><div class="skeleton-line"></div><div class="skeleton-line"></div></div></article></aside>
           </div>
         </section>
 
@@ -202,5 +178,6 @@
   </div>
   <div id="toasts" class="toast-stack" aria-live="polite"></div>
   <script src="/dashboard/app.js" defer></script>
+  <script src="/dashboard/workspace.js" defer></script>
 </body>
 </html>

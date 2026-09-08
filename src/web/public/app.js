@@ -660,34 +660,4 @@ setInterval(() => { if (!document.hidden) void refreshRecentActivity(); }, 30000
 window.addEventListener('resize', updateNavIndicator, { passive: true });
 document.querySelector('.sidebar')?.addEventListener('scroll', updateNavIndicator, { passive: true });
 
-document.addEventListener('pointermove', event => {
-  const card = event.target.closest?.('.card');
-  if (!card || card.classList.contains('danger-card') || reducedMotion()) return;
-  const bounds = card.getBoundingClientRect();
-  card.classList.add('mouse-light');
-  card.style.setProperty('--card-x', `${event.clientX - bounds.left}px`);
-  card.style.setProperty('--card-y', `${event.clientY - bounds.top}px`);
-}, { passive: true });
-document.addEventListener('pointerout', event => {
-  const card = event.target.closest?.('.card');
-  if (card && !card.contains(event.relatedTarget)) card.classList.remove('mouse-light');
-}, { passive: true });
-
-function setupBackgroundParallax() {
-  const connection = navigator.connection;
-  if (reducedMotion() || matchMedia('(pointer: coarse)').matches || connection?.saveData || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2)) return;
-  let targetX = 0, targetY = 0, currentX = 0, currentY = 0, running = false;
-  const tick = () => {
-    currentX += (targetX - currentX) * .08; currentY += (targetY - currentY) * .08;
-    document.documentElement.style.setProperty('--parallax-x', `${currentX.toFixed(2)}px`);
-    document.documentElement.style.setProperty('--parallax-y', `${currentY.toFixed(2)}px`);
-    if (Math.abs(targetX - currentX) > .03 || Math.abs(targetY - currentY) > .03) requestAnimationFrame(tick); else running = false;
-  };
-  window.addEventListener('pointermove', event => {
-    targetX = ((event.clientX / innerWidth) - .5) * 8; targetY = ((event.clientY / innerHeight) - .5) * 8;
-    if (!running) { running = true; requestAnimationFrame(tick); }
-  }, { passive: true });
-}
-setupBackgroundParallax();
-if (!reducedMotion() && (!location.hash || location.hash === '#overview')) { document.body.classList.add('initializing'); setTimeout(() => document.body.classList.remove('initializing'), 1300); }
 window.addEventListener('beforeunload', event => { if (!dirtyPages.size) return; event.preventDefault(); event.returnValue = ''; });
