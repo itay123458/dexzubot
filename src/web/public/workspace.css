@@ -194,6 +194,13 @@ body input:not([type=checkbox]),body select { min-width: 0; max-width: 100%; min
 .check-row { font-size: 0.875rem; min-height: 44px; border-radius: 5px; background: #131e2b; border-color: var(--line); box-shadow: none; }
 .check-row:hover { transform: none; box-shadow: none; background: #1c2a39; }
 .check-row span { overflow-wrap: anywhere; }
+/* Avatar, flexible text, then checkbox: never constrain the name to 34px. */
+.owner-row { grid-template-columns: 32px minmax(0,1fr) 17px; gap: 12px; }
+.owner-row > .owner-avatar { grid-column: 1; grid-row: 1; }
+.owner-row > span:last-child { grid-column: 2; grid-row: 1; min-width: 0; }
+.owner-row > input { grid-column: 3; grid-row: 1; }
+.owner-row b { font-size: 0.875rem; line-height: 1.5; }
+.owner-row small { font-size: 0.75rem; line-height: 1.5; color: var(--muted); overflow-wrap: normal; word-break: normal; }
 .switch { position: relative; display: inline-flex; align-items: center; min-height: 44px; }
 .switch input:checked + span { background: #438b7e; box-shadow: none; border-color: #6eb7a9; }
 .switch span { width: 44px; height: 25px; background: #344255; border-color: #526278; }
