@@ -11,9 +11,14 @@ function setup(saved, blocked = false) {
   const picker = { value: '', addEventListener: (name, fn) => { handlers[name] = fn; } };
   const hint = { textContent: '' };
   const body = { dataset: {} };
+  const choices = ['classic', 'compact', 'topnav', 'studio', 'focus', 'command'].map(layout => ({
+    dataset: { layoutChoice: layout }, attributes: {},
+    setAttribute(name, value) { this.attributes[name] = value; },
+    addEventListener(name, callback) { this[name] = callback; },
+  }));
   const storage = new Map([['dexzu-dashboard-layout', saved]]);
   const context = {
-    document: { body, getElementById: id => id === 'dashboard-layout' ? picker : hint },
+    document: { body, querySelectorAll: () => choices, getElementById: id => id === 'dashboard-layout' ? picker : hint },
     window: { dispatchEvent() {}, addEventListener: (name, fn) => { events[name] = fn; } },
     Event: class { constructor(type) { this.type = type; } },
     localStorage: {
@@ -22,13 +27,18 @@ function setup(saved, blocked = false) {
     },
   };
   runInNewContext(source, context);
-  return { body, picker, hint, storage, handlers, events };
+  return { body, picker, hint, storage, handlers, events, choices };
 }
-for (const layout of ['classic', 'compact', 'topnav']) {
+for (const layout of ['classic', 'compact', 'topnav', 'studio', 'focus', 'command']) {
   const f = setup(layout);
   assert.equal(f.body.dataset.layout, layout);
   assert.equal(f.picker.value, layout);
   assert.ok(html.includes(`value="${layout}"`));
+  assert.equal(f.choices.filter(button => button.attributes['aria-pressed'] === 'true').length, 1);
+  const button = f.choices.find(button => button.dataset.layoutChoice === layout);
+  button.click();
+  assert.equal(f.storage.get('dexzu-dashboard-layout'), layout);
+  assert.equal(f.picker.value, layout);
 }
 assert.equal(setup('invalid').body.dataset.layout, 'classic');
 assert.equal(setup(null).body.dataset.layout, 'classic');

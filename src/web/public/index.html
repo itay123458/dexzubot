@@ -55,9 +55,24 @@
             <option value="classic">Classic sidebar</option>
             <option value="compact">Compact workspace</option>
             <option value="topnav">Top navigation</option>
+            <option value="studio">Studio</option>
+            <option value="focus">Focus</option>
+            <option value="command">Command Center</option>
           </select>
           <small id="layout-hint" role="status">Saved on this browser</small>
         </label>
+        <details class="layout-gallery">
+          <summary>Explore layouts <span>6 workspaces · your choice</span></summary>
+          <div class="layout-options" role="group" aria-label="Choose dashboard layout">
+            <button type="button" data-layout-choice="classic" aria-pressed="true"><span class="layout-wire classic" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Classic</strong><small>Familiar sidebar and balanced cards.</small></button>
+            <button type="button" data-layout-choice="compact" aria-pressed="false"><span class="layout-wire compact" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Compact</strong><small>More controls in less space.</small></button>
+            <button type="button" data-layout-choice="topnav" aria-pressed="false"><span class="layout-wire topnav" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Top navigation</strong><small>Full-width pages with tabs above.</small></button>
+            <button type="button" data-layout-choice="studio" aria-pressed="false"><span class="layout-wire studio" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Studio</strong><small>Floating navigation and a framed workspace.</small></button>
+            <button type="button" data-layout-choice="focus" aria-pressed="false"><span class="layout-wire focus" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Focus</strong><small>A calm, single-column editing flow.</small></button>
+            <button type="button" data-layout-choice="command" aria-pressed="false"><span class="layout-wire command" aria-hidden="true"><i></i><b></b><b></b><b></b></span><strong>Command Center</strong><small>Wide controls with a monitoring rail.</small></button>
+          </div>
+          <p>Changes only your view. Bot settings and unsaved edits stay untouched.</p>
+        </details>
         <div><p class="breadcrumb">DexzuBot <span>/</span> <b id="breadcrumb-page">Overview</b></p><h1 id="page-title">Overview</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
         <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small>Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
       </header>
