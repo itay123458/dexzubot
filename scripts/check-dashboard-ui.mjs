@@ -43,7 +43,8 @@ try {
   assert.equal(await page.locator('[data-layout-choice],#dashboard-layout').count(), 0);
   const pages = await page.locator('[data-page]').evaluateAll(items => items.map(item => item.dataset.page));
   const overflow = [];
-  for (const width of [1920, 1440, 1024, 820, 390, 320]) {
+  const widths = [2560, 1920, 1440, 1280, 1024, 820, 390, 320];
+  for (const width of widths) {
     await page.setViewportSize({ width, height: 1000 });
     for (const destination of pages) {
       if (width <= 760) await page.locator('#mobile-navigation').click();
@@ -59,6 +60,14 @@ try {
   }
   assert.deepEqual(overflow, [], 'Pages must not overflow horizontally');
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.locator('[data-page="overview"]').click();
+  const category = page.locator('[data-category]').first();
+  const wasEnabled = await category.isChecked();
+  await category.focus();
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(150);
+  assert.ok(writes.some(w => w.url.endsWith('/category') && w.body.enabled === !wasEnabled));
+  assert.equal(await category.evaluate(el => el.closest('.module-controls') !== null), true);
   await page.locator('[data-page="greetings"]').click();
   await page.locator('#welcome-message').fill('Welcome {user} to {server}!');
   await page.locator('#save-greetings').click();
@@ -74,7 +83,7 @@ try {
   assert.equal(await page.locator('#mobile-navigation').getAttribute('aria-expanded'), 'false');
   assert.equal(await page.locator('#mobile-navigation').evaluate(el => el === document.activeElement), true);
   assert.deepEqual(errors, []);
-  console.log(`PASS: ${pages.length} pages × 6 widths; no overflow or runtime errors; mocked save, validation, navigation, Escape and focus checks.`);
+  console.log(`PASS: ${pages.length} pages × ${widths.length} widths; no overflow or runtime errors; mocked toggle/save, validation, navigation, Escape and focus checks.`);
 } finally {
   await browser.close();
   server.close();

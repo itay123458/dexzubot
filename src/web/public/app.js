@@ -281,7 +281,7 @@ function renderRecentActivity() {
     $('recent-activity').innerHTML = '<div class="empty-state"><span class="empty-icon">≡</span><strong>No recent activity</strong><p>New DexzuBot events will appear here.</p></div>';
     return;
   }
-  const activityIcons = { moderation: '◆', message: '≡', member: '✦', voice: '◖', leveling: '↗', counting: '#', role: '◇', channel: '#', dashboard: '⌘', guild: '⌂', invite: '↗', emoji: '✦', sticker: '▣' };
+  const activityIcons = { moderation: icons.shield, message: icons.command, member: icons.members, voice: icons.members, leveling: icons.trend, counting: icons.hash, role: icons.shield, channel: icons.hash, dashboard: icons.command, guild: icons.members, invite: icons.trend, emoji: icons.command, sticker: icons.ticket };
   $('recent-activity').innerHTML = visible.map((activity, index) => `<div class="activity-row ${index === 0 && activity.id === latestActivityId ? 'activity-new' : ''}"><span class="activity-type ${escapeHtml(activity.category)}">${activityIcons[activity.category] || '•'}</span><div><strong>${escapeHtml(activity.title)}</strong>${activity.detail ? `<p>${escapeHtml(activity.detail)}</p>` : ''}</div><time datetime="${escapeHtml(activity.timestamp)}" title="${escapeHtml(new Date(activity.timestamp).toLocaleString())}">${relativeActivityTime(activity.timestamp)}</time></div>`).join('');
   if (latestActivityId) setTimeout(() => { document.querySelector('.activity-new')?.classList.remove('activity-new'); latestActivityId = null; }, 1100);
 }
@@ -361,7 +361,7 @@ function render(current) {
   };
   $('categories').innerHTML = current.categories.map(category => {
     const meta = moduleMeta[category.key.toLowerCase()] || [icons.command, 'Discord command module'];
-    return `<div class="toggle-row ${category.enabled ? '' : 'module-disabled'}"><div class="module-copy"><span class="module-icon">${meta[0]}</span><div><strong>${category.name}</strong><em>${meta[1]}</em><small>${category.enabledCommands} / ${category.totalCommands} commands</small></div></div><label class="switch"><input data-category="${category.key}" data-name="${category.name}" type="checkbox" ${category.enabled ? 'checked' : ''} aria-label="Toggle ${category.name}"><span></span></label></div>`;
+    return `<div class="toggle-row ${category.enabled ? '' : 'module-disabled'}"><div class="module-copy"><span class="module-icon" aria-hidden="true">${meta[0]}</span><div><strong>${category.name}</strong><em>${meta[1]}</em></div></div><div class="module-controls"><small>${category.enabledCommands} / ${category.totalCommands} commands</small><label class="switch"><input data-category="${category.key}" data-name="${category.name}" type="checkbox" ${category.enabled ? 'checked' : ''} aria-label="Toggle ${category.name}"><span></span></label></div></div>`;
   }).join('');
   const databaseReady = current.database?.isAvailable === true && current.database?.isDegraded !== true;
   $('system-status').innerHTML = [
