@@ -331,9 +331,11 @@ const setSidebarCollapsed = collapsed => {
   document.body.classList.toggle('sidebar-collapsed', collapsed);
   $('sidebar-collapse').textContent = collapsed ? '›' : '‹';
   $('sidebar-collapse').setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
-  localStorage.setItem('dexzu-sidebar-collapsed', String(collapsed));
+  try { localStorage.setItem('dexzu-sidebar-collapsed', String(collapsed)); } catch { /* Keep controls usable when browser storage is blocked. */ }
 };
-setSidebarCollapsed(localStorage.getItem('dexzu-sidebar-collapsed') === 'true');
+let savedSidebarCollapsed = false;
+try { savedSidebarCollapsed = localStorage.getItem('dexzu-sidebar-collapsed') === 'true'; } catch { /* Use the default layout. */ }
+setSidebarCollapsed(savedSidebarCollapsed);
 $('sidebar-collapse').onclick = () => { setSidebarCollapsed(!document.body.classList.contains('sidebar-collapsed')); requestAnimationFrame(updateNavIndicator); };
 $('view-logs').onclick = () => { activityExpanded = !activityExpanded; renderRecentActivity(); };
 

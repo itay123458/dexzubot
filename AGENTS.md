@@ -98,6 +98,11 @@ display or copy the private key contents.
 Only deploy when the Pi is reachable and the user requested deployment or the
 current task explicitly includes it.
 
+The user has authorized automatic deployment of completed DexzuBot website
+changes to the existing private Pi dashboard (2026-09-08). Do not ask again for
+each website update. Preserve private access; this does not authorize public
+hosting, access-policy changes, or changes to EditIL Assistant.
+
 1. Confirm the local branch is correct and inspect uncommitted changes.
 2. Run checks proportionate to the change. For deployment-related changes, run
    at least:

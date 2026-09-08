@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="/dashboard/youtube-dashboard.css">
   <link rel="stylesheet" href="/dashboard/control-pages.css">
   <link rel="stylesheet" href="/dashboard/motion.css">
+  <link rel="stylesheet" href="/dashboard/layouts.css">
+  <script src="/dashboard/layouts.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -48,6 +50,14 @@
 
     <div class="workspace">
       <header class="topbar">
+        <label class="layout-picker" for="dashboard-layout">Layout
+          <select id="dashboard-layout" aria-describedby="layout-hint">
+            <option value="classic">Classic sidebar</option>
+            <option value="compact">Compact workspace</option>
+            <option value="topnav">Top navigation</option>
+          </select>
+          <small id="layout-hint" role="status">Saved on this browser</small>
+        </label>
         <div><p class="breadcrumb">DexzuBot <span>/</span> <b id="breadcrumb-page">Overview</b></p><h1 id="page-title">Overview</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
         <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small>Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
       </header>
