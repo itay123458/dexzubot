@@ -2,14 +2,17 @@ import axios from 'axios';
 import { EmbedBuilder } from 'discord.js';
 import { getGuildConfig, patchGuildConfig } from './config/guildConfig.js';
 import { logger } from '../utils/logger.js';
+import { fetchChannelUploads, selectPageUploads } from './youtubeDiscovery.js';
 
 export const YOUTUBE_CHANNEL_HANDLE = '@DexzuGtag';
 export const YOUTUBE_CHANNEL_ID = 'UC3Ll8n2z4N_SsQpN7iWpNsA';
 export const YOUTUBE_CHANNEL_URL = `https://www.youtube.com/${YOUTUBE_CHANNEL_HANDLE}`;
 
 const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${YOUTUBE_CHANNEL_ID}`;
-const POLL_INTERVAL_MS = 2 * 60 * 1000;
+const POLL_INTERVAL_MS = 60 * 1000;
 const activePollers = new WeakMap();
+const activePollChecks = new WeakSet();
+let discoveryRequest;
 const activeGuildChecks = new WeakMap();
 const MAX_POSTED_VIDEO_HISTORY = 50;
 const MAX_DELIVERY_HISTORY = 25;
@@ -46,6 +49,26 @@ async function fetchYouTubeVideos() {
     return videos;
 }
 
+// Share concurrent dashboard/manual/poller reads; each source is independent.
+async function fetchDiscovery() {
+    if (discoveryRequest) return discoveryRequest;
+    discoveryRequest = (async () => {
+        const results = await Promise.allSettled([
+            fetchYouTubeVideos(),
+            fetchChannelUploads(YOUTUBE_CHANNEL_ID, 'shorts'),
+            fetchChannelUploads(YOUTUBE_CHANNEL_ID, 'videos'),
+        ]);
+        if (results.every(result => result.status === 'rejected')) throw new Error('All YouTube discovery sources failed');
+        const videos = results[0].status === 'fulfilled' ? results[0].value : [];
+        videos.discoveryGroups = {};
+        for (const [index, tab] of [[1, 'shorts'], [2, 'videos']]) {
+            if (results[index].status === 'fulfilled') videos.discoveryGroups[tab] = results[index].value;
+        }
+        return videos;
+    })();
+    try { return await discoveryRequest; } finally { discoveryRequest = null; }
+}
+
 async function getAlertState(client, guildId) {
     const value = await client.db?.get?.(historyKey(guildId), {});
     return {
@@ -55,6 +78,7 @@ async function getAlertState(client, guildId) {
         lastCheckedAt: value?.lastCheckedAt || null,
         lastSuccessfulCheckAt: value?.lastSuccessfulCheckAt || null,
         lastError: value?.lastError || null,
+        discoveryGroups: value?.discoveryGroups || {},
     };
 }
 
@@ -65,8 +89,10 @@ async function saveAlertState(client, guildId, state) {
 function upsertDelivery(state, video, update) {
     const previous = state.deliveries.find(item => item.videoId === video.id) || {};
     const delivery = { ...previous, videoId: video.id, title: video.title, url: video.url, thumbnailUrl: video.thumbnailUrl, publishedAt: video.publishedAt, ...update };
+    let sentCount = 0;
     state.deliveries = [delivery, ...state.deliveries.filter(item => item.videoId !== video.id)]
-        .sort((a, b) => new Date(b.sentAt || b.detectedAt || 0) - new Date(a.sentAt || a.detectedAt || 0)).slice(0, MAX_DELIVERY_HISTORY);
+        .sort((a, b) => new Date(b.sentAt || b.detectedAt || 0) - new Date(a.sentAt || a.detectedAt || 0))
+        .filter(item => item.status !== 'sent' || ++sentCount <= MAX_DELIVERY_HISTORY);
     return delivery;
 }
 
@@ -86,7 +112,7 @@ export async function getYouTubeAlertStatus(client, guildId) {
 }
 
 export async function runYouTubeAlertCheck(client, guild) {
-    const videos = await fetchYouTubeVideos();
+    const videos = await fetchDiscovery();
     await checkGuild(client, guild, videos);
     return getYouTubeAlertStatus(client, guild.id);
 }
@@ -151,6 +177,8 @@ export async function checkGuild(client, guild, videos) {
         const alert = config.youtubeAlert;
         if (!alert?.enabled || !alert.channelId) return;
         const state = await getAlertState(client, guild.id);
+        const pageDiscovery = selectPageUploads(videos.discoveryGroups || {}, state.discoveryGroups, state.videoIds);
+        state.discoveryGroups = pageDiscovery.snapshots;
         state.lastCheckedAt = new Date().toISOString();
         if (!state.deliveries.length && alert.lastVideoId && alert.lastPostedAt) {
             const previousVideo = videos.find(video => video.id === alert.lastVideoId);
@@ -163,18 +191,27 @@ export async function checkGuild(client, guild, videos) {
             return;
         }
         if (!state.videoIds.length) {
-            state.videoIds = videos.map(video => video.id).slice(0, MAX_POSTED_VIDEO_HISTORY);
+            const baseline = [...videos, ...Object.values(videos.discoveryGroups || {}).flat()];
+            state.videoIds = [...new Set(baseline.map(video => video.id))].slice(0, MAX_POSTED_VIDEO_HISTORY);
             state.updatedAt = new Date().toISOString();
             state.lastSuccessfulCheckAt = state.updatedAt;
             state.lastError = null;
             await saveAlertState(client, guild.id, state);
-            await patchGuildConfig(client, guild.id, { youtubeAlert: { ...alert, lastVideoId: videos[0].id } });
+            if (videos[0]) await patchGuildConfig(client, guild.id, { youtubeAlert: { ...alert, lastVideoId: videos[0].id } });
             return;
         }
         const retryVideos = state.deliveries.filter(item => item.status !== 'sent').map(item => ({ id: item.videoId, title: item.title, url: item.url, thumbnailUrl: item.thumbnailUrl, publishedAt: item.publishedAt }));
         const knownIndex = videos.findIndex(video => state.videoIds.includes(video.id));
         const newVideos = knownIndex >= 0 ? videos.slice(0, knownIndex) : videos.filter(video => Date.parse(video.publishedAt) > Date.parse(state.updatedAt || 0));
-        const candidates = [...retryVideos, ...newVideos].filter((video, index, all) => all.findIndex(item => item.id === video.id) === index).reverse();
+        const candidates = [...retryVideos, ...newVideos, ...pageDiscovery.candidates].filter((video, index, all) => all.findIndex(item => item.id === video.id) === index).reverse();
+        // Persist every newly discovered candidate with the page baseline before
+        // sending the first one, so a restart cannot lose the rest of the batch.
+        for (const video of candidates) {
+            if (!state.videoIds.includes(video.id) && !state.deliveries.some(item => item.videoId === video.id)) {
+                upsertDelivery(state, video, { status: 'pending', detectedAt: new Date().toISOString(), attempts: 0 });
+            }
+        }
+        await saveAlertState(client, guild.id, state);
         let allDelivered = true;
         for (const video of candidates) if (!state.videoIds.includes(video.id) && !(await deliverVideo(client, guild, channel, alert, state, video))) allDelivered = false;
         state.lastSuccessfulCheckAt = new Date().toISOString();
@@ -184,8 +221,10 @@ export async function checkGuild(client, guild, videos) {
 }
 
 export async function pollYouTubeAlerts(client) {
+    if (activePollChecks.has(client)) return;
+    activePollChecks.add(client);
     try {
-        const videos = await fetchYouTubeVideos();
+        const videos = await fetchDiscovery();
         for (const guild of client.guilds.cache.values()) await checkGuild(client, guild, videos).catch(error => logger.error('[YOUTUBE_ALERT] Guild check failed:', error));
     } catch (error) {
         logger.error('[YOUTUBE_ALERT] Feed poll failed:', error);
@@ -196,7 +235,7 @@ export async function pollYouTubeAlerts(client) {
             state.lastError = `Feed check failed: ${error.message}`.slice(0, 220);
             await saveAlertState(client, guild.id, state).catch(() => {});
         }
-    }
+    } finally { activePollChecks.delete(client); }
 }
 
 export function initializeYouTubeAlerts(client) {
