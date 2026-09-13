@@ -232,7 +232,6 @@ function validateLeveling() {
   else if (!Number.isFinite(multiplier) || multiplier < .1 || multiplier > 10) error = 'Multiplier must be between 0.1× and 10×.';
   $('leveling-error').textContent = error;
   $('save-leveling').disabled = Boolean(error);
-  $('leveling-summary').innerHTML = [['Leveling', $('leveling-enabled').checked ? 'Active' : 'Disabled'], ['XP Range', `${min || 0} – ${max || 0}`], ['Cooldown', `${cooldown || 0} sec`], ['Multiplier', `${multiplier || 0}×`]].map(([label,value]) => `<article class="summary-card"><small>${label}</small><strong>${escapeHtml(value)}</strong></article>`).join('');
   return !error;
 }
 function renderLevelRewards() {

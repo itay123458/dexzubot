@@ -354,4 +354,49 @@ body .secondary-button:hover:not(:disabled),body .icon-button:hover:not(:disable
   .server-chip img { display: none; }
   .activity-row { grid-template-columns: 24px minmax(0,1fr); }.activity-row time { grid-column: 2; }
 }
+/* Leveling is a settings sheet, not an analytics dashboard. */
+.leveling-header-control { display: none; align-items: center; gap: 12px; font-size: .875rem; margin-left: auto; }
+body:has([data-panel="leveling"].active) .leveling-header-control { display: flex; }
+body:has([data-panel="leveling"].active)::before { display: none; }
+body:has([data-panel="leveling"].active) .topbar { align-items: center; max-width: 980px; flex-wrap: wrap; }
+body:has([data-panel="leveling"].active) .topbar > div:first-child { margin-right: auto; }
+[data-panel="leveling"] { max-width: 980px; margin-inline: auto; }
+.leveling-settings { border-top: 1px solid var(--line); }
+.leveling-setting-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,360px); align-items: center; gap: 32px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.leveling-setting-row h2,.leveling-setting-row > div > label { display: block; margin: 0; font-size: .9375rem; font-weight: 600; line-height: 1.5; }
+.leveling-setting-row p { margin: 4px 0 0; color: var(--muted); font-size: .875rem; }
+.leveling-range { display: flex; align-items: end; gap: 12px; }
+.leveling-range label { display: grid; gap: 5px; font-size: .8125rem; color: var(--muted); }
+.leveling-range > span { align-self: center; padding-top: 22px; color: var(--muted); }
+.leveling-range input,.leveling-unit input { width: 112px; margin: 0; }
+.leveling-unit { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: .875rem; }
+.leveling-setting-row > .switch { justify-self: start; }
+.leveling-destination { align-items: start; }
+.leveling-destination select { margin: 0; }
+.leveling-setting-row .leveling-message-sample { margin-top: 12px; padding: 12px 0 0; border-top: 1px solid var(--line); font-size: .875rem; line-height: 1.6; }
+.leveling-message-sample > span { display: block; }
+.leveling-message-sample > span:first-child { font-size: .75rem; margin-bottom: 4px; }
+.leveling-message-sample b { color: var(--text); font-weight: 500; }
+[data-panel="leveling"] .page-save-row { margin: 16px 0 32px; }
+[data-panel="leveling"] .level-rewards-card { padding-top: 24px; padding-bottom: 24px; }
+[data-panel="leveling"] .level-reward-builder { display: grid; grid-template-columns: 112px minmax(0,1fr) auto; gap: 16px; padding: 0; border: 0; border-radius: 0; background: none; align-items: end; }
+[data-panel="leveling"] .level-reward-builder label { display: grid; gap: 6px; }
+[data-panel="leveling"] .level-reward-builder input,[data-panel="leveling"] .level-reward-builder select { margin: 0; }
+[data-panel="leveling"] .level-reward-list { gap: 0; border-top: 1px solid var(--line); margin-top: 20px; }
+[data-panel="leveling"] .level-reward-row { display: grid; grid-template-columns: 112px minmax(0,1fr) auto; gap: 16px; padding: 12px 0; min-height: 52px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; }
+[data-panel="leveling"] .level-reward-row > span,[data-panel="leveling"] .level-reward-row > strong { font-size: .875rem; font-weight: 400; min-width: 0; overflow-wrap: anywhere; }
+[data-panel="leveling"] .level-reward-row button { background: none !important; color: var(--danger) !important; border-color: transparent !important; }
+[data-panel="leveling"] .role-color { box-shadow: none; flex-shrink: 0; }
+[data-panel="leveling"] .danger-card { padding: 20px 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; }
+[data-panel="leveling"] .danger-card p { max-width: 60ch; }
+@media (max-width: 760px) {
+  body:has([data-panel="leveling"].active) .topbar { column-gap: 20px; }
+  .leveling-header-control { margin-left: 0; }
+  .leveling-setting-row { grid-template-columns: 1fr; gap: 12px; padding: 16px 0; }
+  .leveling-range input { width: 100%; }
+  [data-panel="leveling"] .level-reward-builder { grid-template-columns: 90px minmax(0,1fr); gap: 12px; }
+  [data-panel="leveling"] .level-reward-builder button { grid-column: 2; justify-self: start; }
+  [data-panel="leveling"] .level-reward-row { grid-template-columns: 80px minmax(0,1fr) auto; gap: 8px; }
+  [data-panel="leveling"] .level-reward-row button { grid-column: auto; }
+}
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition: none !important; scroll-behavior: auto !important; } }

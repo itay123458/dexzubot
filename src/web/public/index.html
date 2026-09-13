@@ -51,6 +51,7 @@
     <div class="workspace">
       <header class="topbar">
         <div><p class="breadcrumb">DexzuBot <span>/</span> <b id="breadcrumb-page">Overview</b></p><h1 id="page-title">Overview</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
+        <div class="leveling-header-control"><label for="leveling-enabled">Enable leveling</label><label class="switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
         <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small>Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
       </header>
 
@@ -103,16 +104,18 @@
         </section>
 
         <section class="page" data-panel="leveling">
-          <div class="feature-heading"><div><p class="eyebrow">COMMUNITY</p><h2>Leveling System</h2><p>Configure XP rewards, progression and level-up announcements.</p></div><label class="switch feature-switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
-          <div id="leveling-summary" class="summary-grid four"></div>
-          <div class="split-grid control-grid" data-dirty-form="leveling">
-            <article class="card control-card"><div class="card-head"><div><p class="eyebrow">XP SETTINGS</p><h2>XP Configuration</h2><p>Control how quickly members progress.</p></div></div><div class="level-fields"><label>Minimum XP<input id="leveling-xp-min" type="number" min="1" max="1000"></label><label>Maximum XP<input id="leveling-xp-max" type="number" min="1" max="1000"></label><label>Cooldown<input id="leveling-cooldown" type="number" min="0" max="3600"><small>seconds</small></label><label>Multiplier<input id="leveling-multiplier" type="number" min="0.1" max="10" step="0.1"><small>XP rate</small></label></div><p id="leveling-error" class="inline-error"></p></article>
-            <article class="card control-card"><div class="card-head"><div><p class="eyebrow">LEVEL-UP ANNOUNCEMENTS</p><h2>Announcement Settings</h2></div><label class="switch"><input id="leveling-announce" type="checkbox"><span></span></label></div><label class="field-label" for="leveling-channel">Destination channel</label><select id="leveling-channel"></select><p class="message-preview"><span>Permanent message</span><code>{user} has leveled up to level {level}!</code></p><div class="level-preview"><span>Preview</span><strong>🎉 ExampleUser reached Level 12!</strong></div></article>
+          <div class="leveling-settings" data-dirty-form="leveling">
+            <div class="leveling-setting-row"><div><h2>XP per message</h2><p>A random amount within this range.</p></div><div class="leveling-range"><label>Minimum<input id="leveling-xp-min" type="number" min="1" max="1000"></label><span aria-hidden="true">–</span><label>Maximum<input id="leveling-xp-max" type="number" min="1" max="1000"></label></div></div>
+            <div class="leveling-setting-row"><div><label for="leveling-cooldown">Message cooldown</label><p>How long a member waits before earning XP again.</p></div><div class="leveling-unit"><input id="leveling-cooldown" type="number" min="0" max="3600"><span>seconds</span></div></div>
+            <div class="leveling-setting-row"><div><label for="leveling-multiplier">XP multiplier</label><p>1× is the normal earning rate.</p></div><div class="leveling-unit"><input id="leveling-multiplier" type="number" min="0.1" max="10" step="0.1"><span>×</span></div></div>
+            <div class="leveling-setting-row"><div><label for="leveling-announce">Level-up announcements</label><p>Post a message when a member reaches a new level.</p></div><label class="switch"><input id="leveling-announce" type="checkbox"><span></span></label></div>
+            <div class="leveling-setting-row leveling-destination"><div><label for="leveling-channel">Announcement channel</label><p>The announcement message is fixed.</p></div><div><select id="leveling-channel"></select><p class="leveling-message-sample"><span>Message preview</span><span><b>@ExampleUser</b> has leveled up to level <b>12</b>!</span></p></div></div>
+            <p id="leveling-error" class="inline-error" role="alert"></p>
           </div>
-          <div class="page-save-row"><span class="dirty-label">● Unsaved changes</span><button id="save-leveling">✓ Save Changes</button></div>
+          <div class="page-save-row"><span class="dirty-label">● Unsaved changes</span><button id="save-leveling">Save settings</button></div>
           <article class="card level-rewards-card">
-            <div class="card-head"><div><p class="eyebrow">ROLE REWARDS</p><h2>Level Roles</h2><p>Automatically give members a role when they reach a configured level.</p></div><span id="level-reward-count" class="status-note">0 configured</span></div>
-            <div class="level-reward-builder"><label>Required level<input id="level-reward-level" type="number" min="1" max="500" placeholder="5"></label><label>Role<select id="level-reward-role"></select></label><button id="add-level-reward" type="button">+ Add Reward</button></div>
+            <div class="card-head"><div><h2>Role rewards</h2><p>Assign a role when a member reaches its required level.</p></div><span id="level-reward-count" class="status-note">0 configured</span></div>
+            <div class="level-reward-builder"><label>Level<input id="level-reward-level" type="number" min="1" max="500" placeholder="5"></label><label>Role<select id="level-reward-role"></select></label><button id="add-level-reward" type="button">Add role</button></div>
             <p id="level-reward-error" class="inline-error"></p>
             <div id="level-reward-list" class="level-reward-list"></div>
             <div class="card-actions"><span>DexzuBot can only assign roles below its highest role.</span><button id="save-level-rewards" type="button">✓ Save Role Rewards</button></div>
