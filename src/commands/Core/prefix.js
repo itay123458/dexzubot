@@ -76,7 +76,7 @@ export default {
         const next = { ...await read(), ...change };
         if (collector.ended || Date.now() >= expiresAt) throw new Error('This panel expired. Open /prefix again.');
         const settings = await savePrefixSettings(client, interaction.guild, next);
-        if (!collector.ended && Date.now() < expiresAt) await message.edit(buildPrefixPanel(settings, session));
+        if (!collector.ended && Date.now() < expiresAt) await interaction.editReply(buildPrefixPanel(settings, session));
         if (response !== component) await response.editReply({ content: 'Prefix saved.' });
       } catch (error) {
         const payload = { content: error.message || 'Could not save prefix settings.', flags: MessageFlags.Ephemeral };
@@ -84,6 +84,6 @@ export default {
         else await response.reply(payload).catch(() => {});
       } finally { busy = false; }
     });
-    collector.on('end', () => { void message.edit({ components: [] }).catch(() => {}); });
+    collector.on('end', () => { void interaction.editReply({ components: [] }).catch(() => {}); });
   },
 };

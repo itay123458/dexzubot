@@ -326,7 +326,7 @@ export default {
           return newRow;
         });
 
-        await replyMessage.edit({ components: disabledComponents }).catch(() => {});
+        await interaction.editReply({ components: disabledComponents }).catch(() => {});
       });
 
       return;

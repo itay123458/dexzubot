@@ -15,6 +15,9 @@ import {
   resetCategoryCommands,
 } from '../../../services/commandAccessService.js';
 import { getGuildConfig } from '../../../services/config/guildConfig.js';
+import prefixCommand from '../prefix.js';
+import { canManagePrefix } from '../../../services/prefixSettingsService.js';
+import { syncGuildCommandRegistration } from '../../../handlers/loaders/commandLoader.js';
 
 export const DASHBOARD_CATEGORY_SELECT = 'cmdaccess_category';
 export const DASHBOARD_COMMAND_SELECT = 'cmdaccess_command';
@@ -24,6 +27,8 @@ export const DASHBOARD_DISABLE_ALL = 'cmdaccess_disable_all';
 export const DASHBOARD_RESET_COMMANDS = 'cmdaccess_reset_commands';
 export const DASHBOARD_REFRESH = 'cmdaccess_refresh';
 export const DASHBOARD_HOME = 'cmdaccess_home';
+export const DASHBOARD_PAGE = 'cmdaccess_page';
+export const DASHBOARD_PREFIX = 'cmdaccess_prefix';
 
 const STATUS = {
   enabled: '🟢',
@@ -135,12 +140,12 @@ export function buildCategoryEmbed(category, guild) {
       ? 'All entries enabled'
       : `${category.disabledCount} of ${category.totalCount} disabled`;
 
-  const commandLines = category.commands.map((command) => {
+  const commandLine = (command) => {
     const enabled = category.enabledCommands.includes(command.name);
     const icon = enabled ? STATUS.enabled : STATUS.disabled;
     const lock = command.protected ? ' 🔒' : '';
     return `${icon} ${formatCommandLabel(command)}${lock}`;
-  });
+  };
 
   const fields = [
     {
@@ -155,14 +160,12 @@ export function buildCategoryEmbed(category, guild) {
     },
   ];
 
-  const chunks = chunkLines(commandLines);
-  chunks.forEach((chunk, index) => {
-    fields.push({
-      name: index === 0 ? '📋 Commands & Subcommands' : '📋 (cont.)',
-      value: chunk,
-      inline: false,
-    });
-  });
+  for (const enabled of [true, false]) {
+    const lines = category.commands.filter(command => category.enabledCommands.includes(command.name) === enabled).map(commandLine);
+    chunkLines(lines.length ? lines : ['None']).forEach((value, index) => fields.push({
+      name: `${enabled ? 'Enabled commands' : 'Disabled commands'}${index ? ' (continued)' : ''}`, value, inline: false,
+    }));
+  }
 
   fields.push({
     name: 'How to Use',
@@ -205,13 +208,16 @@ export function buildOverviewComponents(guildId, snapshot) {
         .setLabel('Refresh')
         .setEmoji('🔄')
         .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(customId(DASHBOARD_PREFIX, guildId)).setLabel('Prefix Settings').setStyle(ButtonStyle.Primary),
     ),
   ];
 }
 
-export function buildCategoryComponents(guildId, category) {
+export function buildCategoryComponents(guildId, category, page = 0) {
   const toggleableCommands = category.commands.filter((command) => !command.protected);
-  const commandOptions = toggleableCommands.slice(0, 25).map((command) => {
+  const pages = Math.max(1, Math.ceil(toggleableCommands.length / 25));
+  page = Math.max(0, Math.min(Number(page) || 0, pages - 1));
+  const commandOptions = toggleableCommands.slice(page * 25, (page + 1) * 25).map((command) => {
     const enabled = category.enabledCommands.includes(command.name);
     const label = command.isSubcommand
       ? command.name.replace(' ', ' · ').slice(0, 100)
@@ -257,17 +263,21 @@ export function buildCategoryComponents(guildId, category) {
     rows.unshift(
       new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-          .setCustomId(customId(DASHBOARD_COMMAND_SELECT, guildId, category.key))
-          .setPlaceholder('Toggle a command or subcommand...')
+          .setCustomId(customId(DASHBOARD_COMMAND_SELECT, guildId, `${category.key}:${page}`))
+          .setPlaceholder(`Toggle a command — page ${page + 1}/${pages}`)
           .addOptions(commandOptions),
       ),
     );
   }
 
+  if (pages > 1) rows.push(new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(customId(DASHBOARD_PAGE, guildId, `${category.key}:${page - 1}`)).setLabel('Previous commands').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+    new ButtonBuilder().setCustomId(customId(DASHBOARD_PAGE, guildId, `${category.key}:${page + 1}`)).setLabel('Next commands').setStyle(ButtonStyle.Secondary).setDisabled(page === pages - 1),
+  ));
   return rows;
 }
 
-export async function buildDashboardView(client, guildId, guild, view = 'overview', categoryKey = null) {
+export async function buildDashboardView(client, guildId, guild, view = 'overview', categoryKey = null, page = 0) {
   const config = await getGuildConfig(client, guildId);
   const snapshot = getCommandAccessSnapshot(client, config);
 
@@ -282,7 +292,7 @@ export async function buildDashboardView(client, guildId, guild, view = 'overvie
 
     return {
       embed: buildCategoryEmbed(category, guild),
-      components: buildCategoryComponents(guildId, category),
+      components: buildCategoryComponents(guildId, category, page),
       categoryKey,
     };
   }
@@ -306,7 +316,18 @@ export async function handleDashboardComponent(interaction, client) {
     });
   }
 
+  if (!canManagePrefix(await interaction.guild.members.fetch({ user: interaction.user.id, force: true }))) {
+    return interaction.reply({ content: 'Manage Server permission is required.', ephemeral: true });
+  }
+  if (action === DASHBOARD_PREFIX) return prefixCommand.execute(interaction, null, client);
+  if (action === DASHBOARD_PAGE) {
+    await interaction.deferUpdate();
+    const view = await buildDashboardView(client, guildId, interaction.guild, 'category', suffix, Number(parts[3]));
+    return interaction.editReply({ embeds: [view.embed], components: view.components });
+  }
+
   if (action === DASHBOARD_COMMAND_SELECT) {
+    await interaction.deferUpdate();
     const categoryKey = suffix;
     const commandName = interaction.values[0];
     const config = await getGuildConfig(client, guildId);
@@ -320,8 +341,9 @@ export async function handleDashboardComponent(interaction, client) {
       await enableCommand(client, guildId, commandName);
     }
 
-    const view = await buildDashboardView(client, guildId, interaction.guild, 'category', categoryKey);
-    return interaction.update({ embeds: [view.embed], components: view.components });
+    await syncGuildCommandRegistration(client, guildId);
+    const view = await buildDashboardView(client, guildId, interaction.guild, 'category', categoryKey, Number(parts[3]));
+    return interaction.editReply({ embeds: [view.embed], components: view.components });
   }
 
   if (action === DASHBOARD_CATEGORY_SELECT) {
@@ -348,7 +370,7 @@ export async function handleDashboardComponent(interaction, client) {
     } else {
       await disableCategory(client, guildId, categoryKey);
     }
-
+    await syncGuildCommandRegistration(client, guildId);
     const view = await buildDashboardView(client, guildId, interaction.guild, 'category', categoryKey);
     return interaction.editReply({ embeds: [view.embed], components: view.components });
   }
@@ -356,12 +378,14 @@ export async function handleDashboardComponent(interaction, client) {
   if (action === DASHBOARD_ENABLE_ALL) {
     await enableCategory(client, guildId, suffix);
     await resetCategoryCommands(client, guildId, suffix);
+    await syncGuildCommandRegistration(client, guildId);
     const view = await buildDashboardView(client, guildId, interaction.guild, 'category', suffix);
     return interaction.editReply({ embeds: [view.embed], components: view.components });
   }
 
   if (action === DASHBOARD_DISABLE_ALL) {
     await disableCategory(client, guildId, suffix);
+    await syncGuildCommandRegistration(client, guildId);
     const view = await buildDashboardView(client, guildId, interaction.guild, 'category', suffix);
     return interaction.editReply({ embeds: [view.embed], components: view.components });
   }
@@ -369,6 +393,7 @@ export async function handleDashboardComponent(interaction, client) {
   if (action === DASHBOARD_RESET_COMMANDS) {
     await enableCategory(client, guildId, suffix);
     await resetCategoryCommands(client, guildId, suffix);
+    await syncGuildCommandRegistration(client, guildId);
     const view = await buildDashboardView(client, guildId, interaction.guild, 'category', suffix);
     return interaction.editReply({ embeds: [view.embed], components: view.components });
   }

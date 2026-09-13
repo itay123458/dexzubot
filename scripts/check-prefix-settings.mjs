@@ -39,11 +39,11 @@ try {
   const handlers = {};
   const edits = [];
   const collector = { ended: false, on: (event, fn) => { handlers[event] = fn; } };
-  const message = { edit: async value => edits.push(value), createMessageComponentCollector: () => collector };
+  const message = { edit: async () => { throw new Error('Ephemeral message needs editReply'); }, createMessageComponentCollector: () => collector };
   const admin = { ...member, permissions: { has: () => true } };
   guild.members = { fetch: async () => admin };
   try {
-    await panel.default.execute({ id: 'test', member: admin, user: { id: member.id }, guildId: guild.id, guild, fetchReply: async () => message }, null, client);
+    await panel.default.execute({ id: 'test', member: admin, user: { id: member.id }, guildId: guild.id, guild, fetchReply: async () => message, editReply: async value => edits.push(value) }, null, client);
     await handlers.collect({ id: 'edit', customId: 'prefix-panel-test-edit', user: { id: member.id }, showModal: async () => {}, awaitModalSubmit: async () => {
       collector.ended = true; handlers.end();
       return { user: { id: member.id }, fields: { getTextInputValue: () => 'expired' }, deferReply: async () => {}, editReply: async () => {}, reply: async () => {}, followUp: async () => {} };
@@ -58,6 +58,7 @@ try {
     guild.channels.cache.clear(); guild.roles.cache.clear();
     await handlers.collect({ customId: 'prefix-panel-test-toggle', user: { id: member.id }, deferUpdate: async () => {}, reply: async () => {} });
     assert.equal(getPrefixSettings(data.get(`guild:${guild.id}:config`)).enabled, false, 'Deleted channel and role must not lock the panel');
+    assert.ok(edits.some(edit => edit.components.length > 0), 'Successful change must refresh the ephemeral prefix panel');
     guild.channels.cache.set('1533088767441637398', { type: 0 });
     guild.roles.cache.set('1533088766821007391', { managed: false });
     await savePrefixSettings(client, guild, input);
