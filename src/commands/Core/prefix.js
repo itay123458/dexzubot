@@ -13,6 +13,7 @@ export function buildPrefixPanel(settings, session) {
     `Prefix: **${settings.prefix}** · Commands: **${settings.enabled ? 'Enabled' : 'Disabled'}**`,
     'Choose channels and roles below. Empty selections allow all channels or everyone.',
     'These limits never grant staff permissions. Slash commands are unaffected.',
+    'Most prefix commands require staff access. Economy, help, ping and info keep their existing permissions.',
     `Help: **${settings.prefix}help** · Settings: **${settings.prefix}config** or **/prefix**`,
     'Changes save immediately and sync with the private website. Only you can use this panel; it expires after 10 minutes.',
   ].join('\n\n') })], allowedMentions: { parse: [] }, components: [

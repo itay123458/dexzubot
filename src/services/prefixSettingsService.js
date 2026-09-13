@@ -2,6 +2,7 @@ import { ChannelType, PermissionFlagsBits } from 'discord.js';
 import { z } from 'zod';
 import { getCommandPrefix, isBotOwner } from '../config/bot.js';
 import { patchGuildConfig } from './config/guildConfig.js';
+import { memberHasConfiguredModeratorRole } from '../utils/permissionGuard.js';
 
 const ids = z.array(z.string().regex(/^\d{17,20}$/)).max(25);
 const settingsSchema = z.object({
@@ -16,6 +17,14 @@ export function getPrefixSettings(config) {
 
 export function canManagePrefix(member) {
   return Boolean(member && (isBotOwner(member.id) || member.guild?.ownerId === member.id || member.permissions?.has(PermissionFlagsBits.ManageGuild)));
+}
+
+// This extra prefix-only gate never replaces a command's own permission checks.
+export function canUsePrefixCommand(command, member, config) {
+  if (command?.category?.toLowerCase() === 'economy' || ['help', 'ping', 'info'].includes(command?.data?.name)) return true;
+  if (canManagePrefix(member) || member?.permissions?.has(PermissionFlagsBits.Administrator)) return true;
+  if (memberHasConfiguredModeratorRole(member, config)) return true;
+  return Boolean(config?.commandAccessRoleIds?.some(id => member?.roles?.cache?.has(id)));
 }
 
 export function prefixAllowed(config, member, channelId) {

@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { listPrefixHelp } from '../src/services/prefixHelpService.js';
+import { executePrefixCommand } from '../src/utils/messageAdapter.js';
+try {
+  const command = (name, category = 'Core', staff = false) => ({ category, data: new SlashCommandBuilder().setName(name).setDescription(name).setDefaultMemberPermissions(staff ? PermissionFlagsBits.ManageGuild : null), execute() {} });
+  const commands = [command('help'), command('ping'), command('info'), command('uptime'), command('balance', 'Economy'), command('work', 'Economy'), command('economy', 'Economy', true)];
+  const client = { commands: new Map(commands.map(c => [c.data.name, c])) };
+  const member = { id: '1533088766821007392', permissions: { has: () => false }, roles: { cache: new Map() } };
+  const names = (config = {}, actor = member, mode = 'prefix') => listPrefixHelp(client, config, actor, 'channel', mode).map(c => c.name);
+  assert.deepEqual(names(), ['help', 'info', 'ping', 'balance', 'work'], 'Members see public utilities and economy, not uptime or economy administration');
+  assert.ok(names({}, member, 'slash').includes('uptime'), 'Slash permissions must remain unchanged');
+  const roleId = '1533088766821007393';
+  const roleMember = { ...member, roles: { cache: new Map([[roleId, {}]]) } };
+  assert.ok(names({ commandAccessRoleIds: [roleId] }, roleMember).includes('uptime'), 'Configured staff role grants prefix access');
+  assert.ok(names({ modRole: roleId }, roleMember).includes('uptime'), 'Configured moderator role grants prefix access');
+  assert.ok(!names({ prefixCommands: { allowedRoleIds: [roleId] } }, roleMember).includes('uptime'), 'Allowed prefix role must not become a staff role');
+  assert.ok(names({}, { ...member, permissions: { has: permission => permission === PermissionFlagsBits.ManageGuild } }).includes('uptime'));
+  assert.ok(!names({ disabledCategories: { economy: true } }).includes('balance'), 'Economy exemption must not bypass disabled categories');
+  assert.ok(!names({ economy: { channelId: 'different' } }).includes('balance'), 'Economy channel restriction stays enforced');
+  const replies = [];
+  const message = { id: '1533088766821007394', author: { id: member.id }, member, guild: { id: '1533088766821007390' }, channel: { send: async payload => { replies.push(payload); return {}; } }, client, createdTimestamp: Date.now(), reply: async payload => { replies.push(payload); return {}; } };
+  let runs = 0;
+  const uptime = { ...command('uptime'), execute: async () => { runs++; } };
+  await executePrefixCommand(uptime, message, [], client, '.', {});
+  assert.equal(runs, 0, 'Prefix execution must block non-staff, not just hide help');
+  await executePrefixCommand({ ...command('balance', 'Economy'), execute: async () => { runs++; } }, message, [], client, '.', {});
+  assert.equal(runs, 1, 'Ordinary member can still execute economy commands');
+  await executePrefixCommand(uptime, { ...message, member: roleMember }, [], client, '.', { modRole: roleId });
+  assert.equal(runs, 2, 'Configured moderator can execute staff-only prefix commands');
+  console.log('PASS: staff-only prefix help with public economy and unchanged slash access');
+} catch (error) { console.error(error); process.exitCode = 1; }

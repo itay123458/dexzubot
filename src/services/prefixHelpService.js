@@ -7,7 +7,7 @@ import { isBotOwner, isCommandCategoryEnabled } from '../config/bot.js';
 import { supportsPrefixExecution } from '../utils/messageAdapter.js';
 import { getCommandDefaultPermissions, memberMeetsCommandPermissions } from '../utils/permissionGuard.js';
 import { getGuildConfig } from './config/guildConfig.js';
-import { getPrefixSettings, prefixAllowed, canManagePrefix } from './prefixSettingsService.js';
+import { getPrefixSettings, prefixAllowed, canManagePrefix, canUsePrefixCommand } from './prefixSettingsService.js';
 import { createEmbed } from '../utils/embeds.js';
 
 export function listPrefixHelp(client, config, member, channelId, mode = 'prefix') {
@@ -17,6 +17,7 @@ export function listPrefixHelp(client, config, member, channelId, mode = 'prefix
     for (const entry of category.commands) {
       const [base, ...args] = entry.name.split(' ');
       const command = client.commands.get(base);
+      if (mode === 'prefix' && !canUsePrefixCommand(command, member, config)) continue;
       if (mode === 'prefix' && (!supportsPrefixExecution(command) || getPrefixRestriction(command, args, resolveSubcommandAlias).blocked)) continue;
       if (!entry.isSubcommand && command.data.toJSON().options?.some(option => [1, 2].includes(option.type))) continue;
       if (!isCommandEnabledInConfig(config, entry.name, category.folder)) continue;
