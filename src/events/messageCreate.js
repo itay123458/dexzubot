@@ -12,6 +12,7 @@ import { getCommandPrefix, getBotMessage, isBotOwner, isCommandCategoryEnabled, 
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
+import { prefixAllowed, canManagePrefix } from '../services/prefixSettingsService.js';
 import { handleAutoModeration } from '../services/autoModerationService.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import {
@@ -81,6 +82,9 @@ async function handlePrefixCommand(message, client) {
       logger.warn(`Command not found: ${resolvedCommandName}`);
       return; 
     }
+
+    if (!(resolvedCommandName === 'prefix' && canManagePrefix(message.member)) && !prefixAllowed(guildConfig, message.member, message.channel.id)) return;
+    if (command.ownerOnly && !isBotOwner(message.author.id)) return;
 
     if (isMaintenanceMode() && !isBotOwner(message.author.id)) {
       await message.channel.send({

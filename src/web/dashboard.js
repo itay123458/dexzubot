@@ -23,6 +23,7 @@ import { getWelcomeConfig, saveWelcomeConfig } from '../utils/database.js';
 import { createConfigSnapshot, exportGuildConfiguration, getOperationsHealth, inspectGuildOperations, listConfigSnapshots, restoreConfigSnapshot } from '../services/dashboardOperationsService.js';
 import { listTimedSoftbans, releaseTimedSoftban } from '../services/moderation/timedSoftbanService.js';
 import { getCountingGameConfig, setCountingEditAction } from '../services/countingGameService.js';
+import { getPrefixSettings, savePrefixSettings } from '../services/prefixSettingsService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, 'public');
@@ -136,6 +137,7 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
     channels,
     roles: manageableRoles,
     accessRoles,
+    prefixSettings: getPrefixSettings(config),
     commandAccessRoleIds: Array.isArray(config.commandAccessRoleIds) ? config.commandAccessRoleIds : [],
     operations,
     counting: {
@@ -267,6 +269,19 @@ export function registerDashboard(app, client) {
       softbans,
       snapshots: snapshots.map(({ id, createdAt, createdBy }) => ({ id, createdAt, createdBy })),
     }, counting));
+  });
+
+  router.get('/prefix', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
+    return res.json({ settings: getPrefixSettings(await getGuildConfig(client, guild.id)) });
+  });
+
+  router.post('/prefix', async (req, res) => {
+    const guild = getDashboardGuild(client);
+    if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
+    try { return res.json({ settings: await savePrefixSettings(client, guild, req.body) }); }
+    catch (error) { return res.status(400).json({ error: error.message || 'Could not save prefix settings.' }); }
   });
 
   router.get('/activity', async (req, res) => {

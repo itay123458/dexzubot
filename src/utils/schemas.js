@@ -62,6 +62,11 @@ const VerificationConfigSchema = z
 export const GuildConfigSchema = z
   .object({
     prefix: z.string().optional(),
+    prefixCommands: z.object({
+      enabled: z.boolean().default(true),
+      allowedChannelIds: z.array(z.string().regex(/^\d{17,20}$/)).max(25).default([]),
+      allowedRoleIds: z.array(z.string().regex(/^\d{17,20}$/)).max(25).default([]),
+    }).default({ enabled: true, allowedChannelIds: [], allowedRoleIds: [] }),
     modRole: z.string().nullable().optional(),
     adminRole: z.string().nullable().optional(),
     logChannelId: z.string().nullable().optional(),

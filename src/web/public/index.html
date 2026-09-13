@@ -166,6 +166,22 @@
         <section class="page" data-panel="operations">
           <div class="feature-heading"><div><p class="eyebrow">RELIABILITY CENTER</p><h2>Operations</h2><p>Health checks, access roles, backups, and active timed punishments.</p></div><button id="run-health-check" class="secondary-button">Run health check</button></div>
           <div id="operations-summary" class="summary-grid four"></div>
+          <article class="card prefix-settings-card">
+            <div class="card-head"><div><p class="eyebrow">TEXT COMMANDS</p><h2>Prefix Commands</h2><p>Shared with the Discord /prefix dashboard. Slash commands and staff permissions are unchanged.</p></div></div>
+            <form id="prefix-settings-form">
+              <fieldset id="prefix-settings-fields">
+                <label class="check-row"><input id="prefix-enabled" type="checkbox"><span>Enable prefix commands</span></label>
+                <label class="field-label" for="command-prefix">Command prefix</label>
+                <input id="command-prefix" type="text" required minlength="1" maxlength="10" autocomplete="off" spellcheck="false" aria-describedby="prefix-help-text">
+                <p id="prefix-help-text">Use 1–10 characters without spaces or quotes. Open help with !help and settings with !config (using your chosen prefix).</p>
+                <div class="prefix-access-grid">
+                  <div><h3>Allowed channels</h3><p>Select up to 25. None selected means all text channels.</p><div id="prefix-channel-list" class="check-list"></div></div>
+                  <div><h3>Allowed roles</h3><p>Select up to 25. None selected means everyone. This does not grant staff access.</p><div id="prefix-role-list" class="check-list"></div></div>
+                </div>
+                <div class="card-actions"><span>Authorized staff can always reopen the settings panel.</span><button id="save-prefix-settings" type="submit">Save prefix settings</button></div>
+              </fieldset>
+            </form>
+          </article>
           <div class="operations-grid">
             <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">PERMISSIONS & HEALTH</p><h2>Live Diagnostics</h2><p>DexzuBot checks required Discord and database access every five minutes.</p></div></div><div id="operations-health" class="operations-list"></div></article>
             <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">COMMAND ACCESS</p><h2>Staff Roles</h2><p>Members with any selected role can use staff-only commands.</p></div></div><div id="access-role-list" class="operations-list scroll-list"></div><div class="card-actions"><span id="access-role-count">0 roles selected</span><button id="save-access-roles">✓ Save Roles</button></div></article>
@@ -178,6 +194,7 @@
   </div>
   <div id="toasts" class="toast-stack" aria-live="polite"></div>
   <script src="/dashboard/app.js" defer></script>
+  <script src="/dashboard/prefix-settings.js" defer></script>
   <script src="/dashboard/workspace.js" defer></script>
 </body>
 </html>

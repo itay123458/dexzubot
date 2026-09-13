@@ -174,6 +174,12 @@ main { width: 100%; max-width: var(--width); margin: var(--space-8) auto 0; }
 .preview-embed > p,.preview-embed > small { font-size: 0.8125rem; }
 .preview-embed > strong,.notification-item strong { font-size: 0.875rem; }
 /* Operations has a full-width diagnostics ledger and contextual tools. */
+.prefix-settings-card { margin-bottom: var(--space-6); }
+.prefix-settings-card fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.prefix-settings-card .field-label { display: block; margin-top: var(--space-4); }
+.prefix-access-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: var(--space-6); }
+.prefix-access-grid h3 { font-size: 1rem; margin-bottom: var(--space-2); }
+@media (max-width: 760px) { .prefix-access-grid { grid-template-columns: 1fr; } }
 .operations-grid { grid-template-columns: minmax(0,1.25fr) minmax(0,1fr); gap: var(--space-6); }
 .operations-card:first-child { grid-column: 1 / -1; border: 0; border-block: 1px solid var(--line); border-radius: 0; padding: var(--space-6) 0; background: none; }
 .operation-row { padding: 14px 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; }

@@ -420,6 +420,7 @@ export default {
             interaction.customId.startsWith('app_review_')
             || interaction.customId.startsWith('jtc_')
             || interaction.customId.startsWith('config_wizard_modal:')
+            || interaction.customId.startsWith('prefix-panel-')
             || interaction.customId.startsWith('log_dash_channel_modal:')
             || interaction.customId.startsWith('log_dash_filter_modal:')
           ) {

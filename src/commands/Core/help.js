@@ -8,6 +8,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
+import { openPrefixHelp } from '../../services/prefixHelpService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -100,7 +101,7 @@ export async function createInitialHelpMenu(client) {
 }
 
 export default {
-    slashOnly: true,
+    prefixExecute: openPrefixHelp,
     data: new SlashCommandBuilder()
         .setName("help")
         .setDescription("Displays the help menu with all available commands"),

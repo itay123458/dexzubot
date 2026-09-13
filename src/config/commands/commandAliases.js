@@ -22,6 +22,7 @@ export const commandAliases = {
 
     'ping': 'ping',
     'help': 'help',
+    'config': 'prefix',
     'h': 'help',
     'info': 'info',
 

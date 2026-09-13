@@ -189,6 +189,7 @@ function showPage(pageName) {
   if (currentPage && currentPage !== selected && dirtyPages.has(currentPage)) {
     if (!confirm('Discard unsaved changes?')) return;
     dirtyPages.delete(currentPage);
+    window.dispatchEvent(new CustomEvent('dexzu-discard', { detail: currentPage }));
     if (state) render(state);
   }
   document.querySelectorAll('[data-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === selectedPanel));
@@ -204,7 +205,7 @@ function showPage(pageName) {
 }
 
 function setDirty(page, dirty = true) {
-  if (!['safety', 'greetings', 'leveling', 'logging'].includes(page)) return;
+  if (!['safety', 'greetings', 'leveling', 'logging', 'operations'].includes(page)) return;
   if (dirty) dirtyPages.add(page); else dirtyPages.delete(page);
   document.querySelector(`[data-panel="${page}"]`)?.classList.toggle('is-dirty', dirty);
 }
@@ -341,6 +342,7 @@ $('view-logs').onclick = () => { activityExpanded = !activityExpanded; renderRec
 
 function render(current) {
   state = current;
+  window.dispatchEvent(new CustomEvent('dexzu-state', { detail: current }));
   $('bot-avatar').src = current.bot.avatar;
   $('server-icon').src = current.server.icon || current.bot.avatar;
   $('server-name').textContent = current.server.name;
