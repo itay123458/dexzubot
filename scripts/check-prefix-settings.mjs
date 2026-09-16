@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { Collection } from 'discord.js';
 import { GuildConfigSchema } from '../src/utils/schemas.js';
 
 assert.equal(GuildConfigSchema.safeParse({ prefixCommands: { enabled: 'false' } }).success, false, 'Reject a string toggle instead of silently accepting it');
@@ -80,7 +81,7 @@ try {
   console.log('PASS: permission-aware prefix help');
   const { default: express } = await import('express');
   const { registerDashboard } = await import('../src/web/dashboard.js');
-  client.guilds = { cache: { get: () => guild, first: () => guild } };
+  client.guilds = { cache: new Collection([[guild.id, guild]]) };
   const app = express(); registerDashboard(app, client);
   const server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));

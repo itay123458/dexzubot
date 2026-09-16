@@ -69,7 +69,13 @@ Mark experimental commands `betaOnly: true`; registration, execution, and help
 exclude them outside the beta guild. Use `isBetaGuild(guildId)` from
 `src/config/beta.js` to gate experimental behavior inside an existing feature.
 Shared backend changes still run in the same process; this is not deployment
-or crash isolation. Website beta previews need a separate view/feature gate.
+or crash isolation. The private dashboard has Main and Beta workspaces:
+`/dashboard/` manages `GUILD_ID`, while `/dashboard/?workspace=beta` manages
+`BETA_GUILD_ID`. Every API request, activity feed, and configuration download
+uses the selected workspace. Missing configured servers fail closed. Switching
+loads a fresh page and warns about unsaved edits; separate tabs keep their own
+server selection. Experimental website features still need an explicit beta
+view/feature gate; the shared dashboard code is not a separate deployment.
 
 The user-approved test server is `1486680755869323388`. Its repeatable layout
 setup is `scripts/setup-beta-server.mjs` (preview by default, `--apply` to write).

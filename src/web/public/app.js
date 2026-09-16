@@ -1,4 +1,5 @@
 let state;
+let pendingDashboardWrites = 0;
 let youtubeLatest;
 let youtubeLatestLoaded = false;
 const dirtyPages = new Set();
@@ -70,17 +71,20 @@ const captureRequestControl = event => {
 document.addEventListener('click', captureRequestControl, true);
 document.addEventListener('submit', captureRequestControl, true);
 const post = async (path, body) => {
+  if (!state) throw new Error('Wait for this workspace to load before making changes.');
+  pendingDashboardWrites += 1;
   const control = requestControl;
   const wasDisabled = control?.disabled;
   if (control) { control.disabled = true; control.setAttribute('aria-busy', 'true'); }
   try {
-  const response = await fetch(`/dashboard/api/${path}`, {
+  const response = await fetch(dashboardApiUrl(path), {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Update failed');
   return data;
   } finally {
+    pendingDashboardWrites -= 1;
     if (control) { control.disabled = wasDisabled; control.removeAttribute('aria-busy'); }
   }
 };
@@ -383,7 +387,7 @@ function renderOperations() {
 async function refreshRecentActivity() {
   if (!state) return;
   try {
-    const response = await fetch('/dashboard/api/activity', { cache: 'no-store' });
+    const response = await fetch(dashboardApiUrl('activity'), { cache: 'no-store' });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Activity unavailable');
     const previousTopId = state.recentActivity?.[0]?.id;
@@ -657,7 +661,7 @@ async function loadYouTubeLatest() {
   if (youtubeLatestLoaded) return;
   youtubeLatestLoaded = true;
   try {
-    const response = await fetch('/dashboard/api/youtube/latest', { cache: 'no-store' });
+    const response = await fetch(dashboardApiUrl('youtube/latest'), { cache: 'no-store' });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Latest upload unavailable');
     youtubeLatest = data.video;
@@ -668,9 +672,10 @@ async function loadYouTubeLatest() {
 }
 
 async function load() {
-  const response = await fetch('/dashboard/api/state', { cache: 'no-store' });
+  const response = await fetch(dashboardApiUrl('state'), { cache: 'no-store' });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Could not load dashboard');
+  if (data.workspace?.key !== dashboardWorkspace) throw new Error('The selected workspace could not be verified. Reload before making changes.');
   render(data);
 }
 
@@ -794,4 +799,7 @@ window.addEventListener('pageshow', startActivityPolling);
 window.addEventListener('resize', updateNavIndicator, { passive: true });
 document.querySelector('.sidebar')?.addEventListener('scroll', updateNavIndicator, { passive: true });
 
-window.addEventListener('beforeunload', event => { if (!dirtyPages.size) return; event.preventDefault(); event.returnValue = ''; });
+window.addEventListener('beforeunload', event => {
+  if (!dirtyPages.size && !pendingDashboardWrites && !document.querySelector('.youtube-config.dirty')) return;
+  event.preventDefault(); event.returnValue = '';
+});

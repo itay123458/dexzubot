@@ -53,8 +53,15 @@
       <header class="topbar">
         <div><p class="breadcrumb">DexzuBot <span>/</span> <b id="breadcrumb-page">Overview</b></p><h1 id="page-title">Good to see you.</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
         <div class="leveling-header-control"><label for="leveling-enabled">Enable leveling</label><label class="switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
-        <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small>Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
+        <div class="workspace-context">
+          <nav class="workspace-switch" aria-label="Server workspace">
+            <a href="/dashboard/" data-workspace="main">Main</a>
+            <a href="/dashboard/?workspace=beta" data-workspace="beta">Beta</a>
+          </nav>
+          <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small id="workspace-label">Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
+        </div>
       </header>
+      <aside id="workspace-notice" class="workspace-notice" hidden><strong>Beta workspace</strong><span>Changes here apply to your beta server. Bot status is shared with Main.</span></aside>
 
       <main id="dashboard-main" tabindex="-1">
         <section class="page active" data-panel="overview">
@@ -194,7 +201,7 @@
             <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">PERMISSIONS & HEALTH</p><h2>Live Diagnostics</h2><p>DexzuBot checks required Discord and database access every five minutes.</p></div></div><div id="operations-health" class="operations-list"></div></article>
             <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">COMMAND ACCESS</p><h2>Staff Roles</h2><p>Members with any selected role can use staff-only commands.</p></div></div><div id="access-role-list" class="operations-list scroll-list"></div><div class="card-actions"><span id="access-role-count">0 roles selected</span><button id="save-access-roles">✓ Save Roles</button></div></article>
             <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">TIMED PUNISHMENTS</p><h2>Active Softbans</h2><p>Review schedules restored automatically after a restart.</p></div></div><div id="timed-softbans" class="operations-list"></div></article>
-            <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">BACKUP & RECOVERY</p><h2>Configuration Snapshots</h2><p>Store a server configuration checkpoint or download a portable copy.</p></div></div><div id="config-snapshots" class="operations-list"></div><div class="card-actions"><a class="secondary-button button-link" href="/dashboard/api/operations/export" download>Download config</a><button id="create-snapshot">Create snapshot</button></div></article>
+            <article class="card operations-card"><div class="card-head"><div><p class="eyebrow">BACKUP & RECOVERY</p><h2>Configuration Snapshots</h2><p>Store a server configuration checkpoint or download a portable copy.</p></div></div><div id="config-snapshots" class="operations-list"></div><div class="card-actions"><a class="secondary-button button-link" id="config-export" href="/dashboard/api/operations/export" download>Download config</a><button id="create-snapshot">Create snapshot</button></div></article>
           </div>
         </section>
       </main>
@@ -208,6 +215,7 @@
   <div id="toasts" class="toast-stack" aria-live="polite"></div>
   <link rel="stylesheet" href="/dashboard/motion.css">
   <script src="/dashboard/motion.js" defer></script>
+  <script src="/dashboard/dashboard-context.js" defer></script>
   <script src="/dashboard/app.js" defer></script>
   <script src="/dashboard/prefix-settings.js" defer></script>
   <script src="/dashboard/workspace.js" defer></script>

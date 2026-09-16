@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { ChannelType, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getBotOwners } from '../config/bot.js';
+import { getBetaGuildId, isBetaGuild } from '../config/beta.js';
 import { isSlashCommandCategoryEnabled } from '../config/commands/slashCommandCategories.js';
 import {
   disableCategory,
@@ -69,9 +70,13 @@ const DASHBOARD_LOGGING_EVENTS = [
   ['counting.failure', 'Broken counting streaks'],
 ];
 
-function getDashboardGuild(client) {
-  const configuredGuild = process.env.GUILD_ID && client.guilds.cache.get(process.env.GUILD_ID);
-  return configuredGuild || client.guilds.cache.first() || null;
+function getDashboardGuild(client, workspace = 'main') {
+  const betaId = getBetaGuildId();
+  const mainId = process.env.GUILD_ID?.trim();
+  if (betaId && betaId === mainId) return null;
+  if (workspace === 'beta') return betaId ? client.guilds.cache.get(betaId) || null : null;
+  if (mainId) return client.guilds.cache.get(mainId) || null;
+  return client.guilds.cache.find(guild => guild.id !== betaId) || null;
 }
 
 function sameOrigin(req) {
@@ -94,7 +99,7 @@ function channelSendError(guild, channel, { embeds = false } = {}) {
 }
 
 function publicConfigState(client, guild, config, welcomeConfig, recentActivity = [], youtubeStatus = {}, operations = {}, counting = {}) {
-  const snapshot = getCommandAccessSnapshot(client, config);
+  const snapshot = getCommandAccessSnapshot(client, config, guild.id);
   const channels = guild.channels.cache
     .filter(channel => channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement)
     .map(channel => ({ id: channel.id, name: channel.name }))
@@ -119,6 +124,10 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
     .map(role => ({ id: role.id, name: role.name, color: role.hexColor }));
 
   return {
+    workspace: {
+      key: isBetaGuild(guild.id) ? 'beta' : 'main',
+      available: ['main', 'beta'].filter(key => getDashboardGuild(client, key)),
+    },
     bot: {
       name: client.user.username,
       avatar: client.user.displayAvatarURL({ size: 256 }),
@@ -240,10 +249,21 @@ export function registerDashboard(app, client) {
     next();
   });
   router.use((req, res, next) => {
+    const workspace = req.query.workspace ?? 'main';
+    if (workspace !== 'main' && workspace !== 'beta') {
+      return res.status(400).json({ error: 'Choose the Main or Beta workspace.' });
+    }
+    req.dashboardGuild = getDashboardGuild(client, workspace);
+    if (!req.dashboardGuild) {
+      return res.status(503).json({ error: `The ${workspace === 'beta' ? 'Beta' : 'Main'} server is unavailable. No changes were made.` });
+    }
+    next();
+  });
+  router.use((req, res, next) => {
     if (req.method === 'POST') {
       res.on('finish', () => {
         if (res.statusCode < 200 || res.statusCode >= 300) return;
-        const guild = getDashboardGuild(client);
+        const guild = req.dashboardGuild;
         if (!guild) return;
         void recordRecentActivity(client, guild.id, 'dashboard.config', {
           title: 'Dashboard action completed',
@@ -255,7 +275,7 @@ export function registerDashboard(app, client) {
   });
 
   router.get('/state', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
     const [config, welcomeConfig, recentActivity, youtubeStatus, health, softbans, snapshots, counting] = await Promise.all([
       getGuildConfig(client, guild.id),
@@ -275,20 +295,20 @@ export function registerDashboard(app, client) {
   });
 
   router.get('/prefix', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
     return res.json({ settings: getPrefixSettings(await getGuildConfig(client, guild.id)) });
   });
 
   router.post('/prefix', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
     try { return res.json({ settings: await savePrefixSettings(client, guild, req.body) }); }
     catch (error) { return res.status(400).json({ error: error.message || 'Could not save prefix settings.' }); }
   });
 
   router.get('/activity', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild) return res.status(503).json({ error: 'The bot is not connected to a server.' });
     return res.json({ activity: await getRecentActivity(client, guild.id) });
   });
@@ -303,7 +323,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/category', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const { category, enabled } = req.body || {};
     if (!guild || typeof category !== 'string' || typeof enabled !== 'boolean') {
       return res.status(400).json({ error: 'Invalid category update.' });
@@ -319,7 +339,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/command', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const { command, enabled } = req.body || {};
     if (!guild || typeof command !== 'string' || typeof enabled !== 'boolean') {
       return res.status(400).json({ error: 'Invalid command update.' });
@@ -335,7 +355,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/counting/edit-action', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const action = req.body?.action;
     if (!guild || !['continue', 'reset'].includes(action)) return res.status(400).json({ error: 'Choose a valid edited message action.' });
     const counting = await setCountingEditAction(client, guild.id, action);
@@ -347,7 +367,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/economy/channel', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const channelId = String(req.body?.channelId || '');
     const channel = guild?.channels.cache.get(channelId);
     if (!guild || !channel?.isTextBased?.()) return res.status(400).json({ error: 'Choose a valid economy text channel.' });
@@ -363,7 +383,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/anti-promo', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const { enabled, allowedChannelIds } = req.body || {};
     if (!guild || typeof enabled !== 'boolean' || !Array.isArray(allowedChannelIds)) {
       return res.status(400).json({ error: 'Invalid anti-promo settings.' });
@@ -378,7 +398,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/anti-ping', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const requestedIds = Array.isArray(req.body?.protectedUserIds) ? req.body.protectedUserIds : [];
     if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
     const ownerIds = new Set(getBotOwners());
@@ -390,7 +410,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/safety/advanced', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const { antiSpam, spamMaxMessages, spamIntervalSeconds, antiMassMentions, maxMentions } = req.body || {};
     if (!guild || typeof antiSpam !== 'boolean' || typeof antiMassMentions !== 'boolean' ||
       !Number.isInteger(spamMaxMessages) || spamMaxMessages < 3 || spamMaxMessages > 10 ||
@@ -403,7 +423,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/youtube', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const { enabled, channelId } = req.body || {};
     const channel = guild?.channels.cache.get(channelId);
     if (!guild || typeof enabled !== 'boolean' || (enabled && !channel?.isTextBased?.())) {
@@ -424,7 +444,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/youtube/test', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const channelId = req.body?.channelId;
     const channel = guild?.channels.cache.get(channelId);
     if (!guild || !channel?.isTextBased?.()) {
@@ -436,7 +456,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/youtube/check', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
     const status = await runYouTubeAlertCheck(client, guild);
     await recordRecentActivity(client, guild.id, 'dashboard.youtube', { title: 'YouTube feed checked manually', description: status.lastError || 'Feed and delivery ledger are healthy.' });
@@ -444,13 +464,13 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/youtube/retry', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
     return res.json({ ok: true, status: await retryFailedYouTubeAlerts(client, guild) });
   });
 
   router.post('/logging', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const { enabled, moderationChannelId, serverChannelId, enabledEventTypes } = req.body || {};
     const moderationChannel = guild?.channels.cache.get(moderationChannelId);
     const serverChannel = guild?.channels.cache.get(serverChannelId);
@@ -493,7 +513,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/logging/test', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const destination = req.body?.destination;
     const config = guild ? await getGuildConfig(client, guild.id) : null;
     const channelId = destination === 'moderation' ? config?.logging?.channels?.moderation : destination === 'server' ? config?.logging?.channels?.server : null;
@@ -514,13 +534,13 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/operations/health', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
     return res.json({ ok: true, health: await inspectGuildOperations(client, guild) });
   });
 
   router.post('/operations/snapshot', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
     const snapshot = await createConfigSnapshot(client, guild.id, req.dashboardUserId);
     await recordRecentActivity(client, guild.id, 'dashboard.backup', { title: 'Configuration snapshot created', description: `Snapshot ${snapshot.id} is stored in the persistent database.` });
@@ -528,7 +548,7 @@ export function registerDashboard(app, client) {
   });
 
   router.get('/operations/export', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild) return res.status(503).json({ error: 'Server unavailable.' });
     const exported = await exportGuildConfiguration(client, guild.id);
     res.set('Content-Disposition', `attachment; filename="dexzubot-${guild.id}-config.json"`);
@@ -536,7 +556,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/operations/snapshot/restore', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const snapshotId = String(req.body?.snapshotId || '');
     if (!guild || req.body?.confirm !== guild.name || !snapshotId) return res.status(400).json({ error: 'Type the exact server name to restore this snapshot.' });
     const restored = await restoreConfigSnapshot(client, guild.id, snapshotId);
@@ -546,7 +566,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/operations/softban/release', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const userId = String(req.body?.userId || '');
     if (!guild || !/^\d{17,20}$/.test(userId)) return res.status(400).json({ error: 'Choose a valid active timed softban.' });
     await releaseTimedSoftban(client, guild.id, userId);
@@ -555,7 +575,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/operations/access-roles', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const requested = Array.isArray(req.body?.roleIds) ? [...new Set(req.body.roleIds.map(String))] : null;
     if (!guild || !requested || requested.length > 10) return res.status(400).json({ error: 'Choose up to 10 valid command access roles.' });
     const roleIds = requested.filter(id => { const role = guild.roles.cache.get(id); return role && !role.managed && role.id !== guild.id; });
@@ -567,7 +587,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/leveling', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const { enabled, announceLevelUp, channelId, xpMin, xpMax, cooldown, multiplier } = req.body || {};
     const channel = guild?.channels.cache.get(channelId);
     const min = Number(xpMin);
@@ -607,7 +627,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/leveling/reset', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     if (!guild || req.body?.confirm !== guild.name) {
       return res.status(400).json({ error: 'Type the exact server name to confirm the XP reset.' });
     }
@@ -616,7 +636,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/leveling/rewards', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const requested = req.body?.roleRewards;
     if (!guild || !Array.isArray(requested) || requested.length > 25) {
       return res.status(400).json({ error: 'Choose up to 25 valid level role rewards.' });
@@ -642,7 +662,7 @@ export function registerDashboard(app, client) {
   });
 
   router.post('/greetings', async (req, res) => {
-    const guild = getDashboardGuild(client);
+    const guild = req.dashboardGuild;
     const { cardEnabled, welcomeEnabled, welcomeChannelId, welcomeMessage, goodbyeEnabled, goodbyeChannelId, goodbyeMessage } = req.body || {};
     const welcomeChannel = guild?.channels.cache.get(welcomeChannelId);
     const goodbyeChannel = guild?.channels.cache.get(goodbyeChannelId);

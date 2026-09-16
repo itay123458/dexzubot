@@ -35,7 +35,7 @@
   const refreshPrefix = async () => {
     if (dirty || document.hidden || !state || !document.querySelector('[data-panel="operations"]').classList.contains('active')) return;
     try {
-      const response = await fetch('/dashboard/api/prefix', { cache: 'no-store' });
+      const response = await fetch(dashboardApiUrl('prefix'), { cache: 'no-store' });
       if (!response.ok) return;
       const result = await response.json();
       if (dirty) return;
