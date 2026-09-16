@@ -2,7 +2,7 @@
 
 import { mapArgumentsToOptions } from './prefixParser.js';
 import { createEmbed } from './embeds.js';
-import { handleInteractionError } from './errorHandler.js';
+import { handleInteractionError, TitanBotError, ErrorTypes } from './errorHandler.js';
 import { logger } from './logger.js';
 import { InteractionHelper } from './interactionHelper.js';
 import { SLASH_ONLY_COMMANDS } from '../config/commands/prefixRestrictions.js';
@@ -68,6 +68,7 @@ export function createMockInteraction(message, commandData, args) {
     channel: message.channel,
     guild: message.guild,
     guildId: message.guild?.id,
+    inGuild: () => Boolean(message.guild?.id),
 
     commandName: commandData?.name || null,
     commandId: message.id,
@@ -111,7 +112,18 @@ export function createMockInteraction(message, commandData, args) {
         const mentionMatch = channelId.match(/<#(\d+)>/);
         const id = mentionMatch ? mentionMatch[1] : channelId;
 
-        return message.guild.channels.fetch(id).catch(() => null);
+        // Slash option getters are synchronous. Returning a Promise here breaks
+        // commands that immediately use the selected channel (including gcreate).
+        const channel = message.guild.channels.cache.get(id);
+        if (!channel) {
+          throw new TitanBotError(
+            'Prefix channel option could not be resolved',
+            ErrorTypes.VALIDATION,
+            'That channel is not available in this server. Mention a valid channel and try again.',
+            { channelId: id, guildId: message.guild.id },
+          );
+        }
+        return channel;
       },
       getRole: (name) => {
         const roleId = options.getString(name);
