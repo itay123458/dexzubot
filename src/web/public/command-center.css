@@ -60,6 +60,25 @@ body button.control-search { display:flex; align-items:center; gap:12px; width:m
 .nav-item.active::after { content:""; position:absolute; width:4px; height:4px; border-radius:50%; background:#9cdeff; bottom:4px; }
 .nav-icon { display:grid; place-items:center; width:24px; height:24px; background:none; color:inherit; }
 .nav-icon svg { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.65; stroke-linecap:round; stroke-linejoin:round; }
+/* Dock feedback: animate transforms, keeping each button's layout stable. */
+.dashboard-nav .nav-item { transition:transform 180ms cubic-bezier(.2,.8,.2,1),border-color 180ms ease,color 180ms ease,box-shadow 180ms ease; }
+.dashboard-nav .nav-icon { transition:transform 180ms cubic-bezier(.2,.8,.2,1); }
+.dashboard-nav .nav-item>span:last-child { transition:opacity 140ms ease,transform 180ms ease,visibility 140ms; }
+@media(min-width:761px) {
+  .dashboard-nav #nav-active-indicator { display:block!important; position:absolute; left:0; top:auto; bottom:5px; width:18px; height:3px; border-radius:3px; background:#9cdeff; box-shadow:0 0 10px #65b4ff99; transform:translateX(var(--dock-x,24px)); opacity:0; pointer-events:none; transition:transform 260ms cubic-bezier(.22,.8,.25,1),opacity 160ms ease; }
+  .dashboard-nav #nav-active-indicator.ready { opacity:1; }
+  .dashboard-nav .nav-item.active::after { display:none; }
+  .dashboard-nav .nav-item>span:last-child { transform:translate(-50%,4px); }
+  .dashboard-nav .nav-item:hover>span:last-child,.dashboard-nav .nav-item:focus-visible>span:last-child { transform:translate(-50%,0); }
+}
+@media(hover:hover) and (pointer:fine) {
+  .dashboard-nav .nav-item:hover,body.sidebar-collapsed .dashboard-nav .nav-item:hover { transform:translateY(-5px); box-shadow:0 8px 18px #0005,0 0 16px #65b4ff18; }
+  .dashboard-nav .nav-item:hover .nav-icon { transform:scale(1.1); }
+}
+.dashboard-nav .nav-item:active,body.sidebar-collapsed .dashboard-nav .nav-item:active { transform:translateY(-1px) scale(.94); }
+@media(prefers-reduced-motion:reduce) {
+  .dashboard-nav .nav-item:hover,.dashboard-nav .nav-item:active,body.sidebar-collapsed .dashboard-nav .nav-item:hover,body.sidebar-collapsed .dashboard-nav .nav-item:active,.dashboard-nav .nav-item:hover .nav-icon { transform:none; }
+}
 .workspace { padding:0 40px 120px; width:min(100%,1520px); margin:0 auto; }
 .topbar { min-height:142px; padding:28px 0 24px; border:0; gap:24px; }
 .breadcrumb { display:flex; color:#83bce6; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin:0 0 9px; }

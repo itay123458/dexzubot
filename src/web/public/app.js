@@ -70,9 +70,8 @@ function updateNavIndicator() {
   const nav = document.querySelector('.dashboard-nav');
   const active = nav?.querySelector('.nav-item.active');
   const indicator = $('nav-active-indicator');
-  if (!nav || !active || !indicator || window.innerWidth <= 680) return;
-  indicator.style.setProperty('--indicator-y', `${active.offsetTop + 10}px`);
-  indicator.style.setProperty('--indicator-height', `${Math.max(20, active.offsetHeight - 20)}px`);
+  if (!nav || !active || !indicator || window.innerWidth <= 760) return;
+  indicator.style.setProperty('--dock-x', `${active.offsetLeft + active.offsetWidth / 2 - 9}px`);
   indicator.classList.add('ready');
 }
 const icon = paths => `<svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
