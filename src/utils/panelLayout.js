@@ -6,7 +6,7 @@ const separator = () => ({ type: 14, divider: true, spacing: 1 });
 
 /** Opt-in presentation layer. Never changes custom IDs, permissions, or handlers. */
 export function toContainerMessage(payload = {}) {
-  const { embeds = [], components = [], content, flags = 0, ...rest } = payload;
+  const { embeds = [], components = [], content, flags = 0, compact = false, ...rest } = payload;
   const cards = [];
   const rows = components.map(json);
   let textLength = 0;
@@ -22,7 +22,7 @@ export function toContainerMessage(payload = {}) {
       embed.author?.name ? `-# ${embed.author.name}` : null,
       embed.title ? `## ${embed.url ? `[${embed.title}](${embed.url})` : embed.title}` : null,
       embed.description,
-    ].filter(Boolean).join('\n\n');
+    ].filter(Boolean).join(compact ? '\n' : '\n\n');
     if (heading) {
       const display = addText(heading);
       if (embed.thumbnail?.url) {
@@ -31,7 +31,20 @@ export function toContainerMessage(payload = {}) {
     }
     if (embed.fields?.length) {
       if (children.length) children.push(separator());
-      children.push(addText(embed.fields.map(field => `**${field.name}**\n${field.value}`).join('\n\n')));
+      if (compact) {
+        const lines = [];
+        let inline = [];
+        const flush = () => { if (inline.length) lines.push(inline.join(' · ')); inline = []; };
+        for (const field of embed.fields) {
+          const value = `**${field.name}:** ${field.value}`;
+          if (field.inline) inline.push(value);
+          else { flush(); lines.push(value); }
+        }
+        flush();
+        children.push(addText(lines.join('\n')));
+      } else {
+        children.push(addText(embed.fields.map(field => `**${field.name}**\n${field.value}`).join('\n\n')));
+      }
     }
     // Action rows belong inside the final card, before its footer.
     if (index === embeds.length - 1 && rows.length) {

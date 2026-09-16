@@ -11,7 +11,7 @@ import { Mutex } from '../utils/mutex.js';
 import { logger } from '../utils/logger.js';
 
 export const PANEL_DESIGN_REVISION = 'crystal-components-v2-2026-09-16';
-export const GIVEAWAY_DESIGN_REVISION = 'compact-giveaway-2026-09-16';
+export const GIVEAWAY_DESIGN_REVISION = 'compact-giveaway-banner-2026-09-16';
 export const panelDesignKey = (guildId, messageId) => `guild:${guildId}:panel-design:${messageId}`;
 
 /** Restyle only existing, explicitly configured messages; never send a replacement. */
