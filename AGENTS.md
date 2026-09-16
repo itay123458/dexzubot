@@ -11,6 +11,19 @@ DexzuBot.
 - Some inherited internal identifiers may still use `titanbot`. Do not perform a
   broad rename unless the user explicitly requests it.
 
+## Release notes and dashboard updates
+
+- Always publish Discord release notes as a **Dexzu-themed embed**, not a plain
+  text post (user preference, 2026-09-16). Use the shared `createEmbed` helper,
+  the existing blue/cyan palette, DexzuBot branding, a small avatar thumbnail,
+  and a compact layout. Do not add a large banner unless requested.
+- Keep release notes short and natural: what changed, how to try it, and any
+  beta limits. Avoid promotional or generic AI-sounding wording.
+- When correcting an existing release announcement, edit that message instead
+  of creating a duplicate.
+- Include the corresponding dashboard controls and command guide when adding
+  features. Keep the dashboard release notes aligned with the Discord post.
+
 ## Repository and runtime
 
 - Runtime: Node.js 20.10 or newer, ES modules, Discord.js v14.
