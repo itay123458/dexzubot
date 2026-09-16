@@ -1,9 +1,9 @@
 import { toContainerMessage } from '../utils/panelLayout.js';
 import { createEmbed } from '../utils/embeds.js';
-import { fileURLToPath } from 'node:url';
+
 // giveawayService.js
 
-import { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { botConfig } from '../config/bot.js';
@@ -138,28 +138,20 @@ export function validateWinnerCount(winnerCount) {
 export function createGiveawayEmbed(giveaway, status, winners = []) {
     try {
         const isEnded = status === 'ended' || status === 'reroll';
+        const endTime = Math.floor((giveaway.endsAt || giveaway.endTime) / 1000);
+        const count = giveaway.winnerCount;
+        const details = [
+            `Hosted by <@${giveaway.hostId}>`,
+            `**${count} ${count === 1 ? 'winner' : 'winners'}** | **${giveaway.participants?.length || 0} entries**`,
+            isEnded
+                ? `**${status === 'reroll' ? 'Rerolled' : 'Ended'}** - ${winners.length ? winners.map(id => `<@${id}>`).join(', ') : 'No valid entries'}`
+                : `Ends <t:${endTime}:R>`,
+        ];
         const embed = createEmbed({
             title: giveaway.prize,
-            author: 'DEXZUBOT / GIVEAWAYS',
-            description: isEnded
-                ? (status === 'reroll' ? 'The results are in. A new set of winners has been drawn.' : 'This giveaway has ended. Thank you for taking part!')
-                : 'A new reward awaits in the dungeon. Use **Enter giveaway** below for a chance to win.',
+            description: details.join('\n'),
             color: isEnded ? 'giveaway.ended' : 'primary',
-            footer: 'DexzuBot · Giveaways',
-            fields: [
-                { name: 'Hosted by', value: `<@${giveaway.hostId}>`, inline: true },
-                { name: 'Winner count', value: String(giveaway.winnerCount), inline: true },
-                { name: 'Participants', value: String(giveaway.participants?.length || 0), inline: true },
-            ],
-        });
-        if (isEnded) {
-            embed.addFields({ name: 'Winners', value: winners.length ? winners.map(id => `<@${id}>`).join(', ') : 'No valid entries' });
-        } else {
-            const endTime = Math.floor((giveaway.endsAt || giveaway.endTime) / 1000);
-            embed.addFields({ name: 'Closes', value: `<t:${endTime}:F>\n<t:${endTime}:R>` });
-        }
-        embed.addFields({ name: 'Status', value: isEnded ? (status === 'reroll' ? 'Rerolled' : 'Ended') : 'Open for entries' });
-
+        }).setAuthor(null).setFooter(null);
         return embed;
     } catch (error) {
         logger.error('Error creating giveaway embed:', error);
@@ -172,19 +164,17 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
     }
 }
 
+// Keep the existing call sites while removing the oversized legacy banner.
 export function withGiveawayArtwork(embed, channel, message = null) {
+    embed.setImage(null);
     const payload = { embeds: [embed] };
-    const name = 'dexzu-giveaway-v2.png';
-    const existing = [...(message?.attachments?.values?.() || [])].some(file => file.name === name);
-    if (existing) {
-        embed.setImage(`attachment://${name}`);
-    } else if (channel?.guild?.members.me && channel.permissionsFor(channel.guild.members.me)?.has(PermissionFlagsBits.AttachFiles)) {
-        embed.setImage(`attachment://${name}`);
-        payload.files = [new AttachmentBuilder(fileURLToPath(new URL('../assets/dexzu-giveaway-banner.png', import.meta.url)), { name })];
+    if (message?.attachments) {
+        payload.attachments = [...message.attachments.values()]
+            .filter(file => file.name !== 'dexzu-giveaway-v2.png')
+            .map(file => ({ id: file.id }));
     }
     return payload;
 }
-
 export function createGiveawayButtons(ended = false) {
     try {
         const row = new ActionRowBuilder();

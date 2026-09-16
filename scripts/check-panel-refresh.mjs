@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { refreshConfiguredPanelDesigns, panelDesignKey, PANEL_DESIGN_REVISION } from '../src/services/panelDesignService.js';
+import { refreshConfiguredPanelDesigns, panelDesignKey, GIVEAWAY_DESIGN_REVISION } from '../src/services/panelDesignService.js';
 import { getGuildConfigKey, getReactionRoleKey } from '../src/utils/database/keys.js';
 import { giveawayKey } from '../src/utils/giveaways.js';
 
@@ -52,7 +52,7 @@ assert.equal(first.errors, 1);
 assert.equal(first.skipped, 1);
 assert.ok(!edits.has(ticketId));
 assert.ok(!data.has(panelDesignKey(guildId, verificationId)));
-assert.equal(data.get(panelDesignKey(guildId, giveawayId)), PANEL_DESIGN_REVISION);
+assert.equal(data.get(panelDesignKey(guildId, giveawayId)), GIVEAWAY_DESIGN_REVISION);
 assert.equal(data.get(getReactionRoleKey(guildId, roleMessageId)).title, 'Legacy custom title');
 assert.equal(data.get(getReactionRoleKey(guildId, roleMessageId)).description, 'Legacy custom description');
 const renderedGiveaway = JSON.stringify(edits.get(giveawayId));
