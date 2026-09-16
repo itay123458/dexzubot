@@ -1,0 +1,355 @@
+/* Shared motion layer. Load last; geometry and focusable hit areas stay stable. */
+:root {
+  --motion-interaction: 150ms;
+  --motion-panel: 240ms;
+  --motion-entrance: 400ms;
+  --motion-count: 450ms;
+  --motion-stagger: 50ms;
+  --motion-ease: cubic-bezier(.2, .7, .25, 1);
+  --motion-settle: cubic-bezier(.16, 1, .3, 1);
+  --motion-distance: 10px;
+  --ease: var(--motion-interaction) var(--motion-ease);
+}
+
+/* Entrances are opt-in, replayed once by the shared page lifecycle. */
+body .page.active,
+body .card,
+body .activity-row { animation: none; }
+body .motion-enter {
+  animation: motion-enter var(--motion-entrance) var(--motion-settle) both;
+  animation-delay: var(--motion-delay, 0ms);
+}
+/* The header contains the fixed dock, so never transform its containing block. */
+body .sidebar.control-header.motion-enter { animation-name: motion-header-enter; }
+@keyframes motion-header-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes motion-enter {
+  from { opacity: 0; transform: translate3d(0, var(--motion-distance), 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+body .activity-row.activity-new {
+  animation: motion-activity-in var(--motion-panel) var(--motion-settle);
+}
+body .status-value-updated {
+  animation: motion-status-update var(--motion-panel) ease-out;
+}
+@keyframes motion-activity-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes motion-status-update { from { opacity: .45; } to { opacity: 1; } }
+
+/* Large, faint atmospheric layers only composite transform and opacity. */
+body::after {
+  display: block;
+  inset: -5vh -4vw;
+  background: radial-gradient(ellipse at 74% 18%, #65b4ff12, transparent 48%),
+    radial-gradient(ellipse at 18% 65%, #8fd9ee07, transparent 42%);
+  background-size: auto;
+  mask-image: none;
+  opacity: .7;
+  animation: motion-atmosphere 26s ease-in-out infinite alternate;
+}
+@keyframes motion-atmosphere {
+  from { opacity: .4; transform: translate3d(-1%, 0, 0); }
+  to { opacity: .8; transform: translate3d(1%, -1%, 0); }
+}
+.bot-banner { position: relative; isolation: isolate; overflow: hidden; }
+.bot-identity #hero-bot-avatar {
+  box-shadow: 0 0 0 1px #8fd9ee16, 0 0 24px #65b4ff25;
+}
+.bot-banner > *, .youtube-hero > * { position: relative; z-index: 1; }
+.bot-banner::before, .youtube-control .youtube-hero::before {
+  content: "";
+  position: absolute;
+  inset: -35% -10%;
+  height: auto;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 76% 42%, #8fd9ee18, transparent 56%);
+  animation: motion-hero-light 20s ease-in-out infinite alternate;
+}
+@keyframes motion-hero-light {
+  from { opacity: .35; transform: translate3d(-2%, 0, 0); }
+  to { opacity: .85; transform: translate3d(2%, 1%, 0); }
+}
+
+/* Status indicators breathe quietly; the dot remains readable throughout. */
+body .status-dot.good,
+body .server-chip i.online,
+body .pill.online::before,
+body .status-note i,
+body .youtube-state-pill.active i {
+  animation: motion-status 3.6s ease-in-out infinite;
+}
+@keyframes motion-status {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .65; transform: scale(.88); }
+}
+
+/* Surfaces react locally without disturbing their grid or neighbouring cards. */
+body .metric, body .summary-grid > *, body .toggle-row,
+body .check-row, body .module-access-row, body .operation-row,
+body .activity-row, body .notification-item {
+  transition: transform var(--motion-interaction) var(--motion-ease),
+    border-color var(--motion-interaction) ease,
+    background-color var(--motion-interaction) ease,
+    box-shadow var(--motion-interaction) ease,
+    opacity var(--motion-panel) ease;
+}
+.metric-icon, .summary-icon, .module-icon, .feature-icon {
+  transition: transform var(--motion-interaction) var(--motion-settle),
+    color var(--motion-interaction) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  body .metric:hover, body .summary-grid > :hover {
+    transform: translateY(-3px);
+    border-color: #6087ad;
+    box-shadow: 0 9px 24px #0003;
+  }
+  .metric:hover .metric-icon, .summary-grid > :hover .summary-icon {
+    transform: translateY(-2px) scale(1.06);
+    color: #b3e1ff;
+  }
+  body .toggle-row:hover, body .check-row:hover, body .activity-row:hover {
+    transform: none;
+  }
+  .toggle-row:hover .module-icon { transform: translateY(-1px); }
+}
+
+/* The dock's active plate moves; its buttons and hit targets never do. */
+body .dashboard-nav .nav-item,
+body.sidebar-collapsed .dashboard-nav .nav-item {
+  transition: border-color var(--motion-interaction) ease,
+    color var(--motion-interaction) ease, background-color var(--motion-interaction) ease;
+}
+body .dashboard-nav .nav-item:hover,
+body .dashboard-nav .nav-item:active,
+body.sidebar-collapsed .dashboard-nav .nav-item:hover,
+body.sidebar-collapsed .dashboard-nav .nav-item:active { transform: none; }
+body .dashboard-nav .nav-icon {
+  transition: transform var(--motion-interaction) var(--motion-settle);
+}
+@media (hover: hover) and (pointer: fine) {
+  body .dashboard-nav .nav-item:hover .nav-icon { transform: translateY(-3px) scale(1.08); }
+}
+body .dashboard-nav .nav-item:active .nav-icon { transform: translateY(0) scale(.93); }
+body .dashboard-nav .nav-item > span:last-child {
+  transition: opacity var(--motion-interaction) ease,
+    transform var(--motion-interaction) var(--motion-ease),
+    visibility var(--motion-interaction);
+}
+@media (min-width: 761px) {
+  body .dashboard-nav #nav-active-indicator {
+    display: block !important;
+    top: 0;
+    left: 0;
+    bottom: auto;
+    width: var(--dock-width, 48px);
+    height: var(--dock-height, 48px);
+    border: 1px solid #69aee3;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #2c5980, #1b354e);
+    box-shadow: 0 0 22px #3f9de321, inset 0 1px #b6dfff22;
+    transform: translate3d(var(--dock-x, 0px), var(--dock-y, 0px), 0);
+    opacity: 0;
+    z-index: 0;
+    pointer-events: none;
+    transition: transform var(--motion-panel) var(--motion-settle),
+      opacity var(--motion-interaction) ease;
+  }
+  body .dashboard-nav #nav-active-indicator.ready { opacity: 1; }
+  body .dashboard-nav #nav-active-indicator::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 2px;
+    left: calc(50% - 8px);
+    bottom: 3px;
+    border-radius: 3px;
+    background: #b5e6ff;
+  }
+  body .dashboard-nav .nav-item { z-index: 1; }
+  body .dashboard-nav:has(#nav-active-indicator.ready) .nav-item.active,
+  body.sidebar-collapsed .dashboard-nav:has(#nav-active-indicator.ready) .nav-item.active {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+}
+
+/* Shared controls: focus is immediate; feedback is short and deliberate. */
+body button:not(.nav-item), body .button-link, body .video-link,
+body .text-link, body input:not([type=checkbox]), body select, body textarea {
+  transition: transform var(--motion-interaction) var(--motion-ease),
+    border-color var(--motion-interaction) ease,
+    background-color var(--motion-interaction) ease,
+    color var(--motion-interaction) ease,
+    box-shadow var(--motion-interaction) ease,
+    opacity var(--motion-interaction) ease;
+}
+body button:not(.nav-item):hover:not(:disabled) { filter: none; border-color: #83bce6; }
+body button:not(.nav-item):not(.mobile-navigation):active:not(:disabled),
+body .button-link:active, body .video-link:active { transform: translateY(1px); }
+body .text-link:hover { color: #c9edff; text-decoration: underline; text-underline-offset: 3px; }
+body :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #b3e1ff;
+  outline-offset: 4px;
+}
+body input:not([type=checkbox]):focus, body select:focus, body textarea:focus {
+  border-color: #80beed;
+  box-shadow: 0 0 0 3px #65b4ff16;
+}
+body :is(button, input, select, textarea):disabled,
+body [aria-disabled="true"] { cursor: not-allowed; }
+body button:disabled, body button[aria-disabled="true"] { transform: none; }
+body button[aria-busy="true"], body button.loading { cursor: wait; }
+body button[aria-busy="true"]:not(.nav-item):not(.icon-button):not(.mobile-navigation) {
+  position: relative;
+  opacity: .85;
+  border-color: #a4d5f7;
+}
+body button[aria-busy="true"]:not(.nav-item):not(.icon-button):not(.mobile-navigation)::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #486c8c;
+  border-top-color: #d3efff;
+  border-right-color: #d3efff;
+  border-radius: 50%;
+  background: #172c42;
+  pointer-events: none;
+  animation: motion-loading 800ms linear infinite;
+}
+body .switch span {
+  transition: background-color var(--motion-interaction) ease,
+    border-color var(--motion-interaction) ease, opacity var(--motion-interaction) ease;
+}
+body .switch span::after {
+  transition: transform var(--motion-interaction) var(--motion-settle),
+    background-color var(--motion-interaction) ease;
+}
+body .switch input:disabled + span { opacity: .45; cursor: not-allowed; }
+body .icon-button.loading { animation: none; }
+body .icon-button.loading > svg { animation: motion-loading 800ms linear infinite; }
+@keyframes motion-loading { to { transform: rotate(1turn); } }
+body .skeleton, body .skeleton-line, body .youtube-loading {
+  animation: motion-loading-opacity 1.6s ease-in-out infinite alternate;
+}
+@keyframes motion-loading-opacity { from { opacity: .55; } to { opacity: .9; } }
+body .saved-feedback, body button.is-saved, body .module-flash {
+  animation: motion-saved var(--motion-entrance) ease-out;
+}
+body button.saved-feedback, body button.is-saved {
+  position: relative;
+  border-color: #7bd8b7 !important;
+  box-shadow: 0 0 0 2px #7bd8b71a;
+}
+body button.saved-feedback:not([aria-busy="true"])::after,
+body button.is-saved:not([aria-busy="true"])::after {
+  content: "✓";
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #7bd8b7;
+  border-radius: 50%;
+  background: #163c32;
+  color: #d1ffeb;
+  font: 700 10px/1 system-ui, sans-serif;
+  pointer-events: none;
+}
+@keyframes motion-saved {
+  0% { box-shadow: 0 0 0 3px #7bd8b733; }
+  100% { box-shadow: 0 0 0 0 #7bd8b700; }
+}
+body :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--danger); }
+body input:user-invalid, body select:user-invalid, body textarea:user-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px #ff9baf12;
+}
+body .inline-error:not(:empty), body .inline-validation:not(:empty) {
+  animation: motion-error var(--motion-panel) ease-out;
+}
+@keyframes motion-error { from { opacity: 0; } to { opacity: 1; } }
+
+/* Search, confirmations, expandable settings, and toast lifecycles. */
+body dialog[open] { animation: motion-dialog-in var(--motion-panel) var(--motion-settle) both; }
+body dialog[open]::backdrop { animation: motion-backdrop-in var(--motion-panel) ease both; }
+body dialog[open].motion-closing { animation: motion-dialog-out var(--motion-panel) var(--motion-ease) both; }
+body dialog[open].motion-closing::backdrop { animation: motion-backdrop-out var(--motion-panel) ease both; }
+@keyframes motion-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes motion-dialog-out { to { opacity: 0; transform: translateY(6px) scale(.985); } }
+@keyframes motion-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes motion-backdrop-out { to { opacity: 0; } }
+body #control-search-results > .motion-enter { animation-duration: var(--motion-panel); }
+body #control-search-results button:hover, body #control-search-results button:focus-visible {
+  background-color: #243e58;
+  border-color: #719ec5;
+}
+body details > summary::before { transition: transform var(--motion-interaction) var(--motion-ease); }
+body details[open] > :not(summary) { animation: motion-details var(--motion-panel) ease-out; }
+@keyframes motion-details { from { opacity: 0; } to { opacity: 1; } }
+@supports (interpolate-size: allow-keywords) and (transition-behavior: allow-discrete) {
+  body details { interpolate-size: allow-keywords; }
+  body details::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition: block-size var(--motion-panel) var(--motion-ease),
+      content-visibility var(--motion-panel) allow-discrete;
+  }
+  body details[open]::details-content { block-size: auto; }
+}
+body .toast {
+  animation: motion-toast-in var(--motion-panel) var(--motion-settle);
+  transition: opacity var(--motion-panel) ease, transform var(--motion-panel) var(--motion-ease);
+}
+body .toast.leaving { animation: none; opacity: 0; transform: translateY(6px); }
+@keyframes motion-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Hidden tabs do not spend work on decorative or loading animations. */
+.motion-paused body::after, body.motion-paused::after,
+.motion-paused .bot-banner::before, .motion-paused .youtube-hero::before,
+.motion-paused .status-dot.good, .motion-paused .server-chip i.online,
+.motion-paused .pill.online::before, .motion-paused .status-note i,
+.motion-paused .youtube-state-pill.active i,
+.motion-paused .skeleton, .motion-paused .skeleton-line,
+.motion-paused .youtube-loading, .motion-paused .icon-button.loading > svg,
+.motion-paused button[aria-busy="true"]::after,
+.motion-paused .toast-progress { animation-play-state: paused !important; }
+
+@media (max-width: 760px), (pointer: coarse) {
+  :root { --motion-distance: 5px; }
+  body::after, .bot-banner::before, .youtube-control .youtube-hero::before { animation: none; opacity: .4; }
+  body .motion-enter { animation-delay: 0ms; }
+  body .metric:hover, body .summary-grid > :hover { transform: none; }
+  body .dashboard-nav .nav-item:hover .nav-icon { transform: none; }
+}
+@media (max-width: 760px) {
+  body .dashboard-nav #nav-active-indicator { display: none !important; }
+  body .dashboard-nav .nav-item > span:last-child { transform: none; }
+  body.navigation-open .dashboard-nav { animation: motion-header-enter var(--motion-panel) var(--motion-settle); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  body::after, .bot-banner::before, .youtube-control .youtube-hero::before { display: none; }
+  body .motion-enter, body .activity-row.activity-new,
+  body .metric:hover, body .summary-grid > :hover,
+  body .metric:hover .metric-icon, body .summary-grid > :hover .summary-icon,
+  body .toggle-row:hover .module-icon,
+  body .dashboard-nav .nav-item:hover .nav-icon,
+  body .dashboard-nav .nav-item:active .nav-icon,
+  body button:not(.nav-item):not(.mobile-navigation):active:not(:disabled),
+  body .button-link:active, body .video-link:active,
+  body dialog[open], body dialog[open].motion-closing,
+  body .toast, body .toast.leaving, body .preview-media:hover img { transform: none !important; }
+  body .motion-enter { opacity: 1; }
+  body .toast.leaving, body dialog[open].motion-closing { opacity: 0; }
+}

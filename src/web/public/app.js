@@ -9,11 +9,22 @@ let levelingSettingsDirty = false;
 let levelingRewardsDirty = false;
 let levelRewardDraft = [];
 let activityExpanded = false;
-let hasAnimatedStats = false;
-let previousMetricValues = null;
-let previousPerformanceValues = null;
+const previousMetricValues = new Map();
+const knownActivityIds = new Set();
+let activityInitialized = false;
 let latestActivityId = null;
 const $ = id => document.getElementById(id);
+const feedbackTimers = new Set();
+function feedbackLater(callback, delay) {
+  const timer = setTimeout(() => { feedbackTimers.delete(timer); callback(); }, delay);
+  feedbackTimers.add(timer); return timer;
+}
+function cancelFeedback(timer) { clearTimeout(timer); feedbackTimers.delete(timer); }
+window.addEventListener('pagehide', () => {
+  feedbackTimers.forEach(clearTimeout); feedbackTimers.clear();
+  document.querySelectorAll('.toast').forEach(element => element.remove());
+  document.querySelectorAll('.saved-feedback').forEach(element => { element.classList.remove('saved-feedback'); element.removeAttribute('aria-label'); });
+});
 const toast = (message, error = false, detail = '') => {
   const type = typeof error === 'string' ? error : (error ? 'error' : 'success');
   const element = document.createElement('div');
@@ -28,19 +39,50 @@ const toast = (message, error = false, detail = '') => {
   if (detail) { const description = document.createElement('small'); description.textContent = detail; copy.append(description); }
   const progress = document.createElement('i'); progress.className = 'toast-progress';
   element.append(icon, copy, close, progress); $('toasts').append(element);
-  const dismiss = () => { element.classList.add('leaving'); setTimeout(() => element.remove(), 180); };
+  let leaving = false;
+  const dismiss = () => {
+    if (leaving) return;
+    leaving = true; cancelFeedback(timer); element.classList.add('leaving');
+    feedbackLater(() => element.remove(), reducedMotion() ? 0 : 240);
+  };
   close.onclick = dismiss;
-  let timer = setTimeout(dismiss, 3800);
-  element.onmouseenter = () => { clearTimeout(timer); progress.style.animationPlayState = 'paused'; };
-  element.onmouseleave = () => { timer = setTimeout(dismiss, 1800); progress.style.animationPlayState = 'running'; };
+  let remaining = 3800, started = performance.now();
+  let timer = feedbackLater(dismiss, remaining);
+  const pauseReasons = new Set();
+  const pause = reason => {
+    if (!pauseReasons.size) { cancelFeedback(timer); remaining = Math.max(0, remaining - (performance.now() - started)); }
+    pauseReasons.add(reason); progress.style.animationPlayState = 'paused';
+  };
+  const resume = reason => {
+    pauseReasons.delete(reason);
+    if (leaving || pauseReasons.size) return;
+    cancelFeedback(timer); started = performance.now(); timer = feedbackLater(dismiss, remaining); progress.style.animationPlayState = 'running';
+  };
+  element.onmouseenter = () => pause('hover'); element.onmouseleave = () => resume('hover');
+  element.onfocusin = () => pause('focus'); element.onfocusout = event => { if (!element.contains(event.relatedTarget)) resume('focus'); };
 };
+let requestControl = null;
+const captureRequestControl = event => {
+  requestControl = event.submitter || event.target.closest?.('button,input');
+  const captured = requestControl;
+  feedbackLater(() => { if (requestControl === captured) requestControl = null; }, 0);
+};
+document.addEventListener('click', captureRequestControl, true);
+document.addEventListener('submit', captureRequestControl, true);
 const post = async (path, body) => {
+  const control = requestControl;
+  const wasDisabled = control?.disabled;
+  if (control) { control.disabled = true; control.setAttribute('aria-busy', 'true'); }
+  try {
   const response = await fetch(`/dashboard/api/${path}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Update failed');
   return data;
+  } finally {
+    if (control) { control.disabled = wasDisabled; control.removeAttribute('aria-busy'); }
+  }
 };
 const checkbox = (id, label, checked, group) => `<label class="check-row"><input type="checkbox" data-group="${group}" value="${id}" ${checked ? 'checked' : ''}><span>${label}</span></label>`;
 const channelOptions = (channels, selected, placeholder) => `<option value="">${placeholder}</option>${channels.map(channel => `<option value="${channel.id}" ${channel.id === selected ? 'selected' : ''}>#${channel.name}</option>`).join('')}`;
@@ -48,22 +90,16 @@ const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character =>
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function animateNumber(element, from, to, duration) {
-  if (!element || reducedMotion() || from === to) { if (element) element.textContent = String(to); return; }
-  const started = performance.now();
-  const frame = now => {
-    const progress = Math.min(1, (now - started) / duration);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    element.textContent = String(Math.round(from + (to - from) * eased));
-    if (progress < 1) requestAnimationFrame(frame);
-  };
-  requestAnimationFrame(frame);
+  if (window.DexzuMotion) window.DexzuMotion.count(element, from, to, duration);
+  else if (element) element.textContent = String(to ?? '—');
 }
 
 function showSaved(button, originalLabel = '✓ Save Changes') {
   if (!button) return;
-  clearTimeout(button._savedTimer);
-  requestAnimationFrame(() => { button.classList.add('saved-feedback'); button.textContent = '✓ Saved'; });
-  button._savedTimer = setTimeout(() => { button.classList.remove('saved-feedback'); button.textContent = originalLabel; }, 1300);
+  cancelFeedback(button._savedTimer);
+  button.classList.add('saved-feedback');
+  button.setAttribute('aria-label', 'Saved successfully');
+  button._savedTimer = feedbackLater(() => { button.classList.remove('saved-feedback'); button.removeAttribute('aria-label'); }, 1300);
 }
 
 function updateNavIndicator() {
@@ -71,7 +107,10 @@ function updateNavIndicator() {
   const active = nav?.querySelector('.nav-item.active');
   const indicator = $('nav-active-indicator');
   if (!nav || !active || !indicator || window.innerWidth <= 760) return;
-  indicator.style.setProperty('--dock-x', `${active.offsetLeft + active.offsetWidth / 2 - 9}px`);
+  indicator.style.setProperty('--dock-x', `${active.offsetLeft}px`);
+  indicator.style.setProperty('--dock-y', `${active.offsetTop}px`);
+  indicator.style.setProperty('--dock-width', `${active.offsetWidth}px`);
+  indicator.style.setProperty('--dock-height', `${active.offsetHeight}px`);
   indicator.classList.add('ready');
 }
 const icon = paths => `<svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
@@ -203,7 +242,8 @@ function showPage(pageName) {
   $('page-description').textContent = pageDetails[selected][1];
   history.replaceState(null, '', `#${selected}`);
   renderModulePage(selected);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.dispatchEvent(new CustomEvent('dexzu-page', { detail: { panel: document.querySelector(`[data-panel="${selectedPanel}"]`) } }));
+  window.scrollTo({ top: 0, behavior: 'instant' });
   if (selected === 'youtube') void loadYouTubeLatest();
 }
 
@@ -281,12 +321,40 @@ function renderRecentActivity() {
   $('view-logs').textContent = activities.length > 5 ? (activityExpanded ? 'Show less' : 'View all') : 'Up to date';
   $('view-logs').disabled = activities.length <= 5;
   if (!visible.length) {
+    activityInitialized = true;
     $('recent-activity').innerHTML = '<div class="empty-state"><span class="empty-icon">≡</span><strong>No recent activity</strong><p>New DexzuBot events will appear here.</p></div>';
     return;
   }
   const activityIcons = { moderation: icons.shield, message: icons.command, member: icons.members, voice: icons.members, leveling: icons.trend, counting: icons.hash, role: icons.shield, channel: icons.hash, dashboard: icons.command, guild: icons.members, invite: icons.trend, emoji: icons.command, sticker: icons.ticket };
-  $('recent-activity').innerHTML = visible.map((activity, index) => `<div class="activity-row ${index === 0 && activity.id === latestActivityId ? 'activity-new' : ''}"><span class="activity-type ${escapeHtml(activity.category)}">${activityIcons[activity.category] || '•'}</span><div><strong>${escapeHtml(activity.title)}</strong>${activity.detail ? `<p>${escapeHtml(activity.detail)}</p>` : ''}</div><time datetime="${escapeHtml(activity.timestamp)}" title="${escapeHtml(new Date(activity.timestamp).toLocaleString())}">${relativeActivityTime(activity.timestamp)}</time></div>`).join('');
-  if (latestActivityId) setTimeout(() => { document.querySelector('.activity-new')?.classList.remove('activity-new'); latestActivityId = null; }, 1100);
+  const feed = $('recent-activity');
+  const existing = new Map([...feed.querySelectorAll('[data-activity-id]')].map(row => [row.dataset.activityId, row]));
+  const anchor = [...existing.values()].find(row => row.getBoundingClientRect().bottom > 0);
+  const anchorTop = anchor?.getBoundingClientRect().top;
+  const scrollTop = feed.scrollTop;
+  feed.querySelector('.empty-state')?.remove();
+  const keep = new Set();
+  visible.forEach((activity, index) => {
+    const id = String(activity.id); keep.add(id);
+    let row = existing.get(id);
+    if (!row) {
+      row = document.createElement('div'); row.className = 'activity-row'; row.dataset.activityId = id;
+      row.innerHTML = `<span class="activity-type ${escapeHtml(activity.category)}">${activityIcons[activity.category] || '•'}</span><div><strong></strong><p></p></div><time></time>`;
+      if (activityInitialized && !knownActivityIds.has(id) && !reducedMotion() && !document.hidden) row.classList.add('activity-new');
+    }
+    row.querySelector('strong').textContent = activity.title;
+    const detail = row.querySelector('p'); detail.textContent = activity.detail || ''; detail.hidden = !activity.detail;
+    const time = row.querySelector('time'); time.dateTime = activity.timestamp;
+    time.title = new Date(activity.timestamp).toLocaleString(); time.textContent = relativeActivityTime(activity.timestamp);
+    if (feed.children[index] !== row) feed.insertBefore(row, feed.children[index] || null);
+  });
+  existing.forEach((row, id) => { if (!keep.has(id)) row.remove(); });
+  activities.forEach(activity => knownActivityIds.add(String(activity.id)));
+  if (knownActivityIds.size > 200) { knownActivityIds.clear(); activities.forEach(activity => knownActivityIds.add(String(activity.id))); }
+  activityInitialized = true;
+  feed.scrollTop = scrollTop;
+  if (anchor?.isConnected && window.scrollY > 0) window.scrollBy(0, anchor.getBoundingClientRect().top - anchorTop);
+  latestActivityId = null;
+
 }
 
 function renderOperations() {
@@ -343,6 +411,15 @@ $('sidebar-collapse').onclick = () => { setSidebarCollapsed(!document.body.class
 $('view-logs').onclick = () => { activityExpanded = !activityExpanded; renderRecentActivity(); };
 
 function render(current) {
+  // Backend refreshes must not erase edits, focus, or expanded groups.
+  const drafts = [...document.querySelectorAll('[data-panel]')].filter(panel => dirtyPages.has(panel.dataset.panel)).map(panel => ({
+    panel,
+    values: [...panel.querySelectorAll('input,select,textarea')].map(input => ({
+      id: input.id, group: input.dataset.group, key: input.getAttribute('value'),
+      value: input.value, checked: input.checked,
+    })),
+  }));
+  const expanded = [...document.querySelectorAll('details')].map(element => ({ id: element.id, group: element.dataset.logGroup, open: element.open }));
   state = current;
   window.dispatchEvent(new CustomEvent('dexzu-state', { detail: current }));
   $('bot-avatar').src = current.bot.avatar;
@@ -364,7 +441,25 @@ function render(current) {
     ['Health alerts', health ? (health.failed || 0) + (health.warnings || 0) : '—', health ? 'From last health check' : 'No health check yet', icons.shield],
     ['Snapshots', current.operations?.snapshots?.length ?? '—', 'Configuration checkpoints', icons.wallet],
   ];
-  $('metrics').innerHTML = metricRows.map(([key, value, secondary, symbol]) => `<div class="metric"><div class="metric-icon">${symbol}</div><span>${key}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(secondary)}</small></div>`).join('');
+  const metrics = $('metrics');
+  metrics.querySelectorAll('.skeleton').forEach(node => node.remove());
+  metricRows.forEach(([key, rawValue, secondary, symbol], index) => {
+    const value = rawValue == null ? '—' : rawValue;
+    let card = metrics.children[index];
+    if (!card || !card.classList.contains('metric')) {
+      card = document.createElement('div'); card.className = 'metric';
+      card.innerHTML = `<div class="metric-icon">${symbol}</div><span></span><strong></strong><small></small>`;
+      metrics.append(card);
+    }
+    card.querySelector('span').textContent = key;
+    card.querySelector('small').textContent = secondary;
+    const number = card.querySelector('strong');
+    if (!previousMetricValues.has(key) || previousMetricValues.get(key) !== value) {
+      const from = previousMetricValues.has(key) ? Number(number.textContent) : 0;
+      animateNumber(number, Number.isFinite(from) ? from : 0, value, 450);
+      previousMetricValues.set(key, value);
+    }
+  });
   const moduleMeta = {
     core: [icons.command, 'Essential bot functionality'], counting: [icons.hash, 'Server counting game'], economy: [icons.wallet, 'Currency and economy commands'],
     leveling: [icons.trend, 'XP and member progression'], moderation: [icons.shield, 'Staff moderation tools'], serverstats: [icons.chart, 'Live server statistics'],
@@ -375,14 +470,32 @@ function render(current) {
     return `<div class="toggle-row ${category.enabled ? '' : 'module-disabled'}"><div class="module-copy"><span class="module-icon" aria-hidden="true">${meta[0]}</span><div><strong>${category.name}</strong><em>${meta[1]}</em></div></div><div class="module-controls"><small>${category.enabledCommands} / ${category.totalCommands} commands</small><label class="switch"><input data-category="${category.key}" data-name="${category.name}" type="checkbox" ${category.enabled ? 'checked' : ''} aria-label="Toggle ${category.name}"><span></span></label></div></div>`;
   }).join('');
   const databaseReady = current.database?.isAvailable === true && current.database?.isDegraded !== true;
-  $('system-status').innerHTML = [
+  const statusRows = [
     ['Bot', current.bot.online ? 'Online' : 'Offline', current.bot.online ? 'good' : 'bad'],
     ['Discord API', current.bot.online ? 'Connected' : 'Disconnected', current.bot.online ? 'good' : 'bad'],
     ['WebSocket', current.bot.online ? 'Connected' : 'Disconnected', current.bot.online ? 'good' : 'bad'],
     ...(current.database ? [['Database', databaseReady ? 'Connected' : 'Degraded', databaseReady ? 'good' : 'warning']] : []),
     ['Dashboard API', 'Connected', 'good'],
     ['Uptime', `${uptimeHours}h ${Math.floor((current.bot.uptimeSeconds % 3600) / 60)}m`, current.bot.online ? 'good' : 'bad'],
-  ].map(([label, value, status], index) => `<div class="status-row status-updated" style="--row-delay:${index * 30}ms"><span>${label}</span><strong><i class="status-dot ${status}"></i>${value}</strong></div>`).join('');
+  ];
+  const systemStatus = $('system-status');
+  systemStatus.querySelectorAll('.skeleton-line').forEach(node => node.remove());
+  statusRows.forEach(([label, value, status], index) => {
+    let row = systemStatus.children[index];
+    if (!row) {
+      row = document.createElement('div'); row.className = 'status-row';
+      row.innerHTML = '<span></span><strong><i class="status-dot"></i><span></span></strong>';
+      systemStatus.append(row);
+    }
+    row.firstElementChild.textContent = label;
+    const text = row.querySelector('strong span');
+    if (text.textContent !== value) {
+      if (text.textContent && !reducedMotion() && !document.hidden) text.classList.add('status-value-updated');
+      text.textContent = value;
+    }
+    row.querySelector('i').className = `status-dot ${status}`;
+  });
+  while (systemStatus.children.length > statusRows.length) systemStatus.lastElementChild.remove();
   $('performance').innerHTML = [
     ['Server', current.server.name], ['Channels', current.server.channels],
     ['Roles', current.server.roles ?? '—'], ['Enabled modules', `${enabledModules} / ${current.categories.length}`],
@@ -392,7 +505,7 @@ function render(current) {
   document.querySelectorAll('[data-category]').forEach(element => { element.onchange = async () => {
     const row = element.closest('.toggle-row'); const enabled = element.checked; const name = element.dataset.name;
     row.classList.toggle('module-disabled', !enabled); row.classList.add('module-updating'); element.disabled = true;
-    try { await post('category', { category: element.dataset.category, enabled }); row.classList.add('module-flash'); setTimeout(() => row.classList.remove('module-flash'), 500); toast(`${name} ${enabled ? 'enabled' : 'disabled'}`, false, `${name} commands are now ${enabled ? 'active' : 'inactive'}.`); await load(); void refreshRecentActivity(); }
+    try { await post('category', { category: element.dataset.category, enabled }); row.classList.add('module-flash'); feedbackLater(() => row.classList.remove('module-flash'), 500); toast(`${name} ${enabled ? 'enabled' : 'disabled'}`, false, `${name} commands are now ${enabled ? 'active' : 'inactive'}.`); await load(); void refreshRecentActivity(); }
     catch (error) { element.checked = !enabled; row.classList.toggle('module-disabled', enabled); toast(`Couldn't update ${name}.`, true, error.message); }
     finally { row.classList.remove('module-updating'); element.disabled = false; }
   }; });
@@ -452,6 +565,15 @@ function render(current) {
   updateYouTubeSummary();
   renderYouTubeLatest();
   renderModulePage(location.hash.slice(1));
+  for (const { panel, values } of drafts) for (const saved of values) {
+    const input = saved.id ? $(saved.id) : [...panel.querySelectorAll('input')].find(item => item.dataset.group === saved.group && item.getAttribute('value') === saved.key);
+    if (input) { input.value = saved.value; if (typeof saved.checked === 'boolean') input.checked = saved.checked; }
+  }
+  for (const saved of expanded) {
+    const element = saved.id ? $(saved.id) : [...document.querySelectorAll('details')].find(item => saved.group && item.dataset.logGroup === saved.group);
+    if (element) element.open = saved.open;
+  }
+  if (drafts.length) { updateSafetyUi(); updateGreetingUi(); updateLoggingUi(); }
 }
 
 function selectedYouTubeChannel() {
@@ -557,7 +679,7 @@ $('refresh-dashboard').onclick = async () => {
   button.classList.add('loading');
   button.disabled = true;
   try { await load(); toast('Refreshed', false, 'System status updated.'); }
-  catch (error) { button.classList.add('refresh-failed'); setTimeout(() => button.classList.remove('refresh-failed'), 350); toast(error.message, true); }
+  catch (error) { button.classList.add('refresh-failed'); feedbackLater(() => button.classList.remove('refresh-failed'), 350); toast(error.message, true); }
   finally { button.classList.remove('loading'); button.disabled = false; }
 };
 
@@ -664,7 +786,11 @@ $('run-health-check').onclick = async () => { const button = $('run-health-check
 $('save-access-roles').onclick = async () => { const button = $('save-access-roles'); button.disabled = true; try { const roleIds = [...document.querySelectorAll('[data-group=access-role]:checked')].map(input => input.value); const result = await post('operations/access-roles', { roleIds }); state.commandAccessRoleIds = result.roleIds; showSaved(button, '✓ Save Roles'); toast('Staff command roles saved', false, 'Discord command access was synchronized.'); await load(); } catch (error) { toast("Couldn't save staff roles", true, error.message); } finally { button.disabled = false; } };
 $('create-snapshot').onclick = async () => { const button = $('create-snapshot'); button.disabled = true; try { await post('operations/snapshot', {}); toast('Configuration snapshot created'); await load(); } catch (error) { toast("Couldn't create snapshot", true, error.message); } finally { button.disabled = false; } };
 load().catch(error => toast(error.message, true));
-setInterval(() => { if (!document.hidden) void refreshRecentActivity(); }, 30000);
+let activityTimer;
+const startActivityPolling = () => { clearInterval(activityTimer); activityTimer = setInterval(() => { if (!document.hidden) void refreshRecentActivity(); }, 30000); };
+startActivityPolling();
+window.addEventListener('pagehide', () => clearInterval(activityTimer));
+window.addEventListener('pageshow', startActivityPolling);
 window.addEventListener('resize', updateNavIndicator, { passive: true });
 document.querySelector('.sidebar')?.addEventListener('scroll', updateNavIndicator, { passive: true });
 

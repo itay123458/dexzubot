@@ -21,9 +21,9 @@
       description.textContent = pageDetails[destination.dataset.page][1];
       button.append(label, description);
       button.addEventListener('click', () => {
-        dialog.close();
+        const closing = window.DexzuMotion.closeDialog(dialog);
         destination.click();
-        $('dashboard-main').focus({ preventScroll: true });
+        void closing.then(closed => { if (closed) $('dashboard-main').focus({ preventScroll: true }); });
       });
       results.append(button);
     }
@@ -36,14 +36,15 @@
   }
 
   function openSearch() {
-    if (dialog.open) return;
+    window.DexzuMotion.cancelDialogClose(dialog);
+    if (dialog.open) { input.focus(); return; }
     input.value = '';
     renderResults();
     dialog.showModal();
     input.focus();
   }
   $('open-control-search').addEventListener('click', openSearch);
-  $('close-control-search').addEventListener('click', () => dialog.close());
+  $('close-control-search').addEventListener('click', () => { void window.DexzuMotion.closeDialog(dialog); });
   input.addEventListener('input', renderResults);
   input.addEventListener('keydown', event => {
     if (event.key === 'ArrowDown') { event.preventDefault(); results.querySelector('button')?.focus(); }
@@ -52,13 +53,14 @@
   document.addEventListener('keydown', event => {
     // Search inputs consume Escape to clear their text in Chromium.
     if (event.key === 'Escape' && dialog.open) {
-      event.preventDefault(); dialog.close(); return;
+      event.preventDefault(); void window.DexzuMotion.closeDialog(dialog); return;
     }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault(); openSearch();
     }
   });
-  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+  dialog.addEventListener('cancel', event => { event.preventDefault(); void window.DexzuMotion.closeDialog(dialog); });
+  dialog.addEventListener('click', event => { if (event.target === dialog) void window.DexzuMotion.closeDialog(dialog); });
   window.addEventListener('dexzu-state', event => {
     const { bot } = event.detail;
     $('hero-bot-avatar').src = bot.avatar;

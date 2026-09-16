@@ -42,7 +42,11 @@
       state.prefixSettings = result.settings; renderPrefix(state);
     } catch { /* Keep the last loaded values; save errors remain visible. */ }
   };
-  setInterval(refreshPrefix, 30000);
+  let timer;
+  const startPolling = () => { clearInterval(timer); timer = setInterval(refreshPrefix, 30000); };
+  startPolling();
+  window.addEventListener('pagehide', () => clearInterval(timer));
+  window.addEventListener('pageshow', startPolling);
   window.addEventListener('focus', refreshPrefix);
   if (state) renderPrefix(state);
 })();
