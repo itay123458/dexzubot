@@ -13,7 +13,13 @@ html { scroll-behavior: auto; }
 body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; font-size: 1rem; line-height: 1.55; background: var(--bg); -webkit-font-smoothing: antialiased; }
 body::before { background: linear-gradient(#111316e8,#111316 420px),url('/dashboard/dexzu-dungeon-bg.jpg') center top/cover no-repeat; animation: none; }
 body::after { display: none; }
-body *,body *::before,body *::after { animation: none !important; }
+/* Keep ambient decoration still without disabling interaction feedback. */
+.card,.activity-row,.status-dot.good,.server-chip i.online,.pill.online::before,
+.status-note i,.youtube-state-pill.active i { animation: none; }
+.page.active { animation: workspace-enter 180ms ease-out; }
+@keyframes workspace-enter { from { opacity: 0; transform: translateY(4px); } }
+.icon-button.loading { animation: none; }
+.icon-button.loading > svg { animation: spin 700ms linear infinite; }
 .app-shell { grid-template-columns: var(--sidebar-width) minmax(0,1fr); }
 .sidebar { padding: var(--space-6) var(--space-3); border-right: 1px solid var(--line); background: #171a1f; box-shadow: none; backdrop-filter: none; }
 .brand { gap: 10px; padding: 0 var(--space-2) var(--space-6); }
