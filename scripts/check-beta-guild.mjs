@@ -116,6 +116,6 @@ test('beta status is an explicit guild-only beta command with an honest scope', 
     reply: async payload => { reply = payload; } });
   assert.equal(reply.flags & 64, 64);
   assert.equal(reply.flags & 32768, 32768);
-  assert.match(JSON.stringify(reply), /No experimental releases/);
+  assert.match(JSON.stringify(reply), /Role management is ready to test/);
   assert.match(JSON.stringify(reply), /same bot application and running process/);
 });

@@ -5,7 +5,7 @@ import { Collection } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import botConfig from '../../config/bot.js';
 import { canUseBetaCommand } from '../../config/beta.js';
-import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
+import { isSlashCommandEnabled } from '../../config/commands/slashCommandCategories.js';
 import { isCommandEnabledInConfig } from '../../services/commandAccessService.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 
@@ -169,7 +169,7 @@ function collectCommandPayloads(client, guildConfig = null, guildId = null) {
 
         const commandName = command.data.name;
 
-        if (!isSlashCommandCategoryEnabled(command.category)) {
+        if (!isSlashCommandEnabled(command, guildId)) {
             logger.debug(`Skipping slash command registration for disabled category: ${command.category}/${commandName}`);
             continue;
         }

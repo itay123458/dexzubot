@@ -19,7 +19,7 @@ import {
   isProtectedCommand,
 } from '../../services/commandAccessService.js';
 import { syncGuildCommandRegistration } from '../../handlers/loaders/commandLoader.js';
-import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
+import { isSlashCommandEnabled } from '../../config/commands/slashCommandCategories.js';
 import {
   buildDashboardView,
   handleDashboardComponent,
@@ -31,17 +31,17 @@ const DASHBOARD_TIMEOUT_MS = 10 * 60 * 1000;
 const SUBCOMMAND_TYPE = 1;
 const SUBCOMMAND_GROUP_TYPE = 2;
 
-function getCommandGroups(client, guildConfig) {
+function getCommandGroups(client, guildConfig, guildId) {
   const groups = new Map();
   const accessByCategory = new Map(
-    getCommandAccessSnapshot(client, guildConfig).categories.map(category => [category.folder, category]),
+    getCommandAccessSnapshot(client, guildConfig, guildId).categories.map(category => [category.folder, category]),
   );
   const commands = [...client.commands.values()].sort((a, b) =>
     String(a.category).localeCompare(String(b.category)) || a.data.name.localeCompare(b.data.name),
   );
 
   for (const command of commands) {
-    if (!isSlashCommandCategoryEnabled(command.category)) continue;
+    if (!isSlashCommandEnabled(command, guildId)) continue;
 
     const categoryAccess = accessByCategory.get(command.category);
     if (!categoryAccess || categoryAccess.categoryDisabled) continue;
@@ -89,8 +89,8 @@ function chunkLines(lines, maxLength = 1000) {
   return chunks;
 }
 
-function buildCommandListEmbeds(client, guildConfig) {
-  const groups = getCommandGroups(client, guildConfig);
+function buildCommandListEmbeds(client, guildConfig, guildId) {
+  const groups = getCommandGroups(client, guildConfig, guildId);
   const totalCommands = [...groups.values()].reduce(
     (total, group) => total + group.Everyone.length + group.Staff.length + group.Owner.length,
     0,
@@ -264,7 +264,7 @@ export default {
       }
 
       await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
-      const embeds = buildCommandListEmbeds(client, config);
+      const embeds = buildCommandListEmbeds(client, config, interaction.guildId);
 
       await InteractionHelper.safeEditReply(interaction, { embeds: [embeds[0]] });
       for (const embed of embeds.slice(1)) {

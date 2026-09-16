@@ -3,6 +3,7 @@
 import { pgDb } from './postgresDatabase.js';
 import { logger } from './logger.js';
 import { BotConfig, getDefaultApplicationQuestions } from '../config/bot.js';
+import { TitanBotError, ErrorTypes } from './errorHandler.js';
 
 export {
     db,
@@ -427,7 +428,10 @@ export async function updateWelcomeConfig(client, guildId, updates) {
         const currentConfig = await getWelcomeConfig(client, guildId);
         const updatedConfig = { ...currentConfig, ...updates };
         
-        await saveWelcomeConfig(client, guildId, updatedConfig);
+        if (!await saveWelcomeConfig(client, guildId, updatedConfig)) {
+            throw new TitanBotError('Welcome configuration save failed', ErrorTypes.DATABASE,
+                'The role settings could not be saved. Please try again.');
+        }
         return updatedConfig;
     } catch (error) {
         logger.error(`Error updating welcome config for guild ${guildId}:`, error);

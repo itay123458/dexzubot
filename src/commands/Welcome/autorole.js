@@ -6,6 +6,7 @@ import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import { assertRoleEditable } from '../../services/roleManagementService.js';
 
 function createAutoroleInfoEmbed(description) {
     return createEmbed()
@@ -15,6 +16,7 @@ function createAutoroleInfoEmbed(description) {
 }
 
 export default {
+    betaSlash: true,
     data: new SlashCommandBuilder()
         .setName('autorole')
         .setDescription('Manage roles that are automatically assigned to new members')
@@ -60,6 +62,10 @@ export default {
 
         if (subcommand === 'add') {
             const role = options.getRole('role');
+            await guild.roles.fetch();
+            await guild.members.fetchMe({ force: true });
+            const actor = await guild.members.fetch({ user: interaction.user.id, force: true });
+            assertRoleEditable(guild, actor, role);
 
             const guildConfig = await getGuildConfig(client, guild.id);
             const verificationEnabled = Boolean(guildConfig.verification?.enabled);

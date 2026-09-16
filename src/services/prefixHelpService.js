@@ -1,7 +1,7 @@
 import { toContainerMessage, disablePanelControls } from '../utils/panelLayout.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, StringSelectMenuBuilder, PermissionFlagsBits } from 'discord.js';
 import { getCommandAccessSnapshot, isCommandEnabledInConfig } from './commandAccessService.js';
-import { isSlashCommandCategoryEnabled } from '../config/commands/slashCommandCategories.js';
+import { isSlashCommandCategoryEnabled, isSlashCommandEnabled } from '../config/commands/slashCommandCategories.js';
 import { getPrefixRestriction } from '../config/commands/prefixRestrictions.js';
 import { resolveSubcommandAlias } from '../config/commands/commandAliases.js';
 import { isBotOwner, isCommandCategoryEnabled } from '../config/bot.js';
@@ -15,10 +15,11 @@ import { createEmbed } from '../utils/embeds.js';
 export function listPrefixHelp(client, config, member, channelId, mode = 'prefix', guildId = member?.guild?.id) {
   const entries = [];
   for (const category of getCommandAccessSnapshot(client, config, guildId).categories) {
-    if (!(mode === 'slash' ? isSlashCommandCategoryEnabled(category.folder) : isCommandCategoryEnabled(category.folder)) || category.categoryDisabled) continue;
+    if (!(mode === 'slash' ? isSlashCommandCategoryEnabled(category.folder, guildId) : isCommandCategoryEnabled(category.folder)) || category.categoryDisabled) continue;
     for (const entry of category.commands) {
       const [base, ...args] = entry.name.split(' ');
       const command = client.commands.get(base);
+      if (mode === 'slash' && !isSlashCommandEnabled(command, guildId)) continue;
       if (!canUseBetaCommand(command, guildId)) continue;
       if (mode === 'prefix' && !canUsePrefixCommand(command, member, config)) continue;
       if (mode === 'prefix' && (!supportsPrefixExecution(command) || getPrefixRestriction(command, args, resolveSubcommandAlias).blocked)) continue;

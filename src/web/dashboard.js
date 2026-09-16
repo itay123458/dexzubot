@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { ChannelType, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getBotOwners } from '../config/bot.js';
 import { getBetaGuildId, isBetaGuild } from '../config/beta.js';
-import { isSlashCommandCategoryEnabled } from '../config/commands/slashCommandCategories.js';
+import { isSlashCommandEnabled } from '../config/commands/slashCommandCategories.js';
 import {
   disableCategory,
   disableCommand,
@@ -164,7 +164,12 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
     recentActivity,
     owners,
     categories: snapshot.categories
-      .filter(category => isSlashCommandCategoryEnabled(category.folder))
+      .map(category => {
+        const commands = category.commands.filter(command => isSlashCommandEnabled(client.commands.get(command.name.split(' ')[0]), guild.id));
+        return { ...category, commands, totalCount: commands.length,
+          enabledCount: commands.filter(command => category.enabledCommands.includes(command.name)).length };
+      })
+      .filter(category => category.commands.length > 0)
       .map(category => ({
         key: category.key,
         name: category.displayName,

@@ -132,7 +132,12 @@ export function createMockInteraction(message, commandData, args) {
         const mentionMatch = roleId.match(/<@&(\d+)>/);
         const id = mentionMatch ? mentionMatch[1] : roleId;
 
-        return message.guild.roles.fetch(id).catch(() => null);
+        const role = message.guild.roles.cache.get(id);
+        if (!role) {
+          throw new TitanBotError('Prefix role option could not be resolved', ErrorTypes.VALIDATION,
+            'That role is not available in this server. Mention a valid role and try again.');
+        }
+        return role;
       },
       getInteger: (name) => options.getInteger(name),
       getBoolean: (name) => options.getBoolean(name),

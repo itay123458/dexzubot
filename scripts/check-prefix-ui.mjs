@@ -6,7 +6,7 @@ const prefix = readFileSync(new URL('../src/web/public/prefix-settings.js', impo
 const events = {}, inputs = {}, dirtyPages = new Set();
 const element = id => inputs[id] ||= { addEventListener: (event, fn) => { events[`${id}:${event}`] = fn; } };
 const state = { prefixSettings: { prefix: '!', enabled: true, allowedChannelIds: [], allowedRoleIds: [] }, channels: [], accessRoles: [] };
-const context = vm.createContext({ $, state, dirtyPages, checkbox: () => '', escapeHtml: x => x, setInterval: () => {}, document: { querySelector: () => ({ classList: { toggle() {} } }) }, window: { addEventListener: (event, fn) => { events[event] = fn; } } });
+const context = vm.createContext({ $, state, dirtyPages, checkbox: () => '', escapeHtml: x => x, setInterval: () => {}, clearInterval: () => {}, document: { addEventListener() {}, querySelector: () => ({ classList: { toggle() {} } }) }, window: { addEventListener: (event, fn) => { events[event] = fn; } } });
 function $(id) { return element(id); }
 vm.runInContext(app.match(/function setDirty\(page, dirty = true\) \{[\s\S]*?\n\}/)[0], context);
 vm.runInContext(prefix, context);

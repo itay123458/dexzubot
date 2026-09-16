@@ -16,7 +16,7 @@ export default {
         title: 'DexzuBot Beta',
         description: 'This server is the configured space for testing future DexzuBot commands.',
         fields: [
-          { name: '🧪 Available now', value: 'Beta access and this status command are enabled. No experimental releases have been added yet.' },
+          { name: '🧪 Available now', value: 'Role management is ready to test: /role add, remove, create, edit, delete, info, list, bulk-add and bulk-remove. /autorole is also available here. Bulk changes and deletion need confirmation.' },
           { name: '💎 Same DexzuBot', value: 'This server uses the same bot application and running process as the main server. It is not a separate deployment.' },
           { name: '🔒 Testing scope', value: 'Commands marked beta-only register and run only in this server. Normal commands still follow this server’s settings and permissions.' },
         ],

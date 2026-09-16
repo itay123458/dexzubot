@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { Collection, ActionRowBuilder, MessageFlags, Routes } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
-import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
+import { isSlashCommandCategoryEnabled, isSlashCommandEnabled } from '../../config/commands/slashCommandCategories.js';
 import { isBotOwner } from '../../config/bot.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { isCommandEnabledInConfig } from '../../services/commandAccessService.js';
@@ -161,6 +161,7 @@ function addGroupedCommandFields(embed, commands, formatLine, page = null) {
 }
 
 function userCanUseCommand(command, category, interaction, guildConfig) {
+    if (!isSlashCommandEnabled({ ...command, category }, interaction?.guildId)) return false;
     const userId = interaction?.user?.id;
     if (userId && isBotOwner(userId)) {
         return true;
@@ -224,7 +225,7 @@ async function fetchRegisteredCommands(client) {
 }
 
 async function createCategoryCommandsMenu(category, client, interaction) {
-    if (!isSlashCommandCategoryEnabled(category)) {
+    if (!isSlashCommandCategoryEnabled(category, interaction?.guildId)) {
         return createAllCommandsMenu(1, client, interaction);
     }
 
@@ -317,7 +318,7 @@ export async function createAllCommandsMenu(page = 1, client, interaction = null
     const categoryDirs = (
         await fs.readdir(commandsPath, { withFileTypes: true })
     )
-        .filter((dirent) => dirent.isDirectory() && isSlashCommandCategoryEnabled(dirent.name))
+        .filter((dirent) => dirent.isDirectory() && isSlashCommandCategoryEnabled(dirent.name, interaction?.guildId))
         .map((dirent) => dirent.name)
         .sort();
 
