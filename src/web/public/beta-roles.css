@@ -1,0 +1,26 @@
+.beta-release-card { margin-bottom:20px; }
+.beta-release-card h3 { margin:0 0 8px; font-size:18px; }
+.beta-release-card time { color:var(--cyan); font-size:12px; }
+.beta-release-card ul { padding-left:20px; line-height:1.7; color:var(--muted); }
+.beta-release-card details { margin-top:12px; }
+.beta-release-card summary,.beta-role-grid summary { cursor:pointer; padding:10px 0; color:var(--cyan); }
+#beta-role-controls { margin:24px 0; }
+.beta-role-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.beta-role-grid .card { min-width:0; padding:24px; }
+.beta-role-grid h3 { margin:0 0 10px; }
+.beta-role-grid p { color:var(--muted); line-height:1.6; overflow-wrap:anywhere; }
+.beta-role-grid fieldset { border:0; padding:0; margin:0; display:grid; gap:10px; min-width:0; }
+.beta-role-grid label:not(.check-row) { font-size:13px; margin-top:8px; color:var(--text); }
+.beta-role-grid input:not([type=checkbox]),.beta-role-grid select { width:100%; min-height:44px; margin:0; padding:10px 12px; }
+.beta-role-grid button { min-height:44px; justify-self:start; margin-top:8px; }
+.role-actions { display:flex; flex-wrap:wrap; gap:10px; }
+.role-danger { color:var(--danger); }
+.role-guide dt { color:var(--cyan); font-size:13px; margin-top:16px; overflow-wrap:anywhere; }
+.role-guide dd { color:var(--muted); margin:6px 0 0; line-height:1.5; }
+#role-status { min-height:48px; padding:12px 16px; border:1px solid var(--line); border-radius:12px; white-space:pre-line; line-height:1.6; overflow-wrap:anywhere; }
+#role-status[data-error=true] { border-color:var(--danger); }
+#role-preview-dialog { width:min(560px,calc(100vw - 32px)); max-height:85dvh; overflow:auto; background:var(--surface-2); color:var(--text); border:1px solid var(--line); border-radius:18px; padding:24px; }
+#role-preview-dialog::backdrop { background:#030810bc; }
+#role-preview-copy { white-space:pre-line; line-height:1.7; }
+#role-preview-dialog button { min-height:44px; }
+@media(max-width:760px) { .beta-role-grid { grid-template-columns:1fr; } .beta-role-grid .card { padding:18px; } .beta-release-card .card-head { align-items:flex-start; flex-direction:column; gap:12px; } }

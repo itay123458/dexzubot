@@ -8,7 +8,7 @@ const element = id => inputs[id] ||= { addEventListener: (event, fn) => { events
 const state = { prefixSettings: { prefix: '!', enabled: true, allowedChannelIds: [], allowedRoleIds: [] }, channels: [], accessRoles: [] };
 const context = vm.createContext({ $, state, dirtyPages, checkbox: () => '', escapeHtml: x => x, setInterval: () => {}, clearInterval: () => {}, document: { addEventListener() {}, querySelector: () => ({ classList: { toggle() {} } }) }, window: { addEventListener: (event, fn) => { events[event] = fn; } } });
 function $(id) { return element(id); }
-vm.runInContext(app.match(/function setDirty\(page, dirty = true\) \{[\s\S]*?\n\}/)[0], context);
+vm.runInContext(app.match(/function setDirty\([^)]*\) \{[\s\S]*?\n\}/)[0], context);
 vm.runInContext(prefix, context);
 events['prefix-settings-form:input']();
 assert.ok(dirtyPages.has('operations'), 'Prefix edits must trigger navigation/unload protection');
@@ -17,3 +17,7 @@ events['dexzu-discard']?.({ detail: 'operations' });
 events['dexzu-state']({ detail: state });
 assert.equal(element('command-prefix').value, '!', 'Discard must release the local draft and restore saved settings');
 console.log('PASS: prefix edits are guarded and discard restores saved settings');
+vm.runInContext("setDirty('operations', true); setDirty('operations', true, 'roles'); setDirty('operations', false, 'roles');", context);
+assert.ok(dirtyPages.has('operations'), 'Saving roles must preserve an unsaved prefix draft');
+vm.runInContext("setDirty('operations', false);", context);
+assert.equal(dirtyPages.has('operations'), false);

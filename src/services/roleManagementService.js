@@ -86,7 +86,7 @@ export const applyRolePlan = wrapServiceBoundary(async (guild, actorId, plan) =>
         || (plan.sourceId && !member.roles.cache.has(plan.sourceId))
         || (plan.audience === 'humans' && member.user.bot) || (plan.audience === 'bots' && !member.user.bot)
         || member.roles.cache.has(role.id) === (plan.action === 'add')) { result.skipped++; continue; }
-      await member.roles[plan.action](role.id, `DexzuBot role ${plan.action} requested by ${actorId}`);
+      await member.roles[plan.action](role.id, `DexzuBot role ${plan.action} requested by ${plan.auditSource || actorId}`);
       result.changed++;
     } catch (error) {
       result.failed++;

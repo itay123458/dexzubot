@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/dashboard/dashboard-polish.css">
   <link rel="stylesheet" href="/dashboard/youtube-dashboard.css">
   <link rel="stylesheet" href="/dashboard/control-pages.css">
+  <link rel="stylesheet" href="/dashboard/beta-roles.css">
   <link rel="stylesheet" href="/dashboard/workspace.css"><link rel="stylesheet" href="/dashboard/command-center.css?v=2">
 </head>
 <body>
@@ -65,6 +66,10 @@
 
       <main id="dashboard-main" tabindex="-1">
         <section class="page active" data-panel="overview">
+          <article id="beta-release-notes" class="card beta-release-card" hidden aria-labelledby="beta-release-heading">
+            <div class="card-head"><div><p class="eyebrow">BETA / RELEASE NOTES</p><h2 id="beta-release-heading">What changed</h2></div><button type="button" id="open-beta-roles" class="secondary-button">Open role controls</button></div>
+            <div id="beta-release-content" aria-live="polite">Loading release notes…</div>
+          </article>
           <article class="bot-banner" aria-label="Bot connection and runtime">
             <div class="bot-identity"><img id="hero-bot-avatar" alt="" width="72" height="72"><div><p class="eyebrow">YOUR DUNGEON COMPANION</p><h2>DexzuBot</h2><p id="hero-connection">Connecting to your bot…</p></div></div>
             <dl class="runtime-stats"><div><dt>Uptime</dt><dd id="hero-uptime">—</dd></div><div><dt>Memory</dt><dd id="hero-memory">—</dd></div><div><dt>Discord API</dt><dd id="hero-api">Checking</dd></div></dl>
@@ -181,6 +186,18 @@
         <section class="page" data-panel="operations">
           <div class="feature-heading"><div><p class="eyebrow">RELIABILITY CENTER</p><h2>Operations</h2><p>Health checks, access roles, backups, and active timed punishments.</p></div><button id="run-health-check" class="secondary-button">Run health check</button></div>
           <div id="operations-summary" class="summary-grid four"></div>
+          <section id="beta-role-controls" hidden aria-labelledby="role-controls-heading">
+            <div class="feature-heading"><div><p class="eyebrow">BETA / SERVER ROLES</p><h2 id="role-controls-heading">Role management</h2><p>Manage roles here or use /role in Discord. Bulk changes and deletion need confirmation.</p></div><button id="refresh-roles" type="button" class="secondary-button">Refresh roles</button></div>
+            <p id="role-status" role="status" aria-live="polite">Loading server roles…</p>
+            <div class="beta-role-grid">
+              <article class="card"><h3>Autorole</h3><p>Give one role to new members when they join.</p><form id="role-autorole-form"><fieldset disabled><label for="role-autorole">New member role</label><select id="role-autorole"></select><p id="role-autorole-help">Choose a role or turn autorole off.</p><button type="submit">Save autorole</button></fieldset></form></article>
+              <article class="card"><h3>Member roles</h3><p>Add or remove one role for one member.</p><form id="role-member-form"><fieldset disabled><label for="role-member-id">Member ID or mention</label><input id="role-member-id" required pattern="(?:&lt;@!?)?[0-9]{17,20}&gt;?" placeholder="Paste a member ID or @mention" autocomplete="off"><label for="role-member-selected">Role</label><select id="role-member-selected" required></select><label for="role-member-action">Action</label><select id="role-member-action"><option value="add">Add role</option><option value="remove">Remove role</option></select><button type="submit">Apply to member</button></fieldset></form></article>
+              <article class="card"><h3>Create a role</h3><p>New roles start with no server permissions.</p><form id="role-create-form"><fieldset disabled><label for="role-create-name">Name</label><input id="role-create-name" required maxlength="100" placeholder="Beta Tester"><label for="role-create-color">Color</label><input id="role-create-color" value="#67D5FF" pattern="#?[0-9a-fA-F]{6}" required maxlength="7"><button type="submit">Create role</button></fieldset></form></article>
+              <article class="card"><h3>Browse and edit roles</h3><label for="role-edit-selected">Server role</label><select id="role-edit-selected"></select><p id="role-detail-summary"></p><details><summary>Role permissions</summary><p id="role-permissions"></p></details><form id="role-edit-form"><fieldset disabled><label for="role-edit-name">Name</label><input id="role-edit-name" required maxlength="100"><label for="role-edit-color">Color</label><input id="role-edit-color" required maxlength="7" pattern="#?[0-9a-fA-F]{6}"><label class="check-row"><input id="role-edit-hoist" type="checkbox"><span>Display separately in the member list</span></label><label class="check-row"><input id="role-edit-mentionable" type="checkbox"><span>Allow everyone to mention this role</span></label><div class="role-actions"><button type="submit">Save role</button><button id="role-delete" type="button" class="secondary-button role-danger">Preview deletion</button></div></fieldset></form></article>
+              <article class="card"><h3>Bulk role changes</h3><p>Preview up to 100 eligible members. Members above DexzuBot, the server owner, and DexzuBot itself are skipped.</p><form id="role-bulk-form"><fieldset disabled><label for="role-bulk-selected">Role to change</label><select id="role-bulk-selected" required></select><label for="role-bulk-action">Action</label><select id="role-bulk-action"><option value="bulk-add">Add role</option><option value="bulk-remove">Remove role</option></select><label for="role-bulk-audience">Audience</label><select id="role-bulk-audience"><option value="humans">Humans</option><option value="bots">Bots</option><option value="all">Everyone</option></select><label for="role-bulk-source">Only members with this role (optional)</label><select id="role-bulk-source"></select><button type="submit">Preview bulk change</button></fieldset></form></article>
+              <article class="card role-guide"><p class="eyebrow">QUICK GUIDE</p><h3>Prefer Discord?</h3><dl><dt>/role add · remove</dt><dd>Change a member's role.</dd><dt>/role create · edit · delete</dt><dd>Manage a role's name, color, and display settings.</dd><dt>/role info · list</dt><dd>Check roles and their permissions.</dd><dt>/role bulk-add · bulk-remove</dt><dd>Choose an audience and preview the change.</dd><dt>/role confirm · cancel</dt><dd>Apply or discard your pending preview.</dd><dt>/autorole add · remove · list</dt><dd>Set the role given to new members.</dd></dl><p>Discord commands require Manage Roles. Autorole also needs Manage Server. Prefix commands work with the server's configured prefix.</p><p>This private dashboard uses DexzuBot's permissions. Changes are recorded as dashboard actions.</p></article>
+            </div>
+          </section>
           <article class="card prefix-settings-card">
             <div class="card-head"><div><p class="eyebrow">TEXT COMMANDS</p><h2>Prefix Commands</h2><p>Shared with the Discord /prefix dashboard. Slash commands and staff permissions are unchanged.</p></div></div>
             <form id="prefix-settings-form">
@@ -214,10 +231,16 @@
   </dialog>
   <div id="toasts" class="toast-stack" aria-live="polite"></div>
   <link rel="stylesheet" href="/dashboard/motion.css">
+  <dialog id="role-preview-dialog" aria-labelledby="role-preview-heading" aria-describedby="role-preview-copy">
+    <h2 id="role-preview-heading">Review role changes</h2><p id="role-preview-copy"></p><p id="role-preview-expiry"></p>
+    <p>No changes have been applied. A new dashboard preview replaces the previous one.</p>
+    <div class="role-actions"><button id="role-confirm" type="button">Confirm changes</button><button id="role-cancel" type="button" class="secondary-button">Cancel</button></div>
+  </dialog>
   <script src="/dashboard/motion.js" defer></script>
   <script src="/dashboard/dashboard-context.js" defer></script>
   <script src="/dashboard/app.js" defer></script>
   <script src="/dashboard/prefix-settings.js" defer></script>
+  <script src="/dashboard/beta-roles.js" defer></script>
   <script src="/dashboard/workspace.js" defer></script>
   <script src="/dashboard/control-center.js" defer></script>
 </body>

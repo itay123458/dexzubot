@@ -18,6 +18,10 @@ const server = await new Promise(resolve => { const running = app.listen(0, '127
 const base = `http://127.0.0.1:${server.address().port}/dashboard/api`;
 const save = (workspace, prefix, extra = {}) => fetch(`${base}/prefix${workspace}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...extra }, body: JSON.stringify({ prefix, enabled: true, allowedChannelIds: [], allowedRoleIds: [] }) });
 try {
+  const betaReleases = await fetch(`${base}/releases?workspace=beta`);
+  assert.equal(betaReleases.status, 200);
+  assert.ok((await betaReleases.json()).releases.some(release => release.id === '2026-09-16-roles'));
+  assert.deepEqual((await (await fetch(`${base}/releases`)).json()).releases, []);
   assert.equal((await save('', '!')).status, 200);
   assert.equal((await save('?workspace=beta', '?')).status, 200);
   assert.equal((await (await fetch(`${base}/prefix`)).json()).settings.prefix, '!', 'Beta writes must not change main settings');

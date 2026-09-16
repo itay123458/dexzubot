@@ -133,7 +133,7 @@ const pageDetails = {
   leveling: ['Leveling', 'XP rewards, announcements, and progression.'],
   logging: ['Logging', 'Choose which server events are recorded.'],
   youtube: ['YouTube', 'Automatic upload alerts for DexzuGtag.'],
-  operations: ['Operations', 'Health checks, staff access, backups, and timed punishments.'],
+  operations: ['Operations', 'Role management, autorole, health checks, staff access, and backups.'],
   'module-counting': ['Counting', 'Manage the server counting game commands.'],
   'module-economy': ['Economy', 'Manage currency, rewards, shops, and economy commands.'],
   'module-moderation': ['Moderation', 'Manage staff moderation and member safety commands.'],
@@ -231,6 +231,7 @@ function showPage(pageName) {
   if (currentPage && currentPage !== selected && dirtyPages.has(currentPage)) {
     if (!confirm('Discard unsaved changes?')) return;
     dirtyPages.delete(currentPage);
+    setDirty.sources?.delete(currentPage);
     window.dispatchEvent(new CustomEvent('dexzu-discard', { detail: currentPage }));
     if (state) render(state);
   }
@@ -251,10 +252,14 @@ function showPage(pageName) {
   if (selected === 'youtube') void loadYouTubeLatest();
 }
 
-function setDirty(page, dirty = true) {
+function setDirty(page, dirty = true, source = 'page') {
   if (!['safety', 'greetings', 'leveling', 'logging', 'operations'].includes(page)) return;
-  if (dirty) dirtyPages.add(page); else dirtyPages.delete(page);
-  document.querySelector(`[data-panel="${page}"]`)?.classList.toggle('is-dirty', dirty);
+  setDirty.sources ||= new Map();
+  const sources = setDirty.sources.get(page) || new Set();
+  if (dirty) sources.add(source); else sources.delete(source);
+  if (sources.size) { setDirty.sources.set(page, sources); dirtyPages.add(page); }
+  else { setDirty.sources.delete(page); dirtyPages.delete(page); }
+  document.querySelector(`[data-panel="${page}"]`)?.classList.toggle('is-dirty', sources.size > 0);
 }
 
 function channelName(id) { return state?.channels.find(channel => channel.id === id)?.name || 'Not configured'; }
@@ -599,7 +604,7 @@ function bindControlEvents() {
   $('logging-all').onclick = () => { document.querySelectorAll('[data-group=logging]').forEach(input => { input.checked = true; }); setDirty('logging'); updateLoggingUi(); };
   $('logging-none').onclick = () => { document.querySelectorAll('[data-group=logging]').forEach(input => { input.checked = false; }); setDirty('logging'); updateLoggingUi(); };
   $('logging-search').oninput = () => { const query = $('logging-search').value.trim().toLowerCase(); document.querySelectorAll('.logging-group').forEach(group => { let visible = 0; group.querySelectorAll('.check-row').forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(query); if (!row.hidden) visible += 1; }); group.hidden = visible === 0; if (query && visible) group.open = true; }); updateLoggingUi(); };
-  $('logging-discard').onclick = () => { dirtyPages.delete('logging'); render(state); };
+  $('logging-discard').onclick = () => { setDirty('logging', false); render(state); };
 }
 
 function updateYouTubeSummary() {

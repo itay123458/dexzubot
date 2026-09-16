@@ -52,6 +52,18 @@ lookup and save-error handling.
 
 ## Beta notes
 
+The private dashboard now includes all role controls under **Beta → Operations →
+Role management**, including autorole, member assignments, create/edit/delete,
+role details, and confirmed bulk changes. Release notes appear on the Beta
+overview, with a command guide alongside the controls.
+
+Dashboard access is administrative access through the existing private connection;
+it is not a Discord user login. Dashboard role actions use the bot's actual
+permissions and hierarchy and are labelled `private Beta dashboard` in Discord's
+audit reasons. They never impersonate a guild owner. Pending dashboard previews
+share one slot per server and are separate from individual Discord users' previews.
+Forms protect unsaved drafts, including separate prefix-settings drafts.
+
 Role commands are ready to try. You can add or remove member roles, create roles,
 change their name and color, or check their details. Bulk changes show a preview
 first, so you can check the audience before anything happens. Autorole also works

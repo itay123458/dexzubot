@@ -25,6 +25,8 @@ app.use('/dashboard/api', async (req, res) => {
   state.server.id = key === 'beta' ? '1486680755869323388' : '1533088766821007390';
   if (req.path === '/prefix') return res.json({ settings: state.prefixSettings });
   if (req.path === '/activity') return res.json({ activity: [] });
+  if (req.path === '/roles') return res.json({ roles: [], autorole: { roleId: null, blocked: false } });
+  if (req.path === '/releases') return res.json({ releases: [] });
   return res.json(state);
 });
 app.use('/dashboard', express.static(fileURLToPath(new URL('../src/web/public/', import.meta.url))));
