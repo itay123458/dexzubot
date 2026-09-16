@@ -14,7 +14,8 @@ const [me, guild, channels, roles] = await Promise.all([
 ]);
 const member = await rest.get(Routes.guildMember(guildId, me.id));
 if (process.argv.includes('--snapshot')) {
-  console.log(JSON.stringify({ capturedAt: new Date().toISOString(), guild, channels, roles, botMember: member }, null, 2));
+  const snapshot = JSON.stringify({ capturedAt: new Date().toISOString(), guild, channels, roles, botMember: member }, null, 2);
+  await new Promise((resolve, reject) => process.stdout.write(`${snapshot}\n`, error => error ? reject(error) : resolve()));
   process.exit(0);
 }
 const permissions = new PermissionsBitField(roles.filter(role => role.id === guildId || member.roles.includes(role.id))
