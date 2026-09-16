@@ -47,7 +47,7 @@ export async function openPrefixHelp(interaction, _config, client, mode = 'prefi
     const pages = Math.max(1, Math.ceil(entries.length / 8));
     page = Math.min(page, pages - 1);
     const prefix = mode === 'slash' ? '/' : getPrefixSettings(config).prefix;
-    const embed = createEmbed({ title: `DexzuBot · ${mode === 'slash' ? 'Slash' : 'Prefix'} Help`, color: 'primary', description: `Showing enabled commands you can use in this channel.\nCategory: **${selectedCategory === 'all' ? 'All enabled categories' : selectedCategory}**` });
+    const embed = createEmbed({ title: `${mode === 'slash' ? 'Slash' : 'Prefix'} Command Guide`, author: 'DEXZUBOT / COMMANDS', thumbnail: client.user?.displayAvatarURL?.(), color: 'primary', description: `Find your way around the dungeon.\n\n**${selectedCategory === 'all' ? 'All enabled categories' : selectedCategory}**\nCommands available to you in this channel.` });
     for (const entry of entries.slice(page * 8, page * 8 + 8)) embed.addFields({ name: `${prefix}${entry.name}`, value: `${entry.category} · ${entry.description}`.slice(0, 1024) });
     if (!entries.length) embed.setDescription(`No enabled ${mode} commands are available to you in this channel.`);
     embed.setFooter({ text: `Page ${page + 1}/${pages} · ${entries.length} commands · Menu expires in 5 minutes` });

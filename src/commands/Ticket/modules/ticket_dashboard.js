@@ -1,3 +1,4 @@
+import { createSupportPanelEmbed } from '../../../utils/brandPanels.js';
 import { getColor } from '../../../config/bot.js';
 import {
     ActionRowBuilder,
@@ -80,11 +81,8 @@ async function persistPanelMessageId(client, guildId, guildConfig, messageId) {
     }
 }
 
-function buildPanelEmbed(config) {
-    return new EmbedBuilder()
-        .setTitle('Support Tickets')
-        .setDescription(config.ticketPanelMessage || 'Click the button below to create a support ticket.')
-        .setColor(getColor('info'));
+function buildPanelEmbed(config, guild) {
+    return createSupportPanelEmbed(config, guild?.members.me?.displayAvatarURL());
 }
 
 function buildPanelButtonRow(config) {
@@ -108,7 +106,7 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
     }
 
     const sentPanel = await channel.send({
-        embeds: [buildPanelEmbed(guildConfig)],
+        embeds: [buildPanelEmbed(guildConfig, guild)],
         components: [buildPanelButtonRow(guildConfig)],
     });
 
@@ -249,7 +247,7 @@ async function updateLivePanel(client, guild, config, guildId) {
         if (!panelStatus.exists || !panelStatus.message) return false;
 
         await panelStatus.message.edit({
-            embeds: [buildPanelEmbed(config)],
+            embeds: [buildPanelEmbed(config, guild)],
             components: [buildPanelButtonRow(config)],
         });
         return true;

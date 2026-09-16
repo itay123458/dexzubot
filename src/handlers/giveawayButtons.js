@@ -1,3 +1,4 @@
+import { withGiveawayArtwork } from '../services/giveawayService.js';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { successEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
@@ -67,7 +68,7 @@ export const giveawayJoinHandler = {
                 const updatedRow = createGiveawayButtons(false);
 
                 await interaction.message.edit({
-                    embeds: [updatedEmbed],
+                    ...withGiveawayArtwork(updatedEmbed, interaction.channel, interaction.message),
                     components: [updatedRow]
                 });
 
@@ -149,7 +150,7 @@ export const giveawayEndHandler = {
 
             await interaction.message.edit({
                 content: '🎉 **GIVEAWAY ENDED** 🎉',
-                embeds: [updatedEmbed],
+                ...withGiveawayArtwork(updatedEmbed, interaction.channel, interaction.message),
                 components: [updatedRow]
             });
 
@@ -273,7 +274,7 @@ export const giveawayRerollHandler = {
 
             await interaction.message.edit({
                 content: '🔄 **GIVEAWAY REROLLED** 🔄',
-                embeds: [updatedEmbed],
+                ...withGiveawayArtwork(updatedEmbed, interaction.channel, interaction.message),
                 components: [updatedRow]
             });
 

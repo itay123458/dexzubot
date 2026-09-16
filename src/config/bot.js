@@ -95,7 +95,7 @@ export const botConfig = {
   embeds: {
     colors: {
       // Main brand colors.
-      primary: "#336699",
+      primary: "#65B4FF",
       secondary: "#2F3136",
 
       // Standard status colors for success/error/warning/info messages.
@@ -119,7 +119,7 @@ export const botConfig = {
 
       // Feature-specific colors.
       giveaway: {
-        active: "#57F287",
+        active: "#65B4FF",
         ended: "#ED4245",
       },
       ticket: {
@@ -128,7 +128,7 @@ export const botConfig = {
         closed: "#ED4245",
         pending: "#99AAB5",
       },
-      economy: "#F1C40F",
+      economy: "#65B4FF",
       birthday: "#E91E63",
       moderation: "#9B59B6",
 
@@ -143,7 +143,7 @@ export const botConfig = {
     },
     footer: {
       // Default footer text used in bot embeds.
-      text: "Titan Bot",
+      text: "DexzuBot",
       // Footer icon URL (null = no icon).
       icon: null,
     },

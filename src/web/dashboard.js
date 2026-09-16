@@ -125,6 +125,8 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
       online: client.isReady(),
       uptimeSeconds: Math.floor(client.uptime / 1000),
       loadedCommands: client.commands.size,
+      latencyMs: Number.isFinite(client.ws.ping) && client.ws.ping >= 0 ? Math.round(client.ws.ping) : null,
+      memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
     },
     server: {
       id: guild.id,
@@ -132,6 +134,7 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
       icon: guild.iconURL({ size: 256 }),
       members: guild.memberCount,
       channels: guild.channels.cache.size,
+      roles: guild.roles.cache.size,
     },
     database: client.db?.getStatus?.() || null,
     channels,

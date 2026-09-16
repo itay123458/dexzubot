@@ -56,7 +56,10 @@ export default {
 
             const embed = createEmbed({
                 title: `${targetUser.username}'s Balance`,
-                description: `Here is the current financial status for ${targetUser.username}.`,
+                description: 'Your rewards, safely accounted for.',
+                author: 'DEXZUBOT / ECONOMY',
+                thumbnail: targetUser.displayAvatarURL(),
+                footer: 'DexzuBot · Economy',
             })
                 .addFields(
                     {

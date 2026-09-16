@@ -1,9 +1,11 @@
+import { createEmbed } from '../utils/embeds.js';
+import { fileURLToPath } from 'node:url';
 // giveawayService.js
 
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
+import { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
-import { getColor, botConfig } from '../config/bot.js';
+import { botConfig } from '../config/bot.js';
 import { getEndedGiveaways, markGiveawayEnded } from '../utils/database.js';
 import { checkRateLimit, getRateLimitStatus } from '../utils/rateLimiter.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
@@ -134,32 +136,29 @@ export function validateWinnerCount(winnerCount) {
 
 export function createGiveawayEmbed(giveaway, status, winners = []) {
     try {
-        const statusEmoji = status === 'ended' ? '🎉' : status === 'reroll' ? '🔄' : '🎉';
         const isEnded = status === 'ended' || status === 'reroll';
-        const color = isEnded ? getColor('giveaway.ended') : getColor('giveaway.active');
-        
-        const embed = new EmbedBuilder()
-            .setTitle(`${statusEmoji} ${giveaway.prize}`)
-            .setDescription('React with the button below to enter!')
-            .setColor(color)
-            .addFields(
-                { name: '👤 Hosted by', value: `<@${giveaway.hostId}>`, inline: true },
-                { name: '🏆 Winners', value: giveaway.winnerCount.toString(), inline: true },
-                { name: '👥 Entries', value: giveaway.participants?.length?.toString() || '0', inline: true }
-            );
-
+        const embed = createEmbed({
+            title: giveaway.prize,
+            author: 'DEXZUBOT / GIVEAWAYS',
+            description: isEnded
+                ? (status === 'reroll' ? 'The results are in. A new set of winners has been drawn.' : 'This giveaway has ended. Thank you for taking part!')
+                : 'A new reward awaits in the dungeon. Use **Enter giveaway** below for a chance to win.',
+            color: isEnded ? 'giveaway.ended' : 'primary',
+            footer: 'DexzuBot · Giveaways',
+            fields: [
+                { name: 'Hosted by', value: `<@${giveaway.hostId}>`, inline: true },
+                { name: 'Winner count', value: String(giveaway.winnerCount), inline: true },
+                { name: 'Participants', value: String(giveaway.participants?.length || 0), inline: true },
+            ],
+        });
         if (isEnded) {
-            const winnerDisplay = winners.length > 0 
-                ? winners.map(id => `<@${id}>`).join(', ')
-                : 'No valid entries';
-            embed.addFields({ name: '🎯 Winners', value: winnerDisplay, inline: false });
+            embed.addFields({ name: 'Winners', value: winners.length ? winners.map(id => `<@${id}>`).join(', ') : 'No valid entries' });
         } else {
-            const endTime = giveaway.endsAt || giveaway.endTime;
-            embed.addFields({ name: '⏰ Ends', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: false });
+            const endTime = Math.floor((giveaway.endsAt || giveaway.endTime) / 1000);
+            embed.addFields({ name: 'Closes', value: `<t:${endTime}:F>\n<t:${endTime}:R>` });
         }
+        embed.addFields({ name: 'Status', value: isEnded ? (status === 'reroll' ? 'Rerolled' : 'Ended') : 'Open for entries' });
 
-        embed.setTimestamp();
-        
         return embed;
     } catch (error) {
         logger.error('Error creating giveaway embed:', error);
@@ -172,6 +171,19 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
     }
 }
 
+export function withGiveawayArtwork(embed, channel, message = null) {
+    const payload = { embeds: [embed] };
+    const name = 'dexzu-giveaway.jpg';
+    const existing = [...(message?.attachments?.values?.() || [])].some(file => file.name === name);
+    if (existing) {
+        embed.setImage(`attachment://${name}`);
+    } else if (channel?.guild?.members.me && channel.permissionsFor(channel.guild.members.me)?.has(PermissionFlagsBits.AttachFiles)) {
+        embed.setImage(`attachment://${name}`);
+        payload.files = [new AttachmentBuilder(fileURLToPath(new URL('../web/public/dexzu-dungeon-bg.jpg', import.meta.url)), { name })];
+    }
+    return payload;
+}
+
 export function createGiveawayButtons(ended = false) {
     try {
         const row = new ActionRowBuilder();
@@ -180,12 +192,12 @@ export function createGiveawayButtons(ended = false) {
             row.addComponents(
                 new ButtonBuilder()
                     .setCustomId('giveaway_reroll')
-                    .setLabel('🎲 Reroll')
+                    .setLabel('Reroll winners')
                     .setStyle(ButtonStyle.Secondary)
                     .setDisabled(false),
                 new ButtonBuilder()
                     .setCustomId('giveaway_view')
-                    .setLabel('👁️ View Winners')
+                    .setLabel('View winners')
                     .setStyle(ButtonStyle.Primary)
                     .setDisabled(false)
             );
@@ -193,12 +205,12 @@ export function createGiveawayButtons(ended = false) {
             row.addComponents(
                 new ButtonBuilder()
                     .setCustomId('giveaway_join')
-                    .setLabel('🎉 Join')
+                    .setLabel('Enter giveaway')
                     .setStyle(ButtonStyle.Primary)
                     .setDisabled(false),
                 new ButtonBuilder()
                     .setCustomId('giveaway_end')
-                    .setLabel('🛑 End')
+                    .setLabel('End giveaway')
                     .setStyle(ButtonStyle.Danger)
                     .setDisabled(false)
             );
@@ -372,7 +384,7 @@ export async function checkGiveaways(client) {
         const endedEmbed = createGiveawayEmbed(giveaway, 'ended', winners);
 
         await message.edit({
-          embeds: [endedEmbed],
+          ...withGiveawayArtwork(endedEmbed, message.channel, message),
           components: [createGiveawayButtons(true)]
         });
 

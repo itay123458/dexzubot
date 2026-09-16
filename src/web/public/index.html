@@ -10,19 +10,20 @@
   <link rel="stylesheet" href="/dashboard/dashboard-polish.css">
   <link rel="stylesheet" href="/dashboard/youtube-dashboard.css">
   <link rel="stylesheet" href="/dashboard/control-pages.css">
-  <link rel="stylesheet" href="/dashboard/workspace.css"><link rel="stylesheet" href="/dashboard/command-center.css?v=1">
+  <link rel="stylesheet" href="/dashboard/workspace.css"><link rel="stylesheet" href="/dashboard/command-center.css?v=2">
 </head>
 <body>
   <a class="skip-link" href="#dashboard-main">Skip to content</a>
   <div class="app-shell">
-    <aside class="sidebar">
+    <header class="sidebar control-header">
       <div class="brand">
         <div class="brand-avatar"><img id="bot-avatar" alt="DexzuBot avatar"></div>
-        <div><span>Private control</span><strong>DexzuBot</strong></div>
+        <div><strong>DEXZUBOT</strong><span>CONTROL CENTER</span></div>
         <button id="sidebar-collapse" class="collapse-button" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">‹</button>
         <button id="mobile-navigation" class="mobile-navigation" type="button" aria-expanded="false" aria-controls="dashboard-navigation">Menu</button>
       </div>
 
+      <button id="open-control-search" class="control-search" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><span>Search control center</span><kbd>Ctrl K</kbd></button>
       <nav id="dashboard-navigation" class="dashboard-nav" aria-label="Dashboard sections">
         <i id="nav-active-indicator" class="nav-active-indicator" aria-hidden="true"></i>
         <p class="nav-label">Control</p>
@@ -44,29 +45,33 @@
 
       <div class="sidebar-footer">
         <div id="online-pill" class="pill">Checking status</div>
-        <small>DexzuBot • Private Control Panel</small>
+        <small>Private workspace</small>
       </div>
-    </aside>
+    </header>
 
     <div class="workspace">
       <header class="topbar">
-        <div><p class="breadcrumb">DexzuBot <span>/</span> <b id="breadcrumb-page">Overview</b></p><h1 id="page-title">Overview</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
+        <div><p class="breadcrumb">DexzuBot <span>/</span> <b id="breadcrumb-page">Overview</b></p><h1 id="page-title">Good to see you.</h1><p id="page-description">Monitor Dexzu's Dungeon and manage your bot configuration.</p></div>
         <div class="leveling-header-control"><label for="leveling-enabled">Enable leveling</label><label class="switch"><input id="leveling-enabled" type="checkbox"><span></span></label></div>
         <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small>Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
       </header>
 
       <main id="dashboard-main" tabindex="-1">
         <section class="page active" data-panel="overview">
+          <article class="bot-banner" aria-label="Bot connection and runtime">
+            <div class="bot-identity"><img id="hero-bot-avatar" alt="" width="72" height="72"><div><p class="eyebrow">YOUR DUNGEON COMPANION</p><h2>DexzuBot</h2><p id="hero-connection">Connecting to your bot…</p></div></div>
+            <dl class="runtime-stats"><div><dt>Uptime</dt><dd id="hero-uptime">—</dd></div><div><dt>Memory</dt><dd id="hero-memory">—</dd></div><div><dt>Discord API</dt><dd id="hero-api">Checking</dd></div></dl>
+          </article>
           <section class="metrics" id="metrics" aria-label="Server statistics"><div class="metric skeleton"></div><div class="metric skeleton"></div><div class="metric skeleton"></div><div class="metric skeleton"></div></section>
+          <div class="insight-grid">
+            <article class="card activity-card"><div class="card-head"><div><p class="eyebrow">EVENT STREAM</p><h2>Live activity</h2><p>Latest events from DexzuBot.</p></div><button id="view-logs" class="secondary-button">View all</button></div><div id="recent-activity" class="activity-feed"><div class="empty-state"><span class="empty-icon">≡</span><strong>No recent activity</strong><p>New DexzuBot events will appear here.</p></div></div></article>
+            <aside class="overview-rail"><article class="card status-card"><div class="card-head"><div><p class="eyebrow">LIVE SYSTEM</p><h2>System Status</h2></div><button id="refresh-dashboard" class="icon-button" title="Refresh dashboard" aria-label="Refresh dashboard">↻</button></div><div id="system-status" class="system-status"><div class="status-row skeleton-line"></div><div class="status-row skeleton-line"></div></div></article><article class="card performance-card"><div class="card-head"><div><p class="eyebrow">RUNTIME</p><h2>Server at a glance</h2></div></div><div id="performance" class="performance-list"><div class="skeleton-line"></div><div class="skeleton-line"></div></div></article></aside>
+          </div>
           <div class="overview-grid overview-modules">
           <article class="card modules-card">
             <div class="card-head"><div><p class="eyebrow">ACCESS</p><div class="section-title-row"><h2>Command Modules</h2><span class="status-note"><i></i> Applies instantly</span></div><p>Enable or disable bot systems for this server.</p></div></div>
             <div id="categories" class="toggle-grid"></div>
           </article>
-          </div>
-          <div class="insight-grid">
-            <article class="card activity-card"><div class="card-head"><div><p class="eyebrow">EVENT STREAM</p><h2>Recent Activity</h2><p>Latest events from DexzuBot.</p></div><button id="view-logs" class="secondary-button">View all</button></div><div id="recent-activity" class="activity-feed"><div class="empty-state"><span class="empty-icon">≡</span><strong>No recent activity</strong><p>New DexzuBot events will appear here.</p></div></div></article>
-            <aside class="overview-rail"><article class="card status-card"><div class="card-head"><div><p class="eyebrow">LIVE SYSTEM</p><h2>System Status</h2></div><button id="refresh-dashboard" class="icon-button" title="Refresh dashboard" aria-label="Refresh dashboard">↻</button></div><div id="system-status" class="system-status"><div class="status-row skeleton-line"></div><div class="status-row skeleton-line"></div></div></article><article class="card performance-card"><div class="card-head"><div><p class="eyebrow">RUNTIME</p><h2>Bot Performance</h2></div></div><div id="performance" class="performance-list"><div class="skeleton-line"></div><div class="skeleton-line"></div></div></article></aside>
           </div>
         </section>
 
@@ -195,9 +200,15 @@
       </main>
     </div>
   </div>
+  <dialog id="control-search-dialog" aria-labelledby="search-title">
+    <div class="search-dialog-heading"><h2 id="search-title">Find a control</h2><button id="close-control-search" type="button" aria-label="Close search">×</button></div>
+    <label class="sr-only" for="control-search-input">Search dashboard sections</label><input id="control-search-input" type="search" placeholder="Search tickets, safety, leveling…" autocomplete="off">
+    <div id="control-search-results" aria-live="polite"></div><p class="search-hint">Use Tab to choose a result · Escape to close</p>
+  </dialog>
   <div id="toasts" class="toast-stack" aria-live="polite"></div>
   <script src="/dashboard/app.js" defer></script>
   <script src="/dashboard/prefix-settings.js" defer></script>
   <script src="/dashboard/workspace.js" defer></script>
+  <script src="/dashboard/control-center.js" defer></script>
 </body>
 </html>

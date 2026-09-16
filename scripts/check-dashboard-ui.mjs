@@ -2,13 +2,15 @@
 // and Chromium installed. API reads use a tunnel; writes are mocked below.
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const publicRoot = fileURLToPath(new URL('../src/web/public/', import.meta.url));
 const apiOrigin = process.env.DASHBOARD_QA_API || 'http://host.docker.internal:13301';
+const output = process.env.DASHBOARD_QA_OUTPUT || '/output';
+await mkdir(output, { recursive: true });
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg' };
 const server = createServer(async (req, res) => {
   try {
@@ -40,6 +42,18 @@ try {
   });
   await page.goto('http://127.0.0.1:4173/dashboard/');
   await page.waitForFunction(() => document.getElementById('server-name').textContent !== 'Connecting…');
+  await page.locator('#metrics .metric').first().waitFor();
+  assert.equal(await page.locator('#metrics .metric').count(), 8);
+  await page.keyboard.press('Control+k');
+  assert.equal(await page.locator('#control-search-dialog').evaluate(el => el.open), true);
+  await page.locator('#control-search-input').fill('tickets');
+  await page.locator('#control-search-results button').first().click();
+  assert.equal(await page.locator('[data-page="module-ticket"]').getAttribute('aria-current'), 'page');
+  await page.keyboard.press('Control+k');
+  await page.locator('#control-search-input').fill('nonexistent-control');
+  assert.equal(await page.locator('#control-search-results button').count(), 0);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.getElementById('control-search-dialog').open, null, { timeout: 3000 });
   assert.equal(await page.locator('[data-layout-choice],#dashboard-layout').count(), 0);
   const pages = await page.locator('[data-page]').evaluateAll(items => items.map(item => item.dataset.page));
   const overflow = [];
@@ -54,7 +68,7 @@ try {
       const exceeds = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
       if (exceeds) overflow.push({ width, destination, elements: await page.evaluate(() => [...document.querySelectorAll('main *')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).slice(0,6).map(e => e.className || e.tagName)) });
       if ([1440,390].includes(width) && ['overview','logging','greetings','youtube'].includes(destination)) {
-        await page.screenshot({ path: `/output/${destination}-${width}.png`, fullPage: true });
+        await page.screenshot({ path: path.join(output, `${destination}-${width}.png`), fullPage: true });
       }
     }
   }

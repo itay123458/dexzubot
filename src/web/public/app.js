@@ -85,7 +85,7 @@ const icons = {
   chart: icon('<path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/>'), ticket: icon('<path d="M2 9a3 3 0 0 0 0 6v3h20v-3a3 3 0 0 0 0-6V6H2Z"/><path d="M13 6v2M13 11v2M13 16v2"/>'),
 };
 const pageDetails = {
-  overview: ['Overview', "Monitor Dexzu's Dungeon and manage your bot configuration."],
+  overview: ['Good to see you.', "Your dungeon, at a glance. Manage DexzuBot and keep your community connected."],
   safety: ['Safety', 'Promotion filters and mention protection.'],
   greetings: ['Greetings', 'Welcome and goodbye member experiences.'],
   leveling: ['Leveling', 'XP rewards, announcements, and progression.'],
@@ -196,7 +196,11 @@ function showPage(pageName) {
   document.querySelectorAll('[data-page]').forEach(button => button.classList.toggle('active', button.dataset.page === selected));
   requestAnimationFrame(updateNavIndicator);
   $('page-title').textContent = pageDetails[selected][0];
-  $('breadcrumb-page').textContent = pageDetails[selected][0];
+  $('breadcrumb-page').textContent = selected === 'overview' ? 'Control center' : pageDetails[selected][0];
+  document.querySelectorAll('[data-page]').forEach(button => {
+    if (button.dataset.page === selected) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
   $('page-description').textContent = pageDetails[selected][1];
   history.replaceState(null, '', `#${selected}`);
   renderModulePage(selected);
@@ -348,13 +352,20 @@ function render(current) {
   $('server-status-dot').className = current.bot.online ? 'online' : '';
   $('online-pill').textContent = current.bot.online ? 'Online' : 'Offline';
   $('online-pill').className = `pill ${current.bot.online ? 'online' : ''}`;
-  const metricIcons = { Members: icons.members, Commands: icons.command, Channels: icons.hash, Uptime: icons.clock };
   const uptimeHours = Math.floor(current.bot.uptimeSeconds / 3600);
-  const metricValues = { Members: current.server.members, Commands: current.bot.loadedCommands, Channels: current.server.channels };
-  $('metrics').innerHTML = [['Members', metricValues.Members, `${current.server.members} total`], ['Commands', metricValues.Commands, `${current.bot.loadedCommands} loaded`], ['Channels', metricValues.Channels, 'Server total'], ['Uptime', `${uptimeHours}h`, 'Since restart']].map(([key, value, secondary]) => `<div class="metric"><div class="metric-icon">${metricIcons[key]}</div><strong data-metric="${key}">${key === 'Uptime' ? value : (previousMetricValues?.[key] ?? (hasAnimatedStats ? value : 0))}</strong><span>${key}</span><small>${secondary}</small></div>`).join('');
-  for (const [key, value] of Object.entries(metricValues)) animateNumber(document.querySelector(`[data-metric="${key}"]`), previousMetricValues?.[key] ?? (hasAnimatedStats ? value : 0), value, hasAnimatedStats ? 190 : 650);
-  previousMetricValues = metricValues;
-  hasAnimatedStats = true;
+  const enabledModules = current.categories.filter(category => category.enabled).length;
+  const health = current.operations?.health;
+  const metricRows = [
+    ['Members', current.server.members, 'In your community', icons.members],
+    ['Channels', current.server.channels, 'Across the server', icons.hash],
+    ['Roles', current.server.roles ?? '—', 'Server roles', icons.shield],
+    ['Commands', current.bot.loadedCommands, 'Loaded and ready', icons.command],
+    ['Modules', enabledModules, `${current.categories.length} available systems`, icons.chart],
+    ['Timed softbans', current.operations?.softbans?.length ?? '—', 'Currently scheduled', icons.clock],
+    ['Health alerts', health ? (health.failed || 0) + (health.warnings || 0) : '—', health ? 'From last health check' : 'No health check yet', icons.shield],
+    ['Snapshots', current.operations?.snapshots?.length ?? '—', 'Configuration checkpoints', icons.wallet],
+  ];
+  $('metrics').innerHTML = metricRows.map(([key, value, secondary, symbol]) => `<div class="metric"><div class="metric-icon">${symbol}</div><span>${key}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(secondary)}</small></div>`).join('');
   const moduleMeta = {
     core: [icons.command, 'Essential bot functionality'], counting: [icons.hash, 'Server counting game'], economy: [icons.wallet, 'Currency and economy commands'],
     leveling: [icons.trend, 'XP and member progression'], moderation: [icons.shield, 'Staff moderation tools'], serverstats: [icons.chart, 'Live server statistics'],
@@ -373,13 +384,10 @@ function render(current) {
     ['Dashboard API', 'Connected', 'good'],
     ['Uptime', `${uptimeHours}h ${Math.floor((current.bot.uptimeSeconds % 3600) / 60)}m`, current.bot.online ? 'good' : 'bad'],
   ].map(([label, value, status], index) => `<div class="status-row status-updated" style="--row-delay:${index * 30}ms"><span>${label}</span><strong><i class="status-dot ${status}"></i>${value}</strong></div>`).join('');
-  const performanceRows = [
-    ['Uptime', `${uptimeHours}h ${Math.floor((current.bot.uptimeSeconds % 3600) / 60)}m`, Math.min(100, current.bot.uptimeSeconds / 864)],
-    ['Commands loaded', current.bot.loadedCommands, Math.min(100, current.bot.loadedCommands)],
-  ];
-  $('performance').innerHTML = performanceRows.map(([label, value]) => `<div class="performance-row"><div><span>${label}</span><strong class="live-value">${value}</strong></div><i><b data-performance="${escapeHtml(label)}" style="width:${previousPerformanceValues?.[label] ?? 0}%"></b></i></div>`).join('');
-  requestAnimationFrame(() => performanceRows.forEach(([label,,meter]) => { const bar = document.querySelector(`[data-performance="${label}"]`); if (bar) bar.style.width = `${meter}%`; }));
-  previousPerformanceValues = Object.fromEntries(performanceRows.map(([label,,meter]) => [label, meter]));
+  $('performance').innerHTML = [
+    ['Server', current.server.name], ['Channels', current.server.channels],
+    ['Roles', current.server.roles ?? '—'], ['Enabled modules', `${enabledModules} / ${current.categories.length}`],
+  ].map(([label, value]) => `<div class="status-row"><span>${label}</span><strong>${escapeHtml(value)}</strong></div>`).join('');
   renderRecentActivity();
   renderOperations();
   document.querySelectorAll('[data-category]').forEach(element => { element.onchange = async () => {

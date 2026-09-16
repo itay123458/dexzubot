@@ -55,16 +55,14 @@ export default {
             const userRank =
                 allUserData.findIndex((u) => u.userId === interaction.user.id) +
                 1;
-            const rankEmoji = ["🥇", "🥈", "🥉"];
             const leaderboardEntries = [];
 
             for (let i = 0; i < topUsers.length; i++) {
                 const user = topUsers[i];
                 const rank = i + 1;
-                const emoji = rankEmoji[i] || `**#${rank}**`;
 
                 leaderboardEntries.push(
-                    `${emoji} <@${user.userId}> - 🏦 ${user.net_worth.toLocaleString()}`,
+                    `**#${rank}** · <@${user.userId}>\n> ${user.net_worth.toLocaleString()} total wealth`,
                 );
             }
 
@@ -75,13 +73,16 @@ export default {
             });
 
             const description = leaderboardEntries.length > 0
-                ? leaderboardEntries.join("\n")
+                ? leaderboardEntries.join("\n\n")
                 : "No economy data is available for this server yet.";
 
             const embed = createEmbed({
-                title: `Economy Leaderboard`,
+                title: `Dungeon Wealth Rankings`,
+                author: "DEXZUBOT / ECONOMY",
+                thumbnail: interaction.guild.iconURL() || client.user.displayAvatarURL(),
                 description,
-                footer: `Your Rank: ${userRank > 0 ?`#${userRank}`: "No ranking data available"}`,
+                fields: [{ name: "Your standing", value: userRank > 0 ? `Rank **#${userRank}** of **${allUserData.length}** accounts` : "Earn your first reward to join the rankings." }],
+                footer: "DexzuBot · Economy",
             });
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });

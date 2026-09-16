@@ -1,3 +1,4 @@
+import { createSupportPanelEmbed } from '../../utils/brandPanels.js';
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
@@ -137,11 +138,7 @@ const panelMessage = interaction.options.getString("panel_message") || "Click th
             const maxTicketsPerUser = interaction.options.getInteger("max_tickets_per_user") || 3;
 const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
 
-            const setupEmbed = createEmbed({ 
-                title: "Support Tickets", 
-description: panelMessage,
-                color: getColor('info')
-            });
+            const setupEmbed = createSupportPanelEmbed({ ticketPanelMessage: panelMessage }, client.user.displayAvatarURL());
 
             const ticketButton = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()

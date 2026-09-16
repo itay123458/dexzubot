@@ -84,6 +84,7 @@ function isImportantFooter(footerText) {
   }
 
   const normalized = footerText.toLowerCase();
+  if (normalized.startsWith('dexzubot') || normalized.startsWith('your rank:')) return true;
   return /\b(close|closes|closed|expire|expires|available in|page\s+\d+|dashboard closes|ticket id)\b/.test(normalized);
 }
 

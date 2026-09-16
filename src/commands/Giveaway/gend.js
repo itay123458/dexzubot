@@ -1,3 +1,4 @@
+import { withGiveawayArtwork } from '../../services/giveawayService.js';
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { errorEmbed, successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
@@ -122,7 +123,7 @@ export default {
 
         await message.edit({
             content: "🎉 **GIVEAWAY ENDED** 🎉",
-            embeds: [newEmbed],
+            ...withGiveawayArtwork(newEmbed, message.channel, message),
             components: [newRow],
         });
 

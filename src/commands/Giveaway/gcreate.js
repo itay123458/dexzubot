@@ -1,3 +1,4 @@
+import { withGiveawayArtwork } from '../../services/giveawayService.js';
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, MessageFlags } from 'discord.js';
 import { errorEmbed, successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
@@ -117,7 +118,7 @@ export default {
 
         const giveawayMessage = await targetChannel.send({
             content: "🎉 **NEW GIVEAWAY** 🎉",
-            embeds: [embed],
+            ...withGiveawayArtwork(embed, targetChannel),
             components: [row],
         });
 
