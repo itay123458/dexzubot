@@ -20,11 +20,11 @@ try {
   assert.equal(withoutFiles.embeds[0].toJSON().image, undefined);
   const withFiles = giveawayService.withGiveawayArtwork(createGiveawayEmbed(giveaway, 'active'), channel(true));
   assert.equal(withFiles.files.length, 1);
-  assert.equal(withFiles.embeds[0].toJSON().image.url, 'attachment://dexzu-giveaway.jpg');
-  const retained = giveawayService.withGiveawayArtwork(createGiveawayEmbed(giveaway, 'active'), channel(false), { attachments: new Map([['image', { name: 'dexzu-giveaway.jpg' }]]) });
+  assert.equal(withFiles.embeds[0].toJSON().image.url, 'attachment://dexzu-giveaway-v2.png');
+  const retained = giveawayService.withGiveawayArtwork(createGiveawayEmbed(giveaway, 'active'), channel(false), { attachments: new Map([['image', { name: 'dexzu-giveaway-v2.png' }]]) });
   assert.equal(retained.files, undefined, 'Joining must reuse the banner rather than upload it again');
   assert.equal(retained.attachments, undefined, 'Existing attachments must not be cleared');
-  assert.equal(retained.embeds[0].toJSON().image.url, 'attachment://dexzu-giveaway.jpg');
+  assert.equal(retained.embeds[0].toJSON().image.url, 'attachment://dexzu-giveaway-v2.png');
   const support = createSupportPanelEmbed({ ticketPanelMessage: 'Our custom support instructions' }).toJSON();
   assert.equal(support.description, 'Our custom support instructions');
   assert.equal(support.title, 'Support Tickets', 'Keep the title used to locate support panels');

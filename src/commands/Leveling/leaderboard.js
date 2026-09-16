@@ -1,4 +1,6 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
+import { toContainerMessage } from '../../utils/panelLayout.js';
+import { createEmbed } from '../../utils/embeds.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getLeaderboard, getLevelingConfig, getXpForLevel } from '../../services/leveling/leveling.js';
@@ -19,7 +21,7 @@ export default {
     if (!levelingConfig?.enabled) {
       await InteractionHelper.safeEditReply(interaction, {
         embeds: [
-          new EmbedBuilder()
+          createEmbed()
             .setColor('#f1c40f')
             .setDescription('The leveling system is currently disabled on this server.')
         ],
@@ -38,9 +40,9 @@ export default {
       );
     }
 
-    const embed = new EmbedBuilder()
+    const embed = createEmbed()
       .setTitle('Level Leaderboard')
-      .setColor('#2ecc71')
+      .setColor('#65B4FF')
       .setDescription("Top 10 most active members in this server:")
       .setTimestamp();
 
@@ -57,7 +59,8 @@ export default {
           else if (index === 2) rankPrefix = '🥉';
           else rankPrefix = `**${index + 1}.**`;
 
-          return `${rankPrefix} ${userMention} - Level ${user.level} (${user.xp}/${xpForNextLevel} XP)`;
+          return `${rankPrefix} ${userMention}
+└ Level **${user.level}** • ${user.xp}/${xpForNextLevel} XP`;
         } catch {
           return `**${index + 1}.** Error loading user ${user.userId}`;
         }
@@ -65,11 +68,11 @@ export default {
     );
 
     embed.addFields({
-      name: 'Rankings',
-      value: leaderboardText.join('\n')
+      name: '🏆 Rankings',
+      value: leaderboardText.join('\n\n')
     });
 
-    await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+    await InteractionHelper.safeEditReply(interaction, toContainerMessage({ embeds: [embed] }));
     logger.debug(`Leaderboard displayed for guild ${interaction.guildId}`);
   }
 };

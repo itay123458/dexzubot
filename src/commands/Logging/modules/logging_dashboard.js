@@ -1,4 +1,5 @@
-import { EmbedBuilder, MessageFlags, PermissionsBitField } from 'discord.js';
+import { createEmbed } from '../../../utils/embeds.js';
+import { MessageFlags, PermissionsBitField } from 'discord.js';
 import { getColor } from '../../../config/bot.js';
 import { getGuildConfig } from '../../../services/config/guildConfig.js';
 import { getLoggingStatus } from '../../../services/loggingService.js';
@@ -53,7 +54,7 @@ export async function buildLoggingDashboardView(interaction, client) {
   const ignore = loggingStatus.ignore || { users: [], channels: [] };
   const { enabled: enabledCount, total } = countEnabledCategories(loggingStatus.enabledEvents, auditEnabled);
 
-  const embed = new EmbedBuilder()
+  const embed = createEmbed()
     .setTitle('📝 Logging Dashboard')
     .setDescription(`Manage server logging for **${interaction.guild.name}**. Use the menu below to configure channels, categories, and filters.`)
     .setColor(auditEnabled ? getColor('success') : getColor('warning'))
@@ -109,7 +110,7 @@ export async function buildLoggingCategoriesView(interaction, client) {
     return `${on ? '✅' : '❌'} ${label}`;
   }).join('\n');
 
-  const embed = new EmbedBuilder()
+  const embed = createEmbed()
     .setTitle('📋 Event Categories')
     .setDescription(
       auditEnabled
@@ -137,7 +138,7 @@ export async function buildLoggingFilterView(interaction, client) {
     ? ignore.channels.map((id) => `• Channel \`${id}\``).join('\n')
     : '*No ignored channels*';
 
-  const embed = new EmbedBuilder()
+  const embed = createEmbed()
     .setTitle('🔇 Log Ignore Filters')
     .setDescription('Users and channels on this list will be skipped when sending audit logs.')
     .setColor(getColor('info'))

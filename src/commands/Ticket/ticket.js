@@ -1,4 +1,4 @@
-import { createSupportPanelEmbed } from '../../utils/brandPanels.js';
+import { createSupportPanelMessage, TICKET_PANEL_MESSAGE_MAX_LENGTH } from '../../utils/brandPanels.js';
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
@@ -34,6 +34,7 @@ export default {
                 .addStringOption((option) =>
                     option
                         .setName("panel_message")
+                        .setMaxLength(TICKET_PANEL_MESSAGE_MAX_LENGTH)
                         .setDescription(
                             "The main message/description for the ticket panel.",
                         )
@@ -132,27 +133,19 @@ export default {
             const closedCategoryChannel = interaction.options.getChannel("closed_category");
             const staffRole = interaction.options.getRole("staff_role");
 const panelMessage = interaction.options.getString("panel_message") || "Click the button below to create a support ticket.";
+            if (panelMessage.length > TICKET_PANEL_MESSAGE_MAX_LENGTH) {
+                return replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: `Panel instructions must be ${TICKET_PANEL_MESSAGE_MAX_LENGTH} characters or fewer.` });
+            }
             const buttonLabel =
                 interaction.options.getString("button_label") ||
 "Create Ticket";
             const maxTicketsPerUser = interaction.options.getInteger("max_tickets_per_user") || 3;
 const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
 
-            const setupEmbed = createSupportPanelEmbed({ ticketPanelMessage: panelMessage }, client.user.displayAvatarURL());
-
-            const ticketButton = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId("create_ticket")
-.setLabel(buttonLabel)
-                    .setStyle(ButtonStyle.Primary)
-                    .setEmoji("📩"),
-            );
-
             try {
-                const sentPanel = await panelChannel.send({
-                    embeds: [setupEmbed],
-                    components: [ticketButton],
-                });
+                const sentPanel = await panelChannel.send(createSupportPanelMessage({
+                    ticketPanelMessage: panelMessage, ticketButtonLabel: buttonLabel,
+                }, client.user.displayAvatarURL()));
 
                 if (client.db && interaction.guildId) {
                     const currentConfig = existingConfig;

@@ -102,7 +102,7 @@ export const botConfig = {
       success: "#57F287",
       error: "#ED4245",
       warning: "#FEE75C",
-      info: "#3498DB",
+      info: "#65B4FF",
 
       // Neutral utility colors.
       light: "#FFFFFF",
@@ -143,7 +143,7 @@ export const botConfig = {
     },
     footer: {
       // Default footer text used in bot embeds.
-      text: "DexzuBot",
+      text: "💎 DexzuBot",
       // Footer icon URL (null = no icon).
       icon: null,
     },

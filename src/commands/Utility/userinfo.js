@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../../utils/panelLayout.js';
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
@@ -62,7 +63,7 @@ export default {
         },
       );
 
-    await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+    await InteractionHelper.safeEditReply(interaction, toContainerMessage({ embeds: [embed] }));
     logger.info(`UserInfo command executed`, {
       userId: interaction.user.id,
       targetUserId: user.id,

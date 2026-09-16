@@ -14,10 +14,9 @@ import {
     ChannelType,
     MessageFlags,
     ComponentType,
-    EmbedBuilder,
-} from 'discord.js';
+    } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed } from '../../../utils/embeds.js';
+import { createEmbed, successEmbed  } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
 import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getLevelingConfig, saveLevelingConfig, PERMANENT_LEVEL_UP_MESSAGE } from '../../../services/leveling/leveling.js';
@@ -44,23 +43,23 @@ function buildDashboardEmbed(cfg, guild) {
     const ignoredChValue = ignoredChannels.length > 0 ? ignoredChannels.map(id => `<#${id}>`).join(',') : '`None`';
     const ignoredRoValue = ignoredRoles.length > 0 ? ignoredRoles.map(id => `<@&${id}>`).join(',') : '`None`';
 
-    return new EmbedBuilder()
+    return createEmbed()
         .setTitle('⚡ Leveling System Dashboard')
         .setDescription(`Manage leveling settings for **${guild.name}**.\nSelect an option below to modify a setting.`)
         .setColor(getColor('info'))
         .addFields(
-            { name: 'Level-up Channel', value: channel, inline: true },
-            { name: 'System Status', value: cfg.enabled ? '**Enabled**' : '**Disabled**', inline: true },
-            { name: 'Announcements', value: cfg.announceLevelUp !== false ? '**Enabled**' : '**Disabled**', inline: true },
-            { name: 'XP per Message', value: `\`${xpMin} – ${xpMax}\``, inline: true },
-            { name: 'XP Cooldown', value: `\`${cooldown}s\``, inline: true },
+            { name: '📣 Level-up Channel', value: channel, inline: true },
+            { name: '⚡ System Status', value: cfg.enabled ? '**Enabled**' : '**Disabled**', inline: true },
+            { name: '🔔 Announcements', value: cfg.announceLevelUp !== false ? '**Enabled**' : '**Disabled**', inline: true },
+            { name: '✨ XP per Message', value: `\`${xpMin} – ${xpMax}\``, inline: true },
+            { name: '⏱️ XP Cooldown', value: `\`${cooldown}s\``, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            { name: 'Level-up Message', value: msgPreview, inline: false },
-            { name: 'Role Rewards', value: rewardsValue, inline: false },
-            { name: 'Ignored Channels', value: ignoredChValue, inline: true },
-            { name: 'Ignored Roles', value: ignoredRoValue, inline: true },
+            { name: '💬 Level-up Message', value: msgPreview, inline: false },
+            { name: '🏆 Role Rewards', value: rewardsValue, inline: false },
+            { name: '🔇 Ignored Channels', value: ignoredChValue, inline: true },
+            { name: '🎭 Ignored Roles', value: ignoredRoValue, inline: true },
         )
-        .setFooter({ text: 'Dashboard closes after 10 minutes of inactivity' })
+        .setFooter({ text: 'DexzuBot • Leveling • Closes after 10 minutes of inactivity' })
         .setTimestamp();
 }
 

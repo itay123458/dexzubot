@@ -1,3 +1,4 @@
+import { createEmbed } from '../utils/embeds.js';
 import axios from 'axios';
 import { EmbedBuilder } from 'discord.js';
 import { getGuildConfig, patchGuildConfig } from './config/guildConfig.js';
@@ -131,7 +132,7 @@ export async function retryFailedYouTubeAlerts(client, guild) {
 }
 
 export async function sendYouTubeAlert(channel, video, { test = false } = {}) {
-    const embed = new EmbedBuilder().setColor(0xff0000).setAuthor({ name: 'Dexzu', iconURL: channel.client.user.displayAvatarURL(), url: YOUTUBE_CHANNEL_URL })
+    const embed = createEmbed().setColor(0xff0000).setAuthor({ name: 'Dexzu', iconURL: channel.client.user.displayAvatarURL(), url: YOUTUBE_CHANNEL_URL })
         .setTitle(video.title || 'New Dexzu video').setURL(video.url).setDescription('Dexzu published a new video on YouTube!')
         .setImage(video.thumbnailUrl || `https://i.ytimg.com/vi/${video.id}/maxresdefault.jpg`).setFooter({ text: test ? 'YouTube • Test alert' : 'YouTube' });
     const publishedAt = Date.parse(video.publishedAt);

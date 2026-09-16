@@ -1,4 +1,5 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, MessageFlags } from 'discord.js';
+import { createEmbed } from '../../../utils/embeds.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, MessageFlags } from 'discord.js';
 import { shopItems } from '../../../config/shop/items.js';
 import { getColor } from '../../../config/bot.js';
 import { logger } from '../../../utils/logger.js';
@@ -15,7 +16,7 @@ export default {
             const createShopEmbed = (page) => {
                 const startIndex = (page - 1) * ITEMS_PER_PAGE;
                 const pageItems = shopItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-                const embed = new EmbedBuilder()
+                const embed = createEmbed()
                     .setTitle('Store')
                     .setColor(getColor('primary'))
                     .setDescription('Use `/buy item_id:<id> quantity:<amount>` to purchase an item.');

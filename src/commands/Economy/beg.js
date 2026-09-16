@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../../utils/panelLayout.js';
 import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
@@ -94,6 +95,6 @@ userData.lastBeg = Date.now();
 
             await setEconomyData(client, guildId, userId, userData);
 
-            await InteractionHelper.safeEditReply(interaction, { embeds: [replyEmbed] });
+            await InteractionHelper.safeEditReply(interaction, toContainerMessage({ embeds: [replyEmbed] }));
     }, { command: 'beg' })
 };

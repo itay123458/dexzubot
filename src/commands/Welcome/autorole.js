@@ -1,5 +1,6 @@
+import { createEmbed } from '../../utils/embeds.js';
 import { getColor } from '../../config/bot.js';
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
 import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -7,7 +8,7 @@ import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 
 function createAutoroleInfoEmbed(description) {
-    return new EmbedBuilder()
+    return createEmbed()
         .setColor(getColor('primary'))
         .setDescription(description)
         .setFooter({ text: new Date().toLocaleString() });
@@ -187,7 +188,7 @@ export default {
                     });
                 }
 
-                const embed = new EmbedBuilder()
+                const embed = createEmbed()
                     .setColor(getColor('info'))
                     .setTitle('Auto-Assigned Role')
                     .setDescription(`${validRoles[0]}${conflictSummary ?`\n\n⚠️ Setup blockers:\n${conflictSummary}`: ''}`)

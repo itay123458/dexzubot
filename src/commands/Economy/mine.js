@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../../utils/panelLayout.js';
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
@@ -88,6 +89,6 @@ userData.lastMine = now;
                 })
                 .setFooter({ text: `Next mine available in 1 hour.` });
 
-            await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+            await InteractionHelper.safeEditReply(interaction, toContainerMessage({ embeds: [embed] }));
     }, { command: 'mine' })
 };

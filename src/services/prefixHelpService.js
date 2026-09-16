@@ -1,3 +1,4 @@
+import { toContainerMessage, disablePanelControls } from '../utils/panelLayout.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, StringSelectMenuBuilder, PermissionFlagsBits } from 'discord.js';
 import { getCommandAccessSnapshot, isCommandEnabledInConfig } from './commandAccessService.js';
 import { isSlashCommandCategoryEnabled } from '../config/commands/slashCommandCategories.js';
@@ -36,6 +37,7 @@ export function listPrefixHelp(client, config, member, channelId, mode = 'prefix
 export async function openPrefixHelp(interaction, _config, client, mode = 'prefix') {
   const session = `prefix-help-${interaction.id}`;
   let page = 0;
+  let lastView;
   let selectedCategory = 'all';
   const render = async () => {
     const config = await getGuildConfig(client, interaction.guildId);
@@ -51,18 +53,19 @@ export async function openPrefixHelp(interaction, _config, client, mode = 'prefi
     for (const entry of entries.slice(page * 8, page * 8 + 8)) embed.addFields({ name: `${prefix}${entry.name}`, value: `${entry.category} · ${entry.description}`.slice(0, 1024) });
     if (!entries.length) embed.setDescription(`No enabled ${mode} commands are available to you in this channel.`);
     embed.setFooter({ text: `Page ${page + 1}/${pages} · ${entries.length} commands · Menu expires in 5 minutes` });
-    return { embeds: [embed], allowedMentions: { parse: [] }, components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId(`${session}-category`).setPlaceholder('Choose an enabled category').addOptions([
+    return toContainerMessage({ embeds: [embed], allowedMentions: { parse: [] }, components: [new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId(`${session}-category`).setPlaceholder('Choose an enabled category').addOptions([
       { label: 'All enabled commands', value: 'all', default: selectedCategory === 'all' },
       ...categories.slice(0, 24).map(category => ({ label: category, value: category, default: category === selectedCategory })),
     ])), new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`${session}-prev`).setLabel('Previous').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
-      new ButtonBuilder().setCustomId(`${session}-next`).setLabel('Next').setStyle(ButtonStyle.Secondary).setDisabled(page === pages - 1))] };
+      new ButtonBuilder().setCustomId(`${session}-next`).setLabel('Next').setStyle(ButtonStyle.Secondary).setDisabled(page === pages - 1))] });
   };
   if (mode === 'slash') await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const initial = await render();
+  lastView = initial;
   if (mode === 'slash') await interaction.editReply(initial); else await interaction.reply(initial);
   const message = await interaction.fetchReply();
-  const editMenu = view => mode === 'slash' ? interaction.editReply(view) : message.edit(view);
+  const editMenu = view => { lastView = view; return mode === 'slash' ? interaction.editReply(view) : message.edit(view); };
   let busy = false;
   const collector = message.createMessageComponentCollector({ time: 300_000, filter: item => item.customId.startsWith(session) });
   collector.on('collect', async item => {
@@ -78,5 +81,5 @@ export async function openPrefixHelp(interaction, _config, client, mode = 'prefi
     } catch { await item.followUp({ content: 'Could not refresh help. Please reopen the menu.', flags: MessageFlags.Ephemeral }).catch(() => {}); }
     finally { busy = false; }
   });
-  collector.on('end', () => { void editMenu({ components: [] }).catch(() => {}); });
+  collector.on('end', () => { void editMenu({ ...lastView, components: disablePanelControls(lastView.components) }).catch(() => {}); });
 }

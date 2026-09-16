@@ -1,4 +1,5 @@
-import { PermissionsBitField, EmbedBuilder, MessageFlags } from 'discord.js';
+import { createEmbed } from '../../../utils/embeds.js';
+import { PermissionsBitField, MessageFlags } from 'discord.js';
 import { getGuildConfig, setGuildConfig } from '../../../services/config/guildConfig.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
@@ -6,7 +7,7 @@ import { logger } from '../../../utils/logger.js';
 export default {
     async execute(interaction, config, client) {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
-            const embed = new EmbedBuilder()
+            const embed = createEmbed()
                 .setColor(0xFF0000)
                 .setTitle('Permission Denied')
                 .setDescription('You need **Manage Server** permissions to configure the birthday channel.');
@@ -24,7 +25,7 @@ export default {
             if (channel) {
                 guildConfig.birthdayChannelId = channel.id;
                 await setGuildConfig(client, guildId, guildConfig);
-                const embed = new EmbedBuilder()
+                const embed = createEmbed()
                     .setColor(0x00FF00)
                     .setTitle('Birthday Announcements Enabled')
                     .setDescription(`Birthday announcements will now be posted in ${channel}.`);
@@ -35,7 +36,7 @@ export default {
             } else {
                 guildConfig.birthdayChannelId = null;
                 await setGuildConfig(client, guildId, guildConfig);
-                const embed = new EmbedBuilder()
+                const embed = createEmbed()
                     .setColor(0xFFFF00)
                     .setTitle('Birthday Announcements Disabled')
                     .setDescription('No channel provided — birthday announcements have been disabled.');
@@ -46,7 +47,7 @@ export default {
             }
         } catch (error) {
             logger.error('birthday_setchannel error:', error);
-            const embed = new EmbedBuilder()
+            const embed = createEmbed()
                 .setColor(0xFF0000)
                 .setTitle('⚠️ Configuration Error')
                 .setDescription('Could not save the birthday channel configuration.');

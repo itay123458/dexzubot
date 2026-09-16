@@ -11,11 +11,10 @@ import {
     ButtonStyle,
     MessageFlags,
     ComponentType,
-    EmbedBuilder,
-} from 'discord.js';
+    } from 'discord.js';
 import { getColor, BotConfig } from '../../../config/bot.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed } from '../../../utils/embeds.js';
+import { createEmbed, successEmbed  } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
 import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getEconomyPrefix } from '../../../utils/database.js';
@@ -57,7 +56,7 @@ async function buildDashboardEmbed(guild, client) {
 
     const avgBalance = userCount > 0 ? Math.floor(totalInCirculation / userCount) : 0;
 
-    return new EmbedBuilder()
+    return createEmbed()
         .setTitle('💰 Economy Dashboard')
         .setDescription(`Manage the economy system for **${guild.name}**.\nSelect an option below to perform an action.`)
         .setColor(getColor('economy'))
@@ -201,7 +200,7 @@ export default {
 
             collector.on('end', async (collected, reason) => {
                 if (reason === 'time') {
-                    const timeoutEmbed = new EmbedBuilder()
+                    const timeoutEmbed = createEmbed()
                         .setTitle('Dashboard Timed Out')
                         .setDescription('This dashboard has been closed due to inactivity. Please run the command again to continue.')
                         .setColor(getColor('error'));

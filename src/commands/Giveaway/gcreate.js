@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../../utils/panelLayout.js';
 import { withGiveawayArtwork } from '../../services/giveawayService.js';
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, MessageFlags } from 'discord.js';
 import { errorEmbed, successEmbed } from '../../utils/embeds.js';
@@ -116,11 +117,11 @@ export default {
         const embed = createGiveawayEmbed(initialGiveawayData, "active");
         const row = createGiveawayButtons(false);
 
-        const giveawayMessage = await targetChannel.send({
+        const giveawayMessage = await targetChannel.send(toContainerMessage({
             content: "🎉 **NEW GIVEAWAY** 🎉",
             ...withGiveawayArtwork(embed, targetChannel),
             components: [row],
-        });
+        }));
 
         initialGiveawayData.messageId = giveawayMessage.id;
         const saved = await saveGiveaway(

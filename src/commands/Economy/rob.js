@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../../utils/panelLayout.js';
 import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed, warningEmbed, buildUserErrorEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
@@ -149,6 +150,6 @@ export default {
                 )
                 .setFooter({ text: `Next robbery available in ${Math.ceil(ROB_COOLDOWN / (60 * 60 * 1000))} hours.` });
 
-            await InteractionHelper.safeEditReply(interaction, { embeds: [resultEmbed] });
+            await InteractionHelper.safeEditReply(interaction, toContainerMessage({ embeds: [resultEmbed] }));
     }, { command: 'rob' })
 };

@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../../utils/panelLayout.js';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -49,19 +50,19 @@ export default {
         thumbnail: guild.iconURL({ size: 1024 }),
         color: 'primary',
         fields: [
-          { name: 'Server Owner', value: `${serverOwner} (${serverOwner.user.username})`, inline: false },
-          { name: 'Members', value: guild.memberCount.toLocaleString(), inline: true },
-          { name: 'Channels', value: guild.channels.cache.size.toLocaleString(), inline: true },
-          { name: 'Roles', value: guild.roles.cache.size.toLocaleString(), inline: true },
-          { name: 'Server Created', value: formatTimestamp(guild.createdAt), inline: false },
-          { name: 'Bot', value: `${botUser} (${botUser.username})`, inline: false },
-          { name: 'Bot Owners', value: botOwners, inline: false },
-          { name: 'Servers', value: interaction.client.guilds.cache.size.toLocaleString(), inline: true },
-          { name: 'Commands', value: interaction.client.commands.size.toLocaleString(), inline: true },
-          { name: 'Bot Created', value: formatTimestamp(botUser.createdAt), inline: false },
-          { name: 'YouTube', value: `[DexzuGtag](${YOUTUBE_CHANNEL_URL})`, inline: false },
+          { name: '👑 Server Owner', value: `${serverOwner} (${serverOwner.user.username})`, inline: false },
+          { name: '👥 Members', value: guild.memberCount.toLocaleString(), inline: true },
+          { name: '💬 Channels', value: guild.channels.cache.size.toLocaleString(), inline: true },
+          { name: '🎭 Roles', value: guild.roles.cache.size.toLocaleString(), inline: true },
+          { name: '📅 Server Created', value: formatTimestamp(guild.createdAt), inline: false },
+          { name: '💎 Bot', value: `${botUser} (${botUser.username})`, inline: false },
+          { name: '🛠️ Bot Owners', value: botOwners, inline: false },
+          { name: '🌐 Servers', value: interaction.client.guilds.cache.size.toLocaleString(), inline: true },
+          { name: '⚡ Commands', value: interaction.client.commands.size.toLocaleString(), inline: true },
+          { name: '📅 Bot Created', value: formatTimestamp(botUser.createdAt), inline: false },
+          { name: '🎬 YouTube', value: `[DexzuGtag](${YOUTUBE_CHANNEL_URL})`, inline: false },
         ],
-        footer: 'DexzuBot Server Information',
+        footer: 'DexzuBot • Server overview',
       });
 
       const links = new ActionRowBuilder().addComponents(
@@ -75,10 +76,10 @@ export default {
           .setURL(SUPPORT_SERVER_URL),
       );
 
-      await InteractionHelper.safeEditReply(interaction, {
+      await InteractionHelper.safeEditReply(interaction, toContainerMessage({
         embeds: [embed],
         components: [links],
-      });
+      }));
     } catch (error) {
       logger.error('Info command error:', error);
       await InteractionHelper.safeEditReply(interaction, {

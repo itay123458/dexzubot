@@ -63,15 +63,15 @@ export function buildNowPlayingEmbed(track, player, guildData) {
         description: track?.info?.title || 'Unknown track',
         color: 'primary',
         fields: [
-            { name: 'Artist', value: track?.info?.author || 'Unknown', inline: true },
-            { name: 'Requester', value: requesterLabel, inline: true },
-            { name: 'Progress', value: `${position} / ${duration}`, inline: true },
-            { name: 'Volume', value: `${guildData?.volume ?? 75}%`, inline: true },
-            { name: 'Loop', value: getLoopLabel(guildData?.loop), inline: true },
-            { name: 'Queue', value: `${player?.queue?.length || 0} track(s)`, inline: true },
+            { name: '🎤 Artist', value: track?.info?.author || 'Unknown', inline: true },
+            { name: '👤 Requester', value: requesterLabel, inline: true },
+            { name: '⏱️ Progress', value: `${position} / ${duration}`, inline: true },
+            { name: '🔊 Volume', value: `${guildData?.volume ?? 75}%`, inline: true },
+            { name: '🔁 Loop', value: getLoopLabel(guildData?.loop), inline: true },
+            { name: '🎶 Queue', value: `${player?.queue?.length || 0} track(s)`, inline: true },
         ],
         thumbnail: getTrackArtwork(track),
-        footer: player?.paused ? 'Paused' : 'Playing',
+        footer: player?.paused ? 'DexzuBot • ⏸ Paused' : 'DexzuBot • ▶ Playing',
     });
 }
 
@@ -84,7 +84,7 @@ export function buildQueueEmbed(queue, currentTrack, page = 0) {
 
     let description = '';
     if (currentTrack) {
-        description += `**Now Playing**\n${currentTrack.info?.title || 'Unknown'} — ${currentTrack.info?.author || 'Unknown'}\n\n`;
+        description += `**🎵 Now Playing**\n${currentTrack.info?.title || 'Unknown'} — ${currentTrack.info?.author || 'Unknown'}\n\n`;
     }
 
     if (slice.length === 0) {
@@ -102,7 +102,7 @@ export function buildQueueEmbed(queue, currentTrack, page = 0) {
         title: 'Music Queue',
         description: description.substring(0, 4096),
         color: 'info',
-        footer: `Page ${safePage + 1} of ${totalPages} • ${totalTracks} queued`,
+        footer: `DexzuBot • Page ${safePage + 1} of ${totalPages} • ${totalTracks} queued`,
     });
 }
 

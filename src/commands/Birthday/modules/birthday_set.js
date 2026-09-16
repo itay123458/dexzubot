@@ -1,3 +1,4 @@
+import { createEmbed } from '../../../utils/embeds.js';
 import { EmbedBuilder } from 'discord.js';
 import { setBirthday } from '../../../services/birthdayService.js';
 
@@ -13,7 +14,7 @@ export default {
 
         const result = await setBirthday(client, guildId, userId, month, day);
 
-        const embed = new EmbedBuilder()
+        const embed = createEmbed()
             .setColor(0x00FF00)
             .setTitle('Birthday Set!')
             .setDescription(`Your birthday has been set to **${result.data.monthName} ${result.data.day}**!`);

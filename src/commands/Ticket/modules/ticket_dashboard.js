@@ -1,4 +1,4 @@
-import { createSupportPanelEmbed } from '../../../utils/brandPanels.js';
+import { createSupportPanelMessage, TICKET_PANEL_MESSAGE_MAX_LENGTH } from '../../../utils/brandPanels.js';
 import { getColor } from '../../../config/bot.js';
 import {
     ActionRowBuilder,
@@ -81,20 +81,6 @@ async function persistPanelMessageId(client, guildId, guildConfig, messageId) {
     }
 }
 
-function buildPanelEmbed(config, guild) {
-    return createSupportPanelEmbed(config, guild?.members.me?.displayAvatarURL());
-}
-
-function buildPanelButtonRow(config) {
-    return new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId('create_ticket')
-            .setLabel(config.ticketButtonLabel || 'Create Ticket')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('📩'),
-    );
-}
-
 async function repostTicketPanel(client, guild, guildConfig, guildId) {
     const channel = await guild.channels.fetch(guildConfig.ticketPanelChannelId).catch(() => null);
     if (!channel) {
@@ -105,10 +91,7 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
         );
     }
 
-    const sentPanel = await channel.send({
-        embeds: [buildPanelEmbed(guildConfig, guild)],
-        components: [buildPanelButtonRow(guildConfig)],
-    });
+    const sentPanel = await channel.send(createSupportPanelMessage(guildConfig, guild.members.me?.displayAvatarURL()));
 
     await persistPanelMessageId(client, guildId, guildConfig, sentPanel.id);
     return sentPanel;
@@ -246,10 +229,7 @@ async function updateLivePanel(client, guild, config, guildId) {
         }
         if (!panelStatus.exists || !panelStatus.message) return false;
 
-        await panelStatus.message.edit({
-            embeds: [buildPanelEmbed(config, guild)],
-            components: [buildPanelButtonRow(config)],
-        });
+        await panelStatus.message.edit(createSupportPanelMessage(config, guild.members.me?.displayAvatarURL(), panelStatus.message));
         return true;
     } catch (error) {
         logger.warn('Failed to update live ticket panel:', error.message);
@@ -353,13 +333,13 @@ async function handlePanelMessage(selectInteraction, rootInteraction, guildConfi
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('panel_msg_input')
-                    .setLabel('Panel Message')
+                    .setLabel(guildConfig.ticketPanelMessage?.length > TICKET_PANEL_MESSAGE_MAX_LENGTH ? 'Panel Message (shortened to fit)' : 'Panel Message')
                     .setStyle(TextInputStyle.Paragraph)
                     .setValue(
-                        guildConfig.ticketPanelMessage ||
-                            'Click the button below to create a support ticket.',
+                        (guildConfig.ticketPanelMessage ||
+                            'Click the button below to create a support ticket.').slice(0, TICKET_PANEL_MESSAGE_MAX_LENGTH),
                     )
-                    .setMaxLength(2000)
+                    .setMaxLength(TICKET_PANEL_MESSAGE_MAX_LENGTH)
                     .setMinLength(1)
                     .setRequired(true)
                     .setPlaceholder('Click the button below to create a support ticket.'),
@@ -379,6 +359,9 @@ async function handlePanelMessage(selectInteraction, rootInteraction, guildConfi
     if (!submitted) return;
 
     const newMessage = submitted.fields.getTextInputValue('panel_msg_input').trim();
+    if (!newMessage || newMessage.length > TICKET_PANEL_MESSAGE_MAX_LENGTH) {
+        return replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: `Panel instructions must contain 1–${TICKET_PANEL_MESSAGE_MAX_LENGTH} characters.` });
+    }
     guildConfig.ticketPanelMessage = newMessage;
     await setGuildConfig(client, guildId, guildConfig);
 

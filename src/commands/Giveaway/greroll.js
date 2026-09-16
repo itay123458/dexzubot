@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../../utils/panelLayout.js';
 import { withGiveawayArtwork } from '../../services/giveawayService.js';
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { errorEmbed, successEmbed } from '../../utils/embeds.js';
@@ -219,11 +220,11 @@ export default {
         const newEmbed = createGiveawayEmbed(updatedGiveaway, "reroll", newWinners);
         const newRow = createGiveawayButtons(true);
 
-        await message.edit({
+        await message.edit(toContainerMessage({
             content: "🔄 **GIVEAWAY REROLLED** 🔄",
             ...withGiveawayArtwork(newEmbed, message.channel, message),
             components: [newRow],
-        });
+        }));
 
         const winnerMentions = newWinners
             .map((id) => `<@${id}>`)

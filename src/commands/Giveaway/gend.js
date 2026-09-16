@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../../utils/panelLayout.js';
 import { withGiveawayArtwork } from '../../services/giveawayService.js';
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { errorEmbed, successEmbed } from '../../utils/embeds.js';
@@ -121,11 +122,11 @@ export default {
         const newEmbed = createGiveawayEmbed(updatedGiveaway, "ended", winners);
         const newRow = createGiveawayButtons(true);
 
-        await message.edit({
+        await message.edit(toContainerMessage({
             content: "🎉 **GIVEAWAY ENDED** 🎉",
             ...withGiveawayArtwork(newEmbed, message.channel, message),
             components: [newRow],
-        });
+        }));
 
         if (winners.length > 0) {
             const winnerMentions = winners

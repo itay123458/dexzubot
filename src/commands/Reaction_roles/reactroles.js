@@ -1,8 +1,9 @@
+import { buildReactionRolePanelMessage, preserveReactionRolePanelText } from '../../utils/communityPanels.js';
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ButtonBuilder, ButtonStyle, MessageFlags, ComponentType, EmbedBuilder, LabelBuilder, CheckboxBuilder, TextDisplayBuilder } from 'discord.js';
-import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { successEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { createError, TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import { createError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createReactionRoleMessage, hasDangerousPermissions, getAllReactionRoleMessages, deleteReactionRoleMessage } from '../../services/reactionRoleService.js';
 import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
@@ -14,14 +15,6 @@ import { startDashboardSession } from '../../utils/dashboardSession.js';
 import { getReactionRoleKey } from '../../utils/database/keys.js';
 
 const DASHBOARD_EPHEMERAL = MessageFlags.Ephemeral;
-const SELECT_OPTION_LABEL_LIMIT = 100;
-const SELECT_OPTION_DESCRIPTION_LIMIT = 100;
-
-function truncateText(value, maxLength) {
-    const text = String(value ?? '');
-    return text.length > maxLength ? text.substring(0, maxLength) : text;
-}
-
 export default {
     data: new SlashCommandBuilder()
         .setName('reactroles')
@@ -40,11 +33,13 @@ export default {
                 .addStringOption(option =>
                     option.setName('title')
                         .setDescription('Title for the reaction role panel')
+                        .setMaxLength(256)
                         .setRequired(true)
                 )
                 .addStringOption(option =>
                     option.setName('description')
                         .setDescription('Description for the reaction role panel')
+                        .setMaxLength(2048)
                         .setRequired(true)
                 )
                 .addRoleOption(option =>
@@ -128,7 +123,7 @@ export default {
                 const channel = guild.channels.cache.get(panel.channelId);
                 if (!channel) continue;
 
-                const cachedTitle = channel.messages?.cache?.get(panel.messageId)?.embeds?.[0]?.title;
+                const cachedTitle = panel.title ?? channel.messages?.cache?.get(panel.messageId)?.embeds?.[0]?.title;
                 const roleCount = Array.isArray(panel.roles) ? panel.roles.length : 0;
                 const label = cachedTitle
                     ? `${cachedTitle} (#${channel.name})`
@@ -256,46 +251,19 @@ async function handleSetup(interaction) {
         );
     }
 
-    const row = new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder()
-            .setCustomId('reaction_roles')
-            .setPlaceholder('Select your roles')
-            .setMinValues(0)
-            .setMaxValues(roles.length)
-            .addOptions(
-                roles.map(role => ({
-                    label: truncateText(role.name, SELECT_OPTION_LABEL_LIMIT),
-                    description: truncateText(`Add/remove the ${role.name} role`, SELECT_OPTION_DESCRIPTION_LIMIT),
-                    value: role.id,
-                    emoji: '🎭'
-                }))
-            )
-    );
-
-    const panelEmbed = new EmbedBuilder()
-        .setTitle(title)
-        .setDescription(description)
-        .setColor(getColor('info'))
-        .addFields({
-            name: 'Available Roles',
-            value: roles.map(role => `• ${role}`).join('\n')
-        })
-        .setFooter({ text: 'Select roles from the dropdown menu below' });
-
-    const message = await channel.send({
-        embeds: [panelEmbed],
-        components: [row]
-    });
+    const message = await channel.send(buildReactionRolePanelMessage({ title, description, roles: roles.map(role => role.id) }, interaction.guild));
 
     const roleIds = roles.map(role => role.id);
     try {
-        await createReactionRoleMessage(
+        const savedPanel = await createReactionRoleMessage(
             interaction.client,
             interaction.guildId,
             channel.id,
             message.id,
             roleIds
         );
+        Object.assign(savedPanel, { title, description });
+        await interaction.client.db.set(getReactionRoleKey(interaction.guildId, message.id), savedPanel);
     } catch (saveError) {
         // The panel is already posted but its data failed to persist, so the dropdown
         // would not work. Remove the orphaned message before surfacing the error.
@@ -367,43 +335,10 @@ async function rebuildLivePanelMessage(guild, panelData) {
         const channel = guild.channels.cache.get(panelData.channelId);
         if (!channel) return;
         const msg = await channel.messages.fetch(panelData.messageId).catch(() => null);
-        if (!msg || !msg.embeds[0]) return;
-
-        const roleObjects = panelData.roles
-            .map(id => guild.roles.cache.get(id))
-            .filter(Boolean);
-
-        if (roleObjects.length === 0) return;
-
-        const currentEmbed = msg.embeds[0];
-        const updatedEmbed = EmbedBuilder.from(currentEmbed);
-        const fields = currentEmbed.fields.map(f => ({ name: f.name, value: f.value, inline: f.inline }));
-        const roleFieldIdx = fields.findIndex(f => f.name === 'Available Roles');
-        const newRoleValue = roleObjects.map(r => `• ${r}`).join('\n');
-        if (roleFieldIdx !== -1) {
-            fields[roleFieldIdx] = { name: 'Available Roles', value: newRoleValue, inline: false };
-        } else {
-            fields.push({ name: 'Available Roles', value: newRoleValue, inline: false });
-        }
-        updatedEmbed.setFields(fields);
-
-        const selectRow = new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
-                .setCustomId('reaction_roles')
-                .setPlaceholder('Select your roles')
-                .setMinValues(0)
-                .setMaxValues(roleObjects.length)
-                .addOptions(
-                    roleObjects.map(r => ({
-                        label: r.name.substring(0, 100),
-                        description: `Add/remove the ${r.name} role`.substring(0, 100),
-                        value: r.id,
-                        emoji: '🎭',
-                    })),
-                ),
-        );
-
-        await msg.edit({ embeds: [updatedEmbed], components: [selectRow] });
+        if (!msg) return;
+        preserveReactionRolePanelText(panelData, msg);
+        await guild.client.db.set(getReactionRoleKey(guild.id, panelData.messageId), panelData);
+        await msg.edit(buildReactionRolePanelMessage(panelData, guild));
     } catch (error) {
         logger.warn('Could not rebuild live reaction role panel:', error.message);
     }
@@ -418,13 +353,17 @@ async function showPanelDashboard(interaction, panelData, discordMsg, guildId, g
         }
     }
 
+    if (discordMsg && (panelData.title == null || panelData.description == null)) {
+        preserveReactionRolePanelText(panelData, discordMsg);
+        await client.db.set(getReactionRoleKey(guildId, panelData.messageId), panelData);
+    }
     const payload = buildReactionRoleDashboardPayload(panelData, discordMsg, guildId, guild, panelStatus);
     await InteractionHelper.safeEditReply(interaction, { ...payload, flags: DASHBOARD_EPHEMERAL });
 }
 
 function buildReactionRoleDashboardPayload(panelData, discordMsg, guildId, guild, panelStatus = null) {
     const channel = guild.channels.cache.get(panelData.channelId);
-    const title = discordMsg?.embeds?.[0]?.title ?? 'Untitled Panel';
+    const title = panelData.title ?? discordMsg?.embeds?.[0]?.title ?? 'Untitled Panel';
     const roleList =
         panelData.roles.length > 0
             ? panelData.roles.map(id => `<@&${id}>`).join(',')
@@ -529,35 +468,8 @@ async function repostReactionRolePanel(guild, panelData, client, guildId, fallba
         );
     }
 
-    const title = fallbackEmbed?.title || 'Reaction Roles';
-    const description = fallbackEmbed?.description || 'Select your roles using the menu below.';
-
-    const panelEmbed = new EmbedBuilder()
-        .setTitle(title)
-        .setDescription(description)
-        .setColor(getColor('info'))
-        .addFields({
-            name: 'Available Roles',
-            value: roleObjects.map(role => `• ${role}`).join('\n'),
-        });
-
-    const row = new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder()
-            .setCustomId('reaction_roles')
-            .setPlaceholder('Select your roles')
-            .setMinValues(0)
-            .setMaxValues(roleObjects.length)
-            .addOptions(
-                roleObjects.map(role => ({
-                    label: role.name.substring(0, 100),
-                    description: `Add/remove the ${role.name} role`.substring(0, 100),
-                    value: role.id,
-                    emoji: '🎭',
-                })),
-            ),
-    );
-
-    const sent = await channel.send({ embeds: [panelEmbed], components: [row] });
+    preserveReactionRolePanelText(panelData, { embeds: fallbackEmbed ? [fallbackEmbed] : [] });
+    const sent = await channel.send(buildReactionRolePanelMessage(panelData, guild));
     await migrateReactionRoleMessageId(client, guildId, panelData, sent.id);
     return sent;
 }
@@ -599,6 +511,10 @@ async function handleDashboard(interaction, selectedPanelId) {
     }
 
     const discordMsg = panelStatus.message || (await fetchPanelDiscordMessage(guild, panelData));
+    if (discordMsg && (panelData.title == null || panelData.description == null)) {
+        preserveReactionRolePanelText(panelData, discordMsg);
+        await client.db.set(getReactionRoleKey(guildId, panelData.messageId), panelData);
+    }
     const payload = buildReactionRoleDashboardPayload(panelData, discordMsg, guildId, guild, panelStatus);
 
     await startDashboardSession({
@@ -663,8 +579,9 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
         ? await channel.messages.fetch(panelData.messageId).catch(() => null)
         : null;
 
-    const currentTitle = discordMsg?.embeds?.[0]?.title ?? '';
-    const currentDesc = discordMsg?.embeds?.[0]?.description ?? '';
+    preserveReactionRolePanelText(panelData, discordMsg);
+    const currentTitle = panelData.title;
+    const currentDesc = panelData.description;
 
     const modal = new ModalBuilder()
         .setCustomId('rr_edit_text')
@@ -715,28 +632,15 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
     const newTitle = submitted.fields.getTextInputValue('panel_title').trim();
     const newDescription = submitted.fields.getTextInputValue('panel_description').trim();
 
+    await submitted.deferReply({ flags: MessageFlags.Ephemeral });
+    panelData.title = newTitle;
+    panelData.description = newDescription;
+    await client.db.set(getReactionRoleKey(guildId, panelData.messageId), panelData);
     if (discordMsg) {
-        const roleObjects = panelData.roles
-            .map(id => guild.roles.cache.get(id))
-            .filter(Boolean);
-        const updatedEmbed = EmbedBuilder.from(discordMsg.embeds[0])
-            .setTitle(newTitle)
-            .setDescription(newDescription);
-        if (roleObjects.length > 0) {
-            const fields = discordMsg.embeds[0].fields?.map(f => ({ name: f.name, value: f.value, inline: f.inline })) || [];
-            const roleFieldIdx = fields.findIndex(f => f.name === 'Available Roles');
-            const newRoleValue = roleObjects.map(r => `• ${r}`).join('\n');
-            if (roleFieldIdx !== -1) {
-                fields[roleFieldIdx] = { name: 'Available Roles', value: newRoleValue, inline: false };
-            } else {
-                fields.push({ name: 'Available Roles', value: newRoleValue, inline: false });
-            }
-            updatedEmbed.setFields(fields);
-        }
-        await discordMsg.edit({ embeds: [updatedEmbed] }).catch(() => {});
+        await discordMsg.edit(buildReactionRolePanelMessage(panelData, guild));
     }
 
-    await submitted.reply({
+    await submitted.editReply({
         embeds: [successEmbed('Panel Updated', 'The title and description have been updated.')],
         flags: MessageFlags.Ephemeral,
     });
@@ -991,7 +895,7 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
     const discordMsg = channel
         ? await channel.messages.fetch(panelData.messageId).catch(() => null)
         : null;
-    const title = discordMsg?.embeds?.[0]?.title ?? 'this panel';
+    const title = panelData.title ?? discordMsg?.embeds?.[0]?.title ?? 'this panel';
 
     const deleteModal = new ModalBuilder()
         .setCustomId('rr_delete_confirm_modal')

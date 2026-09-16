@@ -6,12 +6,11 @@ import {
     ChannelType,
     MessageFlags,
     ComponentType,
-    EmbedBuilder,
     ButtonBuilder,
     ButtonStyle
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed } from '../../../utils/embeds.js';
+import { createEmbed, successEmbed  } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
 import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { 
@@ -37,7 +36,7 @@ export default {
             );
         }
 
-        const embed = new EmbedBuilder()
+        const embed = createEmbed()
             .setTitle('Join to Create Configuration')
             .setDescription(`Configure settings for ${triggerChannel}`)
             .setColor(getColor('info'))
@@ -169,7 +168,7 @@ time: 60000
 };
 
 async function handleNameTemplateChange(interaction, triggerChannel, currentConfig, client) {
-    const embed = new EmbedBuilder()
+    const embed = createEmbed()
         .setTitle('Channel Name Template Configuration')
         .setDescription('Please enter the new channel name template.')
         .addFields(
@@ -252,7 +251,7 @@ time: 600_000,
 }
 
 async function handleUserLimitChange(interaction, triggerChannel, currentConfig, client) {
-    const embed = new EmbedBuilder()
+    const embed = createEmbed()
         .setTitle('User Limit Configuration')
         .setDescription('Please enter the new user limit (0-99, where 0 = no limit).')
         .addFields(
@@ -330,7 +329,7 @@ async function handleUserLimitChange(interaction, triggerChannel, currentConfig,
 }
 
 async function handleBitrateChange(interaction, triggerChannel, currentConfig, client) {
-    const embed = new EmbedBuilder()
+    const embed = createEmbed()
         .setTitle('Bitrate Configuration')
         .setDescription('Please enter the new bitrate in kbps (8-384).')
         .addFields(
@@ -413,7 +412,7 @@ async function handleBitrateChange(interaction, triggerChannel, currentConfig, c
 }
 
 async function handleRemoveTrigger(interaction, triggerChannel, currentConfig, client) {
-    const embed = new EmbedBuilder()
+    const embed = createEmbed()
         .setTitle('Remove Trigger Channel')
         .setDescription(`Are you sure you want to remove ${triggerChannel} from the Join to Create system?`)
         .setColor('#ff6600')
@@ -499,7 +498,7 @@ async function handleRemoveTrigger(interaction, triggerChannel, currentConfig, c
 async function handleViewSettings(interaction, triggerChannel, currentConfig, client) {
     const channelConfig = currentConfig.channelOptions?.[triggerChannel.id] || {};
     
-    const embed = new EmbedBuilder()
+    const embed = createEmbed()
         .setTitle('Current Settings')
         .setDescription(`Configuration for ${triggerChannel}`)
         .setColor(getColor('info'))

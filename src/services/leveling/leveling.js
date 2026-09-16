@@ -1,3 +1,4 @@
+import { createEmbed } from '../../utils/embeds.js';
 // leveling.js
 
 import { EmbedBuilder } from 'discord.js';
@@ -119,7 +120,7 @@ export async function getLeaderboard(client, guildId, limit = 10) {
 }
 
 export function createLeaderboardEmbed(leaderboard, guild) {
-  const embed = new EmbedBuilder()
+  const embed = createEmbed()
     .setTitle(`🏆 ${guild.name} Leaderboard`)
     .setColor('#2ecc71')
     .setTimestamp();

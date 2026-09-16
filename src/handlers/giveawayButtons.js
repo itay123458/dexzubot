@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../utils/panelLayout.js';
 import { withGiveawayArtwork } from '../services/giveawayService.js';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { successEmbed } from '../utils/embeds.js';
@@ -67,10 +68,10 @@ export const giveawayJoinHandler = {
                 const updatedEmbed = createGiveawayEmbed(giveaway, 'active');
                 const updatedRow = createGiveawayButtons(false);
 
-                await interaction.message.edit({
+                await interaction.message.edit(toContainerMessage({
                     ...withGiveawayArtwork(updatedEmbed, interaction.channel, interaction.message),
                     components: [updatedRow]
-                });
+                }));
 
                 await interaction.reply({
                     embeds: [
@@ -148,11 +149,11 @@ export const giveawayEndHandler = {
             const updatedEmbed = createGiveawayEmbed(giveaway, 'ended', winners);
             const updatedRow = createGiveawayButtons(true);
 
-            await interaction.message.edit({
+            await interaction.message.edit(toContainerMessage({
                 content: '🎉 **GIVEAWAY ENDED** 🎉',
                 ...withGiveawayArtwork(updatedEmbed, interaction.channel, interaction.message),
                 components: [updatedRow]
-            });
+            }));
 
             try {
                 await logEvent({
@@ -272,11 +273,11 @@ export const giveawayRerollHandler = {
             const updatedEmbed = createGiveawayEmbed(giveaway, 'reroll', newWinners);
             const updatedRow = createGiveawayButtons(true);
 
-            await interaction.message.edit({
+            await interaction.message.edit(toContainerMessage({
                 content: '🔄 **GIVEAWAY REROLLED** 🔄',
                 ...withGiveawayArtwork(updatedEmbed, interaction.channel, interaction.message),
                 components: [updatedRow]
-            });
+            }));
 
             try {
                 await logEvent({

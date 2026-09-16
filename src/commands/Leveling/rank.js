@@ -1,4 +1,6 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
+import { toContainerMessage } from '../../utils/panelLayout.js';
+import { createEmbed } from '../../utils/embeds.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getUserLevelData, getLevelingConfig, getXpForLevel } from '../../services/leveling/leveling.js';
@@ -24,7 +26,7 @@ export default {
     if (!levelingConfig?.enabled) {
       await InteractionHelper.safeEditReply(interaction, {
         embeds: [
-          new EmbedBuilder()
+          createEmbed()
             .setColor('#f1c40f')
             .setDescription('The leveling system is currently disabled on this server.')
         ],
@@ -58,34 +60,34 @@ export default {
     const progress = xpNeeded > 0 ? Math.floor((safeUserData.xp / xpNeeded) * 100) : 0;
     const progressBar = createProgressBar(progress, 20);
 
-    const embed = new EmbedBuilder()
+    const embed = createEmbed()
       .setTitle(`${member.displayName}'s Rank`)
       .setThumbnail(member.displayAvatarURL({ dynamic: true }))
       .addFields(
         {
-          name: 'Level',
+          name: '⚡ Level',
           value: safeUserData.level.toString(),
           inline: true
         },
         {
-          name: 'XP',
+          name: '✨ XP',
           value: `${safeUserData.xp}/${xpNeeded}`,
           inline: true
         },
         {
-          name: 'Total XP',
+          name: '💎 Total XP',
           value: safeUserData.totalXp.toString(),
           inline: true
         },
         {
-          name: `Progress to Level ${safeUserData.level + 1}`,
+          name: `📈 Progress to Level ${safeUserData.level + 1}`,
           value: `${progressBar} ${progress}%`
         }
       )
-      .setColor('#2ecc71')
+      .setColor('#65B4FF')
       .setTimestamp();
 
-    await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+    await InteractionHelper.safeEditReply(interaction, toContainerMessage({ embeds: [embed] }));
     logger.debug(`Rank checked for user ${targetUser.id} in guild ${interaction.guildId}`);
   }
 };

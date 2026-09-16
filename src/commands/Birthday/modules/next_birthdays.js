@@ -1,3 +1,4 @@
+import { createEmbed } from '../../../utils/embeds.js';
 import { EmbedBuilder } from 'discord.js';
 import { getUpcomingBirthdays } from '../../../services/birthdayService.js';
 import { deleteBirthday } from '../../../utils/database.js';
@@ -11,7 +12,7 @@ export default {
         const next5 = await getUpcomingBirthdays(client, interaction.guildId, 5);
 
         if (next5.length === 0) {
-            const embed = new EmbedBuilder()
+            const embed = createEmbed()
                 .setColor(0xFF0000)
                 .setTitle('No Birthdays Found')
                 .setDescription('No birthdays have been set up in this server yet. Use `/birthday set` to add birthdays!');
@@ -40,7 +41,7 @@ export default {
         }
 
         if (displayIndex === 0) {
-            const embed = new EmbedBuilder()
+            const embed = createEmbed()
                 .setColor(0xFF0000)
                 .setTitle('No Upcoming Birthdays')
                 .setDescription('No upcoming birthdays found for current server members.');
@@ -72,7 +73,7 @@ export default {
 
         birthdayList += `Use /birthday set to add your birthday!`;
 
-        const embed = new EmbedBuilder()
+        const embed = createEmbed()
             .setColor(0x00FF00)
             .setTitle('Next 5 Upcoming Birthdays')
             .setDescription(birthdayList);

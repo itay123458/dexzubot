@@ -1,3 +1,4 @@
+import { createEmbed } from '../../../utils/embeds.js';
 import { EmbedBuilder } from 'discord.js';
 import { deleteBirthday } from '../../../services/birthdayService.js';
 
@@ -12,7 +13,7 @@ export default {
         const result = await deleteBirthday(client, guildId, userId);
 
         if (result.status === 'not_found') {
-            const embed = new EmbedBuilder()
+            const embed = createEmbed()
                 .setColor(0xFF0000)
                 .setTitle('No Birthday Found')
                 .setDescription('You don\'t have a birthday set to remove.');
@@ -22,7 +23,7 @@ export default {
             return;
         }
 
-        const embed = new EmbedBuilder()
+        const embed = createEmbed()
             .setColor(0x00FF00)
             .setTitle('Birthday Removed')
             .setDescription('Your birthday has been successfully removed from the server.');

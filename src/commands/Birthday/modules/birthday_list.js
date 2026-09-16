@@ -1,3 +1,4 @@
+import { createEmbed } from '../../../utils/embeds.js';
 import { EmbedBuilder } from 'discord.js';
 import { getAllBirthdays } from '../../../services/birthdayService.js';
 import { deleteBirthday } from '../../../utils/database.js';
@@ -13,7 +14,7 @@ export default {
         const sortedBirthdays = await getAllBirthdays(client, guildId);
 
         if (sortedBirthdays.length === 0) {
-            const embed = new EmbedBuilder()
+            const embed = createEmbed()
                 .setColor(0xFF0000)
                 .setTitle('No Birthdays')
                 .setDescription('No birthdays have been set in this server yet.');
@@ -45,7 +46,7 @@ export default {
         }
 
         if (displayIndex === 0) {
-            const embed = new EmbedBuilder()
+            const embed = createEmbed()
                 .setColor(0xFF0000)
                 .setTitle('No Birthdays')
                 .setDescription('No birthdays have been set by current server members.');
@@ -56,7 +57,7 @@ export default {
 
         birthdayList = `**${displayIndex} birthday${displayIndex !== 1 ? 's' : ''} in ${interaction.guild.name}**\n\n` + birthdayList;
 
-        const embed = new EmbedBuilder()
+        const embed = createEmbed()
             .setColor(0x00FF00)
             .setTitle('Server Birthdays')
             .setDescription(`${birthdayList}\n\nTotal: ${displayIndex} birthday${displayIndex !== 1 ? 's' : ''}`);

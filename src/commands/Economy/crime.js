@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../../utils/panelLayout.js';
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
@@ -97,7 +98,7 @@ export default {
                     `You successfully committed ${crime.name} and earned **${amountEarned}** coins!`
                 );
                 
-                await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+                await InteractionHelper.safeEditReply(interaction, toContainerMessage({ embeds: [embed] }));
             } else {
                 // Fine is based on the potential haul of the attempted crime
                 const potentialHaul = Math.floor((crime.min + crime.max) / 2);
@@ -113,7 +114,7 @@ export default {
                     `You were fined ${fine.toLocaleString()} coins and will be in jail for 2 hours.`
                 );
                 
-                await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+                await InteractionHelper.safeEditReply(interaction, toContainerMessage({ embeds: [embed] }));
             }
     }, { command: 'crime' })
 };

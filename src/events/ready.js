@@ -9,6 +9,7 @@ import { initializePresenceMirror } from "../services/presenceMirrorService.js";
 import { initializeYouTubeAlerts } from "../services/youtubeAlertService.js";
 import { initializeTimedSoftbans } from "../services/moderation/timedSoftbanService.js";
 import { initializeOperationsHealthChecks } from "../services/dashboardOperationsService.js";
+import { refreshConfiguredPanelDesigns } from "../services/panelDesignService.js";
 
 export default {
   name: Events.ClientReady,
@@ -49,6 +50,9 @@ export default {
       startupLog(
         `Reaction role panel health: scanned ${reactionRolePanelSummary.scannedPanels} panels, healthy ${reactionRolePanelSummary.healthyPanels}, deleted ${reactionRolePanelSummary.deletedPanels}, missing channel ${reactionRolePanelSummary.missingChannels}, recovered ${reactionRolePanelSummary.recoveredIds}, errors ${reactionRolePanelSummary.errors}`
       );
+
+      const panelDesignSummary = await refreshConfiguredPanelDesigns(client);
+      startupLog(`Panel design refresh: ${JSON.stringify(panelDesignSummary)}`);
 
       if (client.config?.features?.leveling) {
         const levelRoleSummary = await reconcileLevelRoles(client);

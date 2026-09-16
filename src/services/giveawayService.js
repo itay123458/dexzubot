@@ -1,3 +1,4 @@
+import { toContainerMessage } from '../utils/panelLayout.js';
 import { createEmbed } from '../utils/embeds.js';
 import { fileURLToPath } from 'node:url';
 // giveawayService.js
@@ -173,13 +174,13 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
 
 export function withGiveawayArtwork(embed, channel, message = null) {
     const payload = { embeds: [embed] };
-    const name = 'dexzu-giveaway.jpg';
+    const name = 'dexzu-giveaway-v2.png';
     const existing = [...(message?.attachments?.values?.() || [])].some(file => file.name === name);
     if (existing) {
         embed.setImage(`attachment://${name}`);
     } else if (channel?.guild?.members.me && channel.permissionsFor(channel.guild.members.me)?.has(PermissionFlagsBits.AttachFiles)) {
         embed.setImage(`attachment://${name}`);
-        payload.files = [new AttachmentBuilder(fileURLToPath(new URL('../web/public/dexzu-dungeon-bg.jpg', import.meta.url)), { name })];
+        payload.files = [new AttachmentBuilder(fileURLToPath(new URL('../assets/dexzu-giveaway-banner.png', import.meta.url)), { name })];
     }
     return payload;
 }
@@ -383,10 +384,10 @@ export async function checkGiveaways(client) {
 
         const endedEmbed = createGiveawayEmbed(giveaway, 'ended', winners);
 
-        await message.edit({
+        await message.edit(toContainerMessage({
           ...withGiveawayArtwork(endedEmbed, message.channel, message),
           components: [createGiveawayButtons(true)]
-        });
+        }));
 
         giveaway.ended = true;
         giveaway.isEnded = true;

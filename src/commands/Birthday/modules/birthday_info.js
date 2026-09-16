@@ -1,3 +1,4 @@
+import { createEmbed } from '../../../utils/embeds.js';
 import { EmbedBuilder } from 'discord.js';
 import { getUserBirthday } from '../../../services/birthdayService.js';
 import { logger } from '../../../utils/logger.js';
@@ -14,7 +15,7 @@ export default {
         const birthdayData = await getUserBirthday(client, guildId, userId);
 
         if (!birthdayData) {
-            const embed = new EmbedBuilder()
+            const embed = createEmbed()
                 .setColor(0xFF0000)
                 .setTitle('No Birthday Found')
                 .setDescription(targetUser.id === interaction.user.id 
@@ -25,7 +26,7 @@ export default {
             });
         }
 
-        const embed = new EmbedBuilder()
+        const embed = createEmbed()
             .setColor(0x00FF00)
             .setTitle('Birthday Information')
             .setDescription(`**Date:** ${birthdayData.monthName} ${birthdayData.day}\n**User:** ${targetUser.toString()}`);
