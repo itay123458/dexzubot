@@ -8,6 +8,7 @@ import {
   isMaintenanceMode,
 } from '../config/bot.js';
 import botConfig from '../config/bot.js';
+import { canUseBetaCommand } from '../config/beta.js';
 import { handleApplicationModal } from '../commands/Community/apply.js';
 import { handleInteractionError, createError, ErrorTypes, ErrorCodes } from '../utils/errorHandler.js';
 import { InteractionHelper } from '../utils/interactionHelper.js';
@@ -80,6 +81,15 @@ export default {
                 `No command matching ${interaction.commandName} was found.`,
                 ErrorTypes.CONFIGURATION,
                 'Sorry, that command does not exist.',
+                withTraceContext({ commandName: interaction.commandName }, interactionTraceContext)
+              );
+            }
+
+            if (!canUseBetaCommand(command, interaction.guildId)) {
+              throw createError(
+                `Beta command denied outside the configured beta guild: ${interaction.commandName}`,
+                ErrorTypes.PERMISSION,
+                'This command is available only in the DexzuBot beta server.',
                 withTraceContext({ commandName: interaction.commandName }, interactionTraceContext)
               );
             }
@@ -188,6 +198,10 @@ export default {
           }
         } else if (interaction.isAutocomplete()) {
           const autocompleteCommand = client.commands.get(interaction.commandName);
+          if (!canUseBetaCommand(autocompleteCommand, interaction.guildId)) {
+            await interaction.respond([]).catch(() => {});
+            return;
+          }
           if (autocompleteCommand?.autocomplete) {
             try {
               await autocompleteCommand.autocomplete(interaction, client);

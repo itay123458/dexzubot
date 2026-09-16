@@ -1,6 +1,7 @@
 // commandAccessService.js
 
 import { getGuildConfig, updateGuildConfig } from './config/guildConfig.js';
+import { canUseBetaCommand } from '../config/beta.js';
 import {
   normalizeCategoryKey,
   formatCategoryName,
@@ -26,10 +27,11 @@ function normalizeToggleRecord(raw) {
   return {};
 }
 
-export function buildCommandRegistry(client) {
+export function buildCommandRegistry(client, guildId = undefined) {
   const categories = new Map();
 
   for (const command of client.commands.values()) {
+    if (guildId !== undefined && !canUseBetaCommand(command, guildId)) continue;
     if (!command?.data?.name) {
       continue;
     }
@@ -154,8 +156,8 @@ export async function isCommandEnabled(client, guildId, commandName, category = 
   return isCommandEnabledInConfig(config, commandName, resolvedCategory);
 }
 
-export function getCommandAccessSnapshot(client, config) {
-  const registry = buildCommandRegistry(client);
+export function getCommandAccessSnapshot(client, config, guildId = null) {
+  const registry = buildCommandRegistry(client, guildId);
   const disabledCommands = normalizeToggleRecord(config?.disabledCommands);
   const disabledCategories = normalizeToggleRecord(config?.disabledCategories);
 

@@ -7,6 +7,7 @@ import cron from 'node-cron';
 import config from './config/application.js';
 import { initializeDatabase } from './utils/database.js';
 import { getGuildConfig } from './services/config/guildConfig.js';
+import { getBetaGuildId, isBetaGuild } from './config/beta.js';
 import { getServerCounters, saveServerCounters, updateCounter } from './services/serverstatsService.js';
 import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
@@ -340,9 +341,18 @@ class TitanBot extends Client {
 
   async registerCommands() {
     try {
-      const guildId = process.env.GUILD_ID || this.guilds.cache.first()?.id;
+      const guildId = process.env.GUILD_ID || this.guilds.cache.find(guild => !isBetaGuild(guild.id))?.id;
       const guildConfig = guildId ? await getGuildConfig(this, guildId) : null;
       await registerSlashCommands(this, { clientId: this.config.bot.clientId, guildId, guildConfig });
+      const betaGuildId = getBetaGuildId();
+      if (betaGuildId && betaGuildId !== guildId) {
+        if (this.guilds.cache.has(betaGuildId)) {
+          const betaGuildConfig = await getGuildConfig(this, betaGuildId);
+          await registerSlashCommands(this, { clientId: this.config.bot.clientId, guildId: betaGuildId, guildConfig: betaGuildConfig });
+        } else {
+          logger.warn('Beta guild is configured but DexzuBot has not joined it; beta command registration skipped.');
+        }
+      }
     } catch (error) {
       logger.error('Error registering commands:', error);
     }

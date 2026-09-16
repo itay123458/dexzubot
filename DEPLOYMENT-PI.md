@@ -61,6 +61,25 @@ and significantly increases memory usage.
 
 ## Updating
 
+### Beta guild on the existing bot
+
+`GUILD_ID` remains the production server. Set `BETA_GUILD_ID` in the Pi's private
+`.env` to register an additional beta guild with its own saved guild settings.
+Mark experimental commands `betaOnly: true`; registration, execution, and help
+exclude them outside the beta guild. Use `isBetaGuild(guildId)` from
+`src/config/beta.js` to gate experimental behavior inside an existing feature.
+Shared backend changes still run in the same process; this is not deployment
+or crash isolation. Website beta previews need a separate view/feature gate.
+
+The user-approved test server is `1486680755869323388`. Its repeatable layout
+setup is `scripts/setup-beta-server.mjs` (preview by default, `--apply` to write).
+Before applying, save `--snapshot` output to a private file under the host's
+`/opt/dexzubot/backups` directory. Copy the setup's generated layout/config
+backups from the container to that host directory before a later rebuild.
+The script preserves existing channels, messages, roles, private ticket
+overwrites, and counters. It only targets the approved beta server and refuses
+to run if that server is configured as `GUILD_ID`.
+
 ```bash
 cd /opt/dexzubot
 git pull --ff-only

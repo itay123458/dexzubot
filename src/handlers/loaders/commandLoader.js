@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { Collection } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import botConfig from '../../config/bot.js';
+import { canUseBetaCommand } from '../../config/beta.js';
 import { isSlashCommandCategoryEnabled } from '../../config/commands/slashCommandCategories.js';
 import { isCommandEnabledInConfig } from '../../services/commandAccessService.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
@@ -154,12 +155,13 @@ function filterCommandOptions(commandJson, category, guildConfig) {
     return { ...commandJson, options };
 }
 
-function collectCommandPayloads(client, guildConfig = null) {
+function collectCommandPayloads(client, guildConfig = null, guildId = null) {
     const commands = [];
     let totalSubcommands = 0;
     const registeredNames = new Set();
 
     for (const command of client.commands.values()) {
+        if (!canUseBetaCommand(command, guildId)) continue;
         if (!command.data || typeof command.data.toJSON !== 'function') {
             logger.warn(`Command missing data or toJSON method: ${command}`);
             continue;
@@ -334,7 +336,7 @@ export async function registerCommands(client, options = {}) {
     const { clientId = null, guildId = null, guildConfig = null } = options;
 
     try {
-        const { commands, totalSubcommands } = collectCommandPayloads(client, guildConfig);
+        const { commands, totalSubcommands } = collectCommandPayloads(client, guildConfig, guildId);
         if (guildId) {
             await registerGuildCommands(client, clientId, guildId, commands, totalSubcommands);
         } else {

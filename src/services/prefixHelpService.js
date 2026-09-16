@@ -5,19 +5,21 @@ import { isSlashCommandCategoryEnabled } from '../config/commands/slashCommandCa
 import { getPrefixRestriction } from '../config/commands/prefixRestrictions.js';
 import { resolveSubcommandAlias } from '../config/commands/commandAliases.js';
 import { isBotOwner, isCommandCategoryEnabled } from '../config/bot.js';
+import { canUseBetaCommand } from '../config/beta.js';
 import { supportsPrefixExecution } from '../utils/messageAdapter.js';
 import { getCommandDefaultPermissions, memberMeetsCommandPermissions } from '../utils/permissionGuard.js';
 import { getGuildConfig } from './config/guildConfig.js';
 import { getPrefixSettings, prefixAllowed, canManagePrefix, canUsePrefixCommand } from './prefixSettingsService.js';
 import { createEmbed } from '../utils/embeds.js';
 
-export function listPrefixHelp(client, config, member, channelId, mode = 'prefix') {
+export function listPrefixHelp(client, config, member, channelId, mode = 'prefix', guildId = member?.guild?.id) {
   const entries = [];
-  for (const category of getCommandAccessSnapshot(client, config).categories) {
+  for (const category of getCommandAccessSnapshot(client, config, guildId).categories) {
     if (!(mode === 'slash' ? isSlashCommandCategoryEnabled(category.folder) : isCommandCategoryEnabled(category.folder)) || category.categoryDisabled) continue;
     for (const entry of category.commands) {
       const [base, ...args] = entry.name.split(' ');
       const command = client.commands.get(base);
+      if (!canUseBetaCommand(command, guildId)) continue;
       if (mode === 'prefix' && !canUsePrefixCommand(command, member, config)) continue;
       if (mode === 'prefix' && (!supportsPrefixExecution(command) || getPrefixRestriction(command, args, resolveSubcommandAlias).blocked)) continue;
       if (!entry.isSubcommand && command.data.toJSON().options?.some(option => [1, 2].includes(option.type))) continue;
@@ -42,7 +44,7 @@ export async function openPrefixHelp(interaction, _config, client, mode = 'prefi
   const render = async () => {
     const config = await getGuildConfig(client, interaction.guildId);
     const member = await interaction.guild.members.fetch({ user: interaction.user.id, force: true });
-    const allEntries = listPrefixHelp(client, config, member, interaction.channel.id, mode);
+    const allEntries = listPrefixHelp(client, config, member, interaction.channel.id, mode, interaction.guildId);
     const categories = [...new Set(allEntries.map(entry => entry.category))];
     if (!categories.includes(selectedCategory)) selectedCategory = 'all';
     const entries = selectedCategory === 'all' ? allEntries : allEntries.filter(entry => entry.category === selectedCategory);

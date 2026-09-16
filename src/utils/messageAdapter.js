@@ -7,6 +7,7 @@ import { logger } from './logger.js';
 import { InteractionHelper } from './interactionHelper.js';
 import { SLASH_ONLY_COMMANDS } from '../config/commands/prefixRestrictions.js';
 import { getCommandPrefix } from '../config/bot.js';
+import { canUseBetaCommand } from '../config/beta.js';
 import { ResponseCoordinator, buildPrefixUsage } from './responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from './permissionGuard.js';
 import { canUsePrefixCommand } from '../services/prefixSettingsService.js';
@@ -195,6 +196,10 @@ export async function executePrefixCommand(command, message, args, client, prefi
   const prefix = prefixOverride || getCommandPrefix();
 
   try {
+    if (!canUseBetaCommand(command, message.guild?.id)) {
+      await mockInteraction.reply({ content: 'This command is available only in the DexzuBot beta server.', allowedMentions: { parse: [] } });
+      return;
+    }
     if (!canUsePrefixCommand(command, message.member, guildConfig)) {
       await mockInteraction.reply({ content: 'This prefix command is staff-only. Economy commands, help, ping and info remain available to members.', allowedMentions: { parse: [] } });
       return;
