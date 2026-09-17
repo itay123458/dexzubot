@@ -13,6 +13,7 @@ import { refreshConfiguredPanelDesigns } from "../services/panelDesignService.js
 import { loadEmbedMotion } from "../services/embedMotionService.js";
 import { getCommunityGuildIds } from '../config/community.js';
 import { loadCommunityMotion } from '../services/communityMotionService.js';
+import { loadEmbedCrown } from '../services/embedCrownService.js';
 import { getCommunityConfig } from '../services/communityBetaService.js';
 import { initializeInviteRewards } from '../services/betaInviteRewardsService.js';
 import { initializeStaffWorkflows } from '../services/betaStaffService.js';
@@ -26,6 +27,8 @@ export default {
       await loadEmbedMotion(client);
       try { await loadCommunityMotion(client); }
       catch(error) { logger.warn('Animated arrows unavailable; using static markers.',{error:error.message}); }
+      try { await loadEmbedCrown(client); }
+      catch(error) { logger.warn('Embed crown unavailable; keeping plain titles.',{error:error.message}); }
       if (getCommunityGuildIds().length) {
         try {
         for(const id of getCommunityGuildIds()) if(client.guilds.cache.has(id)) await getCommunityConfig(client,id);

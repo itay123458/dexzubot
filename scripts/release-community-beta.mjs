@@ -8,6 +8,7 @@ import { publishCommunityPanel } from '../src/services/communityBetaPanels.js';
 import { loadEmbedMotion } from '../src/services/embedMotionService.js';
 import { betaReleases } from '../src/config/releases.js';
 import { createEmbed } from '../src/utils/embeds.js';
+import { loadEmbedCrown } from '../src/services/embedCrownService.js';
 const guildId='1486680755869323388',prepare=process.argv.includes('--prepare'),announce=process.argv.includes('--announce');
 if(process.env.BETA_GUILD_ID!==guildId || process.env.GUILD_ID===guildId || prepare===announce) throw new Error('Choose --prepare or --announce for the approved beta guild only.');
 const client=new Client({intents:[GatewayIntentBits.Guilds]});client.db=db;
@@ -15,7 +16,7 @@ try {
  await initializeDatabase();if(!db.isAvailable())throw new Error('Persistent storage unavailable.');
  const ready=once(client,Events.ClientReady);await client.login(process.env.DISCORD_TOKEN);await ready;
  const guild=client.guilds.cache.get(guildId);if(!guild)throw new Error('Beta guild unavailable.');
- await Promise.all([guild.roles.fetch(),guild.channels.fetch(),guild.members.fetchMe()]);await loadEmbedMotion(client);
+ await Promise.all([guild.roles.fetch(),guild.channels.fetch(),guild.members.fetchMe()]);await loadEmbedMotion(client);await loadEmbedCrown(client);
  const key=`guild:${guildId}:community-beta:setup:v1`;
  if(prepare) {
   const previous=await readCommunityValue(client,key);

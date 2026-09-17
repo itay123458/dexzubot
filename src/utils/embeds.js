@@ -3,10 +3,16 @@
 import { EmbedBuilder } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
 import { motionArtwork, currentMessageGuild } from '../services/embedMotionService.js';
+import { crownTitle } from '../services/embedCrownService.js';
+
+class DexzuEmbedBuilder extends EmbedBuilder {
+  constructor(guildId) { super(); this.guildId=guildId; }
+  setTitle(title) { return super.setTitle(crownTitle(title,this.guildId)); }
+}
 
 // Legacy builders keep their exact styling; only beta's default artwork changes.
 export function createMotionEmbed(guildId = currentMessageGuild()) {
-  const embed = new EmbedBuilder();
+  const embed = new DexzuEmbedBuilder(guildId);
   const artwork = motionArtwork(guildId);
   if (artwork) embed.setThumbnail(artwork.thumbnailUrl);
   return embed;
@@ -26,7 +32,7 @@ export function createEmbed({
   timestamp = false,
   url = null
 } = {}) {
-  const embed = new EmbedBuilder();
+  const embed = new DexzuEmbedBuilder(guildId);
 
   if (title && typeof title === 'string' && title.length > 0) {
     embed.setTitle(title.substring(0, 256));

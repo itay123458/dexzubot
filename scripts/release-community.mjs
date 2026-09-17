@@ -9,6 +9,7 @@ import { loadEmbedMotion, embedMotionKey } from '../src/services/embedMotionServ
 import { loadCommunityMotion } from '../src/services/communityMotionService.js';
 import { communityRelease } from '../src/config/releases.js';
 import { createEmbed } from '../src/utils/embeds.js';
+import { loadEmbedCrown } from '../src/services/embedCrownService.js';
 
 const main='1533088766821007390', beta='1486680755869323388';
 const mode=process.argv[2];
@@ -49,7 +50,7 @@ try {
   await writeCommunityValue(client,setupKey,{backup,channels:config.channels});
   console.log(JSON.stringify({prepared:main,backup,channels:config.channels}));
  }
- await loadEmbedMotion(client);await loadCommunityMotion(client);
+ await loadEmbedMotion(client);await loadCommunityMotion(client);await loadEmbedCrown(client);
  if(mode==='panels')for(const id of [beta,main]) {
   const g=await client.guilds.fetch(id),config=await getCommunityConfig(client,id);
   for(const kind of Object.keys(config.features))if(config.features[kind] && !(id===main && kind==='activity'))console.log(JSON.stringify(await publishCommunityPanel(client,g,kind)));
