@@ -4,7 +4,7 @@ export const betaReleases = [{
   changes: [
     'Turn General Support, Report a Member, and Partnership buttons on or off separately.',
     'Invite rewards have configurable milestones, balance checks, and one-time claims for tracked members who stay.',
-    'Staff applications save each answer. Review applications and 1–14 day leave requests from Discord or the dashboard.',
+    'Staff applications now update one card as you answer or resume. Full answers stay saved in the dashboard; no repeated question or answer posts.',
     'Activity checks show who responded, who is missing, and who is on approved leave. Server information panels have configurable channel links.',
     'Optional DMs cover application, ticket, and leave updates. Closed DMs do not undo a saved request.',
   ],

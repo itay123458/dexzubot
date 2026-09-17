@@ -24,6 +24,22 @@ test('non-beta state access rejected',async()=>{reset();await assert.rejects(()=
 InteractionHelper.safeDefer=async()=>true;
 InteractionHelper.safeReply=async(i,payload)=>payload;
 function answerInteraction(){return {client,guild,user:reviewer,customId:'beta_staff:save:app:0',fields:{getTextInputValue:()=> 'Answer'}};}
+test('resume and answers update one application card through submission',async()=>{
+ reset();state.applications=[{id:'app',userId:'reviewer',status:'draft',channelId:'channel',questions:[{label:'First',required:true},{label:'Second',required:true}],answers:[]}];
+ const previous=guild.channels;let sent=0,edited=0,payload;
+ const message={id:'card',author:client.user,edit:async p=>{edited++;payload=p;return message;},delete:async()=>{}};
+ const channel={id:'channel',guild,isTextBased:()=>true,permissionsFor:()=>({has:()=>false}),messages:{fetch:async()=>message},send:async p=>{sent++;payload=p;return message;}};
+ guild.channels={fetch:async id=>id==='channel'?channel:null};
+ try {
+  await handleStaffInteraction({...answerInteraction(),customId:'beta_staff:start'});
+  await handleStaffInteraction({...answerInteraction(),customId:'beta_staff:start'});
+  await handleStaffInteraction(answerInteraction());
+  assert.equal(sent,1);assert.equal(edited,2);assert.equal(state.applications[0].messageId,'card');
+  assert.match(payload.embeds[0].data.description,/Second/);
+  await handleStaffInteraction({...answerInteraction(),customId:'beta_staff:save:app:1'});
+  assert.equal(sent,1);assert.equal(payload.components.length,0);assert.equal(state.applications[0].status,'pending');
+ }finally{guild.channels=previous;}
+});
 test('application answer checks owner before write',async()=>{reset();Object.assign(state.applications[0],{status:'draft',questions:[{label:'Question',required:true}],answers:[]});await assert.rejects(()=>handleStaffInteraction(answerInteraction()));assert.equal(writes,0);});
 test('two concurrent final answers submit exactly once',async()=>{reset();Object.assign(state.applications[0],{userId:'reviewer',status:'draft',questions:[{label:'Question',required:true}],answers:[]});const results=await Promise.allSettled([handleStaffInteraction(answerInteraction()),handleStaffInteraction(answerInteraction())]);assert.equal(results.filter(x=>x.status==='fulfilled').length,1);assert.deepEqual(state.applications[0].answers,['Answer']);assert.equal(state.applications[0].status,'pending');assert.equal(writes,1);});
 test('late activity responses cannot reopen expired check',async()=>{reset();state.activityChecks=[{id:'check',status:'open',createdAt:1,deadline:2,eligible:['reviewer'],responses:[]}];await assert.rejects(()=>handleStaffInteraction({...answerInteraction(),customId:'beta_staff:respond:check'}));assert.equal(writes,0);});
@@ -31,14 +47,14 @@ test('cancelled application reuses its private channel, and rapid restart is lim
  reset();state.applications=[{id:'old',userId:'reviewer',status:'cancelled',channelId:'channel',createdAt:Date.now()-120000}];
  let created=0,sent=0;
  const previous=guild.channels;
- const channel={id:'channel',guild,isTextBased:()=>true,permissionsFor:()=>({has:()=>false}),send:async()=>{sent++;}};
+ const channel={id:'channel',guild,isTextBased:()=>true,permissionsFor:()=>({has:()=>false}),send:async()=>{sent++;return {id:'new-card'};}};
  guild.channels={fetch:async()=>channel,create:async()=>{created++;return channel;}};
  try{await handleStaffInteraction({...answerInteraction(),customId:'beta_staff:start'});assert.equal(created,0);assert.equal(sent,1);const app=state.applications.at(-1);app.status='cancelled';await assert.rejects(()=>handleStaffInteraction({...answerInteraction(),customId:'beta_staff:start'}),/minute/);assert.equal(created,0);}finally{guild.channels=previous;}
 });
 test('deleted draft channel is recreated with saved answers intact',async()=>{
  reset();state.applications=[{id:'app',userId:'reviewer',status:'draft',channelId:'gone',createdAt:1,questions:[{label:'First',required:true},{label:'Next',required:true}],answers:['Saved answer']}];
  const previous=guild.channels;let created=0;
- guild.channels={fetch:async()=>null,create:async()=>{created++;return {id:'replacement',guild,isTextBased:()=>true,permissionsFor:()=>({has:()=>false}),send:async()=>{}};}};
+ guild.channels={fetch:async()=>null,create:async()=>{created++;return {id:'replacement',guild,isTextBased:()=>true,permissionsFor:()=>({has:()=>false}),send:async()=>({id:'replacement-card'})};}};
  try{await handleStaffInteraction({...answerInteraction(),customId:'beta_staff:start'});assert.equal(created,1);assert.equal(state.applications[0].channelId,'replacement');assert.deepEqual(state.applications[0].answers,['Saved answer']);}finally{guild.channels=previous;}
 });
 test('changed public application channel never receives submitted answer',async()=>{

@@ -33,9 +33,29 @@ async function locked(guild,fn) {
 async function member(guild,actor) { return guild.members.fetch({user:actor.id || actor.user?.id,force:true}); }
 function locate(state,id) { return state.applications.find(x=>x.id===id)||state.leave.find(x=>x.id===id); }
 function questionPayload(client,guild,app) {
- if(app.status!=='draft')return {embeds:[embed(client,guild,'Application',`Application ${app.id}\nStatus: **${app.status}**`)],components:[],allowedMentions:{parse:[]}};
+ if(app.status!=='draft')return {embeds:[embed(client,guild,'Staff application',`Status: **${app.status==='pending'?'Waiting for review':app.status}**\n${app.answers.length}/${app.questions.length} answers saved.`)],components:[],allowedMentions:{parse:[]}};
  const index=app.answers.length, q=app.questions[index];
- return {embeds:[embed(client,guild,`Question ${index+1}/${app.questions.length}`,`${q.label}\n\n${q.required?'Required':'Optional'} · Up to 1000 characters. Your progress is saved after each answer.`)],components:[row(button(`answer:${app.id}:${index}`,'Answer'),...(!q.required?[button(`skip:${app.id}:${index}`,'Skip',ButtonStyle.Secondary)]:[]),button(`cancel:${app.id}`,'Cancel',ButtonStyle.Danger))],allowedMentions:{parse:[]}};
+ return {embeds:[embed(client,guild,`Question ${index+1}/${app.questions.length}`,`${q.label}\n\n${app.answers.length}/${app.questions.length} saved · ${q.required?'Required':'Optional'} · Up to 1000 characters. Your progress is saved after each answer.`)],components:[row(button(`answer:${app.id}:${index}`,'Answer'),...(!q.required?[button(`skip:${app.id}:${index}`,'Skip',ButtonStyle.Secondary)]:[]),button(`cancel:${app.id}`,'Cancel',ButtonStyle.Danger))],allowedMentions:{parse:[]}};
+}
+async function syncApplicationMessage(client,guild,config,state,app,channel) {
+ assertCommunityPrivateChannel(guild,channel,config,{memberId:app.userId});
+ const message=app.messageId?await channel.messages.fetch(app.messageId).catch(error=>{if(error.code===10008)return null;throw error;}):null;
+ if(message) {
+  if(message.author.id!==client.user.id)fail('The application card does not belong to DexzuBot.');
+  await message.edit(questionPayload(client,guild,app));return;
+ }
+ const created=await channel.send(questionPayload(client,guild,app));
+ app.messageId=created.id;
+ try{await save(guild,state);}catch(error){await created.delete().catch(()=>{});throw error;}
+}
+export async function repairApplicationCard(client,guild,id) {
+ return locked(guild,async()=>{
+  const config=await assertBetaFeature(client,guild.id,'applications'),state=await load(guild);
+  const app=state.applications.find(a=>a.id===id);if(!app)fail('Application not found.');
+  const channel=await guild.channels.fetch(app.channelId);
+  await syncApplicationMessage(client,guild,config,state,app,channel);
+  return app.messageId;
+ });
 }
 export function activityPayload(client,guild,check,leaves) {
  const audit=check.audit||activityAudit(check,leaves);
@@ -56,7 +76,7 @@ async function postReview(client,guild,config,request) {
   const channel=await guild.channels.fetch(config.reviewChannelId);
   assertCommunityPrivateChannel(guild,channel,config);
   const isLeave=!!request.days;
-  await channel.send({embeds:[embed(client,guild,isLeave?'Leave request':'Application ready',`Member: <@${request.userId}>\nID: ${request.id}\n${isLeave?`${request.days} day(s)\n${request.reason}`:`Review answers in <#${request.channelId}>.`}`)],components:[row(button(`review:${request.id}:approved`,'Approve',ButtonStyle.Success),button(`review:${request.id}:denied`,'Deny',ButtonStyle.Danger))],allowedMentions:{parse:[]}});
+  await channel.send({embeds:[embed(client,guild,isLeave?'Leave request':'Application ready',`Member: <@${request.userId}>\nID: ${request.id}\n${isLeave?`${request.days} day(s)\n${request.reason}`:`Review full answers in the Beta dashboard: Operations → Community tools.`}`)],components:[row(button(`review:${request.id}:approved`,'Approve',ButtonStyle.Success),button(`review:${request.id}:denied`,'Deny',ButtonStyle.Danger))],allowedMentions:{parse:[]}});
   return true;
  }catch{ return false; }
 }
@@ -152,9 +172,9 @@ export async function handleStaffInteraction(interaction) {
     try{await save(guild,state);}catch(error){if(created)await channel.delete('Application storage failed').catch(()=>{});throw error;}
    }
    channel ||= await guild.channels.fetch(app.channelId).catch(()=>null);
-   if(!channel){channel=await createApplicationChannel(client,guild,config,fresh.id);app.channelId=channel.id;try{await save(guild,state);}catch(error){await channel.delete('Application storage failed').catch(()=>{});throw error;}}
+   if(!channel){channel=await createApplicationChannel(client,guild,config,fresh.id);app.channelId=channel.id;app.messageId=null;try{await save(guild,state);}catch(error){await channel.delete('Application storage failed').catch(()=>{});throw error;}}
    assertCommunityPrivateChannel(guild,channel,config,{memberId:fresh.id});
-   await channel.send(questionPayload(client,guild,app));
+   await syncApplicationMessage(client,guild,config,state,app,channel);
    return InteractionHelper.safeReply(interaction,{content:`Continue your application in <#${app.channelId}>.`});
   }
   if(action==='leave-submit') {
@@ -173,13 +193,13 @@ export async function handleStaffInteraction(interaction) {
    if(!check.responses.includes(fresh.id))check.responses.push(fresh.id);await save(guild,state);await syncActivityMessage(client,guild,check,state.leave);return InteractionHelper.safeReply(interaction,{content:'Your activity response is saved.'});
   }
   const app=state.applications.find(a=>a.id===id);if(!app||app.userId!==fresh.id)fail('Only the application owner can change it.');
-  if(action==='cancel'){if(app.status!=='draft')fail('Only drafts can be cancelled.');app.status='cancelled';await save(guild,state);return InteractionHelper.safeReply(interaction,{content:'Application cancelled.'});}
+  if(action==='cancel'){if(app.status!=='draft')fail('Only drafts can be cancelled.');app.status='cancelled';await save(guild,state);let updated=false;try{const channel=await guild.channels.fetch(app.channelId);await syncApplicationMessage(client,guild,config,state,app,channel);updated=true;}catch{}return InteractionHelper.safeReply(interaction,{content:`Application cancelled.${updated?'':' The channel card could not be updated.'}`});}
   if(!['save','skip'].includes(action))fail('Unknown staff action.');
   try{answerApplication(app,fresh.id,Number(value),action==='skip'?'':interaction.fields.getTextInputValue('answer'));}catch(error){fail(error.message);}
   await save(guild,state);
   const channel=await guild.channels.fetch(app.channelId).catch(()=>null);
   let delivered=false;
-  if(channel)try{assertCommunityPrivateChannel(guild,channel,config,{memberId:fresh.id});await channel.send({embeds:[embed(client,guild,`Answer ${app.answers.length}`,`${app.questions[app.answers.length-1].label}\n\n${app.answers.at(-1)||'(Skipped)'}`)],allowedMentions:{parse:[]}});await channel.send(questionPayload(client,guild,app));delivered=true;}catch{}
+  if(channel)try{await syncApplicationMessage(client,guild,config,state,app,channel);delivered=true;}catch{}
   let posted=true;if(app.status==='pending')posted=await postReview(client,guild,config,app);
   const notification=app.status==='pending'?await notifyCommunityMember(client,guild,fresh.id,'applications',embed(client,guild,'Application received',`Your staff application has been saved and is waiting for review.\nApplication: ${app.id}`)):null;
   return InteractionHelper.safeReply(interaction,{content:`${app.status==='pending'?'Application submitted for review.':'Answer saved.'}${delivered?'':' Channel update failed; use Start / Resume to continue.'}${posted?'':' Review-channel delivery failed; the dashboard still has your application.'}${notificationNote(notification)}`,components:[]});
