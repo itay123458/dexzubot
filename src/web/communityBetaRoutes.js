@@ -22,8 +22,8 @@ const handled = handler => async (req, res, next) => {
     next(error);
   }
 };
-async function reviewer(client, guild) {
-  const actor = await guild.members.fetchMe({ force: true });
+async function reviewer(client, guild, member = null) {
+  const actor = member || await guild.members.fetchMe({ force: true });
   assertCommunityReviewer(guild, actor, await getCommunityConfig(client, guild.id));
   return actor;
 }
@@ -32,14 +32,14 @@ export function registerCommunityBetaRoutes(router, client) {
     const guild = req.dashboardGuild;
     await reviewer(client, guild);
     await Promise.all([guild.roles.fetch(), guild.channels.fetch()]);
-    const [config, staff] = await Promise.all([getCommunityConfig(client, guild.id), getStaffState(client, guild)]);
+    const [config, staff] = await Promise.all([getCommunityConfig(client, guild.id), getStaffState(client, guild, { readOnly: Boolean(req.dashboardAuth) })]);
     res.json({ config, staff,
       roles: [...guild.roles.cache.values()].filter(role => role.id !== guild.id && !role.managed).map(role => ({ id: role.id, name: role.name })),
       channels: [...guild.channels.cache.values()].filter(channel => [ChannelType.GuildText, ChannelType.GuildAnnouncement].includes(channel.type)).map(channel => ({ id: channel.id, name: channel.name })),
     });
   }));
   router.post('/community-beta/settings', betaOnly, handled(async (req, res) => {
-    await reviewer(client, req.dashboardGuild);
+    await reviewer(client, req.dashboardGuild, req.dashboardMember);
     const patch = z.record(z.unknown()).parse(req.body);
     const config = await saveCommunityConfig(client, req.dashboardGuild, patch);
     if (patch.features?.inviteRewards !== undefined || patch.minAccountDays !== undefined || patch.minimumStayHours !== undefined) {
@@ -59,13 +59,13 @@ export function registerCommunityBetaRoutes(router, client) {
   }));
   router.post('/community-beta/publish', betaOnly, handled(async (req, res) => {
     const { kind } = z.object({ kind: z.enum(kinds) }).strict().parse(req.body);
-    await reviewer(client, req.dashboardGuild);
+    await reviewer(client, req.dashboardGuild, req.dashboardMember);
     const result = await publishCommunityPanel(client, req.dashboardGuild, kind);
     res.json({ ok: true, result });
   }));
   router.post('/community-beta/staff', betaOnly, handled(async (req, res) => {
     const { action, input } = staffSchema.parse(req.body);
-    const guild = req.dashboardGuild, actor = await reviewer(client, guild);
+    const guild = req.dashboardGuild, actor = await reviewer(client, guild, req.dashboardMember);
     const result = await performStaffAction({ client, guild, actor, action, input });
     res.json({ ok: true, result });
   }));

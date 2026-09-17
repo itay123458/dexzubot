@@ -10,6 +10,7 @@ const fixture = await response.json();
 const reads = [], writes = [];
 let holdSave, finishSave;
 const app = express();
+app.get('/dashboard/auth/session', (_req,res)=>res.json({public:false,owner:false}));
 app.use(express.json());
 app.use('/dashboard/api', async (req, res) => {
   const key = req.query.workspace || 'main';

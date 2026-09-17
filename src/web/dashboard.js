@@ -242,7 +242,7 @@ function publicConfigState(client, guild, config, welcomeConfig, recentActivity 
   };
 }
 
-export function registerDashboard(app, client) {
+export function registerDashboard(app, client, { authorizeWorkspace } = {}) {
   const router = express.Router();
   router.use(express.json({ limit: '32kb' }));
   router.use((req, res, next) => {
@@ -267,6 +267,7 @@ export function registerDashboard(app, client) {
     }
     next();
   });
+  if (authorizeWorkspace) router.use(authorizeWorkspace);
   router.use((req, res, next) => {
     if (req.method === 'POST') {
       res.on('finish', () => {

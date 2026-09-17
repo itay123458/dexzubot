@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+process.env.GUILD_ID='1533088766821007390';
+const {db}=await import('../src/utils/database.js');
+const {getStaffState}=await import('../src/services/betaStaffService.js');
+const state={applications:[],leave:[],activityChecks:[{id:'closed-check',status:'closed',syncedStatus:'open',channelId:'123',messageId:'456'}]};
+let writes=0,discordFetches=0;
+db.isAvailable=()=>true;
+db.db={pool:{query:async()=>({rows:[{value:state}]})}};
+db.set=async()=>{writes++;return true;};
+const guild={id:process.env.GUILD_ID,channels:{fetch:async()=>{discordFetches++;throw Error('No Discord access allowed from a read');}}};
+const result=await getStaffState({},guild,{readOnly:true});
+assert.deepEqual(result,state);
+assert.equal(writes,0);assert.equal(discordFetches,0);
+console.log('PASS: public staff reads do not persist state or update Discord activity messages.');

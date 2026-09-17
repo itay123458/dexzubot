@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PermissionFlagsBits } from 'discord.js';
 import { isBetaGuild } from '../config/beta.js';
-import { betaReleases, communityRelease } from '../config/releases.js';
+import { betaReleases, communityRelease, dashboardAccessRelease } from '../config/releases.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { isCommandEnabledInConfig } from '../services/commandAccessService.js';
 import { executeRoleOperation } from '../services/roleOperationService.js';
@@ -31,11 +31,11 @@ const handled = handler => async (req, res, next) => {
 };
 
 export function registerRoleRoutes(router, client) {
-  router.get('/releases', (req, res) => res.json({ releases: isBetaGuild(req.dashboardGuild.id) ? [communityRelease,...betaReleases] : [communityRelease] }));
+  router.get('/releases', (req, res) => res.json({ releases: isBetaGuild(req.dashboardGuild.id) ? [dashboardAccessRelease,communityRelease,...betaReleases] : [dashboardAccessRelease,communityRelease] }));
   router.get('/roles', betaOnly, handled(async (req, res) => {
     const guild = req.dashboardGuild;
     await guild.roles.fetch();
-    const me = await guild.members.fetchMe({ force: true });
+    const me = req.dashboardMember || await guild.members.fetchMe({ force: true });
     const [welcome, config] = await Promise.all([getWelcomeConfig(client, guild.id), getGuildConfig(client, guild.id)]);
     const roles = [...guild.roles.cache.values()].sort((a, b) => b.comparePositionTo(a)).map(role => {
       let manageable = true;
@@ -58,11 +58,11 @@ export function registerRoleRoutes(router, client) {
     for (const field of ['role', 'source']) if (input[field] && !guild.roles.cache.has(input[field])) {
       return res.status(400).json({ error: 'The selected role no longer exists in this server.' });
     }
-    // The existing private dashboard is an administrative surface, not a Discord
-    // user session. Use the bot's actual permissions; never impersonate an owner.
-    const me = await guild.members.fetchMe({ force: true });
+    // Public requests use the signed-in member for hierarchy and permission checks.
+    // The trusted private listener retains its existing administrative behavior.
+    const me = req.dashboardMember || await guild.members.fetchMe({ force: true });
     let result;
-    await executeRoleOperation({ guild, client, actorId: me.id, auditSource: 'private Beta dashboard',
+    await executeRoleOperation({ guild, client, actorId: me.id, auditSource: req.dashboardMember ? 'authenticated dashboard' : 'private Beta dashboard',
       options: { getSubcommand: () => input.action, get: key => input[key] ?? null,
         getString: key => input[key] ?? null, getBoolean: key => input[key] ?? null,
         getRole: key => guild.roles.cache.get(input[key]) ?? null,
@@ -77,7 +77,7 @@ export function registerRoleRoutes(router, client) {
     if (!parsed.success) return res.status(400).json({ error: 'Choose a role or turn autorole off.' });
     const guild = req.dashboardGuild, roleId = parsed.data.roleId;
     await guild.roles.fetch();
-    const me = await guild.members.fetchMe({ force: true });
+    const me = req.dashboardMember || await guild.members.fetchMe({ force: true });
     assertRoleManager(guild, me);
     if (!me.permissions.has(PermissionFlagsBits.ManageGuild)) return res.status(400).json({ error: 'DexzuBot needs Manage Server to change autorole.' });
     const config = await getGuildConfig(client, guild.id);

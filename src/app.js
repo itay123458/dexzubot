@@ -19,6 +19,8 @@ import { shutdownMusic } from './services/music/playerHandler.js';
 import pkg from '../package.json' with { type: 'json' };
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
 import { registerDashboard } from './web/dashboard.js';
+import { createDashboardAuth } from './web/dashboardAuth.js';
+import { createPublicDashboard } from './web/publicDashboard.js';
 
 class TitanBot extends Client {
   constructor() {
@@ -225,6 +227,31 @@ class TitanBot extends Client {
       });
     });
 
+    app.use('/dashboard', (req, res, next) => {
+      // The trusted private dashboard must not inherit the generic API's CORS.
+      res.removeHeader('Access-Control-Allow-Origin');
+      const origin = req.get('origin');
+      if (origin) {
+        try { if (new URL(origin).host !== req.get('host')) return res.sendStatus(403); }
+        catch { return res.sendStatus(403); }
+      }
+      next();
+    });
+    const auth = createDashboardAuth(this);
+    // Only this loopback-published private listener can set the trust marker.
+    app.use('/dashboard/auth', (req, res, next) => { req.dashboardPrivate = true; next(); }, auth.router);
+    if (process.env.DASHBOARD_PUBLIC_ORIGIN && process.env.CLIENT_SECRET) {
+      if (process.env.DASHBOARD_PUBLIC_ENABLED === 'true') {
+        const publicPort = Number(process.env.DASHBOARD_PUBLIC_PORT || 3002);
+        if (!Number.isInteger(publicPort) || publicPort < 1024 || publicPort > 65535 || publicPort === configuredPort) throw new Error('Invalid public dashboard port.');
+        this.publicDashboardServer = createPublicDashboard(this, auth, process.env.DASHBOARD_PUBLIC_ORIGIN).listen(publicPort, host, () => {
+          startupLog('Invite-only public dashboard listener ready.');
+        });
+        this.publicDashboardServer.on('error', error => logger.error('Public dashboard listener failed', { code: error.code }));
+      }
+    } else if (process.env.DASHBOARD_PUBLIC_ENABLED === 'true') {
+      throw new Error('Public dashboard requires DASHBOARD_PUBLIC_ORIGIN and CLIENT_SECRET.');
+    }
     registerDashboard(app, this);
 
     const startServer = (port, attempt = 0) => {
@@ -241,7 +268,8 @@ class TitanBot extends Client {
         const errorCode = error?.code || 'UNKNOWN_ERROR';
         const errorMessage = error?.message || 'Unknown server error';
 
-        if (!hasStartedListening && errorCode === 'EADDRINUSE' && attempt < maxPortRetryAttempts) {
+        if (!hasStartedListening && errorCode === 'EADDRINUSE' && attempt < maxPortRetryAttempts
+          && !process.env.DASHBOARD_PUBLIC_ORIGIN && port + 1 !== Number(process.env.DASHBOARD_PUBLIC_PORT || 3002)) {
           const nextPort = port + 1;
           startupLog(`Port ${port} is already in use. Trying port ${nextPort}...`);
           setTimeout(() => startServer(nextPort, attempt + 1), 250);
@@ -376,6 +404,9 @@ class TitanBot extends Client {
       await shutdownMusic(this);
       logger.info('✅ Music players stopped');
 
+      if (this.publicDashboardServer) {
+        await new Promise(resolve => this.publicDashboardServer.close(resolve));
+      }
       if (this.webServer) {
         logger.info('Closing web server...');
         await new Promise((resolve) => this.webServer.close(resolve));

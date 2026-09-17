@@ -114,8 +114,71 @@ provide private HTTPS access to approved tailnet users:
 sudo tailscale serve --bg http://127.0.0.1:3001
 ```
 
-Do not expose port 3001 on the LAN or public internet. Funnel is intentionally
-not used because it makes the site publicly reachable.
+Do not expose port 3001 on the LAN or public internet. The default dashboard is
+private. For the separately authenticated public dashboard, follow the section
+below; Funnel must never target port 3001.
+
+## Invite-only public dashboard
+
+The public dashboard is a separate Express listener on container port 3002,
+published only to `127.0.0.1:3002` on the Pi. It has no health, ready, or other
+bot API routes. Every dashboard API request checks the signed-in Discord
+account, its saved grant, and current server membership. Writes additionally
+require manager access and native Discord Administrator permission. Role and
+staff operations use the signed-in member's identity and permission checks.
+
+Configure these values in the Pi's private `.env`:
+
+```dotenv
+DASHBOARD_PUBLIC_ENABLED=true
+DASHBOARD_PUBLIC_ORIGIN=https://YOUR-PI.YOUR-TAILNET.ts.net
+DASHBOARD_PUBLIC_HOST_PORT=3002
+CLIENT_SECRET=YOUR_DEXZUBOT_OAUTH_CLIENT_SECRET
+```
+
+Use the existing DexzuBot application's OAuth secret, not its bot token or
+another application's credentials. Register the exact redirect URI
+`https://YOUR-PI.YOUR-TAILNET.ts.net/dashboard/` in Discord's Developer Portal.
+The current installation already registered this URI on its existing host.
+The origin must be HTTPS, with no trailing slash, path, query, or fragment.
+Configured bot owner IDs can sign in without an invite to administer access.
+
+Before enabling Funnel, run the auth and public-listener checks and verify
+unauthenticated requests to port 3002 cannot read dashboard APIs or assets.
+Then preserve the old administrative surface as private Serve on port 8443
+and route public HTTPS only to the authenticated listener:
+
+```bash
+tailscale serve --bg --https=8443 http://127.0.0.1:3001
+tailscale funnel --bg --https=443 http://127.0.0.1:3002
+tailscale serve status
+tailscale funnel status
+```
+
+Inspect existing Serve/Funnel configuration before changing routes. Preserve
+unrelated services. If an existing 443 Serve route must be removed first,
+remove only that route after confirming private 8443 works. Funnel availability
+depends on the tailnet's policy; do not relax broader tailnet access policies.
+
+The private dashboard at `https://YOUR-PI.YOUR-TAILNET.ts.net:8443/dashboard/`
+retains the trusted administrative access model and remains tailnet-only.
+The public URL on 443 requires Discord login. Never use request headers to
+grant private access or trust a caller-supplied Discord identity.
+
+Under **Operations → Dashboard access**, the owner enters a recipient's
+Discord ID, Main/Beta workspace, viewer/manager role, and 1–168 hour invite
+expiry. The link is displayed once and stored only as a hash. It is single-use
+and bound to that account. Viewer access includes private staff records;
+invite only people allowed to read them. Accepted grants last until revoked;
+revoking a grant also cancels outstanding invitations for that account and
+workspace. Sessions expire after 12 hours or a bot restart. Every request
+rechecks grants, so revocation takes effect without waiting for session expiry.
+
+OAuth state and sessions use bounded in-memory stores and secure, HttpOnly,
+SameSite=Lax cookies. Grants and invitations require PostgreSQL; storage
+failures deny access. OAuth access tokens are used only to identify the user
+and are never stored. A global sign-in rate limit may temporarily reject
+logins during flooding. No new paid hosting or open router ports are needed.
 
 `docker compose down` removes containers and the private network but preserves the
 database volume. Do not add `--volumes` unless permanent bot data should be deleted.

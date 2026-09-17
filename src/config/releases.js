@@ -1,3 +1,10 @@
+export const dashboardAccessRelease = {
+ id:'2026-09-17-dashboard-access',date:'2026-09-17',title:'Dashboard invites',
+ summary:'Invited members can open the dashboard without Tailscale and sign in with Discord.',
+ changes:['Each invite belongs to one Discord account and one workspace, and expires after 1–168 hours.','Viewer access is read-only and includes private dashboard records. Managers also need Discord Administrator permission to make changes.','The bot owner can create invites and revoke access under Operations → Dashboard access.'],
+ tryIt:['Open your invite link and sign in with the Discord account it was created for.','After accepting, use the normal dashboard link. Sign-in sessions last up to 12 hours.'],
+ scope:'Main and Beta access is separate. A forwarded invite cannot be used by a different account.'
+};
 export const communityRelease = {
  id:'2026-09-17-community-release',date:'2026-09-17',title:'Community tools are live',
  summary:'The community tools are now available on the main server.',

@@ -24,9 +24,14 @@ services:
       - LAVALINK_NODES_FILE=lavalink/nodes.json
       - PORT=3000
       - WEB_HOST=0.0.0.0
+      - DASHBOARD_PUBLIC_ENABLED=${DASHBOARD_PUBLIC_ENABLED:-false}
+      - DASHBOARD_PUBLIC_ORIGIN=${DASHBOARD_PUBLIC_ORIGIN:-}
+      - DASHBOARD_PUBLIC_PORT=3002
     ports:
       # Keep the container on 3000, but avoid the old bot's host port.
       - "127.0.0.1:${BOT_HOST_PORT:-3001}:3000"
+      # Authenticated dashboard only; never point Funnel at the private port above.
+      - "127.0.0.1:${DASHBOARD_PUBLIC_HOST_PORT:-3002}:3002"
     depends_on:
       db:
         condition: service_healthy

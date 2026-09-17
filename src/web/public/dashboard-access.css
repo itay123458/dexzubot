@@ -1,0 +1,24 @@
+.dashboard-session[hidden],.dashboard-access[hidden],.dashboard-invite-result[hidden]{display:none}
+.dashboard-session{display:flex;align-items:center;flex-wrap:wrap;gap:12px;max-width:1440px;margin:16px auto;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--cyan)}
+.dashboard-session button{margin-left:auto}
+#dashboard-session-status{color:var(--muted)}
+.dashboard-access{margin-bottom:24px}
+.dashboard-access fieldset{min-width:0;margin:18px 0;padding:0;border:0}
+.dashboard-access legend{margin-bottom:12px;font-weight:700}
+.dashboard-invite-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
+.dashboard-access label{display:grid;gap:6px;color:var(--text);font-size:14px;font-weight:600}
+.dashboard-access input,.dashboard-access select{width:100%;min-width:0;min-height:44px}
+.dashboard-access button,.dashboard-session button{min-height:44px}
+.dashboard-access-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.dashboard-invite-result{padding:16px;border:1px solid var(--cyan);border-radius:12px;background:var(--surface-2)}
+.dashboard-invite-result input{margin-top:8px}
+#dashboard-access-status{min-height:24px;color:var(--cyan);overflow-wrap:anywhere}
+.dashboard-access-lists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.dashboard-access-lists h3{font-size:16px}
+.dashboard-access-lists ul{list-style:none;margin:0;padding:0}
+.dashboard-access-lists li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid var(--line);color:var(--muted);overflow-wrap:anywhere}
+.dashboard-access-lists li>div{min-width:0}
+.dashboard-access-lists strong{display:block;color:var(--text);font-size:14px}
+.dashboard-access-lists span{display:block;font-size:13px;margin-top:4px}
+.dashboard-access :focus-visible,.dashboard-session :focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+@media(max-width:760px){.dashboard-invite-grid,.dashboard-access-lists{grid-template-columns:1fr}.dashboard-access .card-head{flex-wrap:wrap}.dashboard-access-lists li{align-items:flex-start;flex-wrap:wrap}.dashboard-session button{margin-left:0}}

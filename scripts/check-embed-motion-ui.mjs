@@ -8,6 +8,7 @@ import { betaReleases } from '../src/config/releases.js';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fixture = await (await fetch(process.env.MOTION_QA_STATE_URL || 'http://127.0.0.1:13301/dashboard/api/state')).json();
 const app = express(); app.use(express.json());
+app.get('/dashboard/auth/session', (_req,res)=>res.json({public:false,owner:false}));
 const enabled = {main:true,beta:true}; let fail = false; const writes = [], errors = [];
 app.use('/dashboard/api', (req, res) => {
   const workspace = req.query.workspace || 'main';

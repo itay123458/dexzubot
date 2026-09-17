@@ -12,6 +12,7 @@ const fixture=await(await fetch(process.env.COMMUNITY_QA_STATE_URL || 'http://12
 const writes=[],errors=[];let fail=false,hold,release;
 const staff={applications:[{id:'a1',userId:'111111111111111111',status:'pending',track:'partnership-manager',questions:[{label:'Why staff?'}],answers:['I like helping people.']}],leave:[],activityChecks:[]};
 const app=express();app.use(express.json());
+app.get('/dashboard/auth/session', (_req,res)=>res.json({public:false,owner:false}));
 app.use('/dashboard/api',async(req,res)=>{
  const workspace=req.query.workspace||'main';
  if(req.path.startsWith('/community-beta')) {

@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/dashboard/beta-roles.css">
   <link rel="stylesheet" href="/dashboard/embed-motion.css">
   <link rel="stylesheet" href="/dashboard/community-beta.css">
+  <link rel="stylesheet" href="/dashboard/dashboard-access.css">
   <link rel="stylesheet" href="/dashboard/workspace.css"><link rel="stylesheet" href="/dashboard/command-center.css?v=2">
 </head>
 <body>
@@ -64,6 +65,7 @@
           <div class="server-chip"><img id="server-icon" alt="Server icon"><span><small id="workspace-label">Currently managing</small><strong id="server-name">Connecting…</strong></span><i id="server-status-dot"></i></div>
         </div>
       </header>
+      <aside id="dashboard-session" class="dashboard-session" hidden aria-label="Dashboard session"><span id="dashboard-session-label"></span><button id="dashboard-logout" type="button" class="secondary-button" hidden>Log out</button><span id="dashboard-session-status" role="status"></span></aside>
       <aside id="workspace-notice" class="workspace-notice" hidden><strong>Beta workspace</strong><span>Changes here apply to your beta server. Bot status is shared with Main.</span></aside>
 
       <main id="dashboard-main" tabindex="-1">
@@ -186,6 +188,21 @@
         </section>
 
         <section class="page" data-panel="operations">
+          <article id="dashboard-access" class="card dashboard-access" hidden aria-labelledby="dashboard-access-heading">
+            <div class="card-head"><div><p class="eyebrow">OWNER ACCESS</p><h2 id="dashboard-access-heading">Dashboard invitations</h2><p>Invite a specific Discord account to this dashboard. The recipient must join the selected server.</p></div><button id="dashboard-access-refresh" type="button" class="secondary-button">Refresh access</button></div>
+            <p id="dashboard-access-help">Viewers can read private dashboard records. Managers can change server settings and must have Administrator in that Discord server. Dashboard access does not grant Discord permissions.</p>
+            <form id="dashboard-invite-form" aria-describedby="dashboard-access-help">
+              <fieldset id="dashboard-invite-fields"><legend>Create an invitation</legend><div class="dashboard-invite-grid">
+                <label for="dashboard-invite-user">Recipient Discord ID<input id="dashboard-invite-user" required pattern="[0-9]{17,20}" inputmode="numeric" autocomplete="off" placeholder="17–20 digit account ID"></label>
+                <label for="dashboard-invite-workspace">Workspace<select id="dashboard-invite-workspace"><option value="main">Main</option><option value="beta">Beta</option></select></label>
+                <label for="dashboard-invite-role">Access<select id="dashboard-invite-role"><option value="viewer">Viewer — read only</option><option value="manager">Manager — Administrator required</option></select></label>
+                <label for="dashboard-invite-hours">Link expires in<select id="dashboard-invite-hours"><option value="1">1 hour</option><option value="24" selected>24 hours</option><option value="168">7 days</option></select></label>
+              </div><button type="submit">Create invitation</button></fieldset>
+            </form>
+            <div id="dashboard-invite-result" class="dashboard-invite-result" hidden><label for="dashboard-invite-link">One-use invitation link</label><input id="dashboard-invite-link" readonly autocomplete="off" spellcheck="false"><div class="dashboard-access-actions"><button id="dashboard-invite-copy" type="button">Copy link</button><button id="dashboard-invite-clear" class="secondary-button" type="button">Clear link</button></div><p>Send this link to the recipient. It can only be redeemed by their Discord account. The expiry applies to the link; accepted access stays active until revoked.</p></div>
+            <p id="dashboard-access-status" role="status" aria-live="polite"></p>
+            <div class="dashboard-access-lists"><section aria-labelledby="dashboard-grants-heading"><h3 id="dashboard-grants-heading">Active access</h3><ul id="dashboard-grants-list"></ul></section><section aria-labelledby="dashboard-invites-heading"><h3 id="dashboard-invites-heading">Pending invitations</h3><ul id="dashboard-invites-list"></ul></section></div>
+          </article>
           <div class="feature-heading"><div><p class="eyebrow">RELIABILITY CENTER</p><h2>Operations</h2><p>Health checks, access roles, backups, and active timed punishments.</p></div><button id="run-health-check" class="secondary-button">Run health check</button></div>
           <div id="operations-summary" class="summary-grid four"></div>
           <!-- Add stylesheet in head: /dashboard/community-beta.css; script after app.js: /dashboard/community-beta.js -->
@@ -268,6 +285,7 @@
   </dialog>
   <script src="/dashboard/motion.js" defer></script>
   <script src="/dashboard/dashboard-context.js" defer></script>
+  <script src="/dashboard/dashboard-access.js" defer></script>
   <script src="/dashboard/app.js" defer></script>
   <script src="/dashboard/prefix-settings.js" defer></script>
   <script src="/dashboard/beta-roles.js" defer></script>

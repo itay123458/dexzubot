@@ -102,10 +102,15 @@ async function postReview(client,guild,config,request) {
   return true;
  }catch{ return false; }
 }
-export async function getStaffState(client,guild) {
+export async function getStaffState(client,guild,{readOnly=false}={}) {
  assertCommunityBeta(guild.id);
  return locked(guild,async()=>{
-  const state=await load(guild), before=JSON.stringify(state); closeDueChecks(state);
+  const state=await load(guild);
+  if(readOnly) {
+   for(const check of state.activityChecks) if(check.status==='open')check.audit=activityAudit(check,state.leave);
+   return state;
+  }
+  const before=JSON.stringify(state); closeDueChecks(state);
   if(JSON.stringify(state)!==before)await save(guild,state);
   let synced=false;for(const check of state.activityChecks)if(check.status==='closed'&&check.syncedStatus!=='closed')synced=await syncActivityMessage(client,guild,check,state.leave)||synced;
   if(synced)await save(guild,state);

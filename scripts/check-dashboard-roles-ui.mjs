@@ -13,6 +13,7 @@ const roles = [{ id: '222222222222222222', name: 'Beta Tester', color: '#67d5ff'
 const writes = [], reads = [], errors = [];
 let autorole = null, failNext = false, expires = 120000, hold, release;
 const app = express(); app.use(express.json());
+app.get('/dashboard/auth/session', (_req,res)=>res.json({public:false,owner:false}));
 app.use('/dashboard/api', async (req, res) => {
   const workspace = req.query.workspace || 'main';
   if (req.method === 'POST') {
