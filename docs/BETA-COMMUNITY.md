@@ -1,5 +1,9 @@
 # Beta community tools
 
+Released to Main and Beta on 17 September 2026. See [current release notes](COMMUNITY-RELEASE.md)
+for updated commands, forms, animation and rollout details. The beta-only notes
+below describe the original preview.
+
 Everything here is restricted to guild `1486680755869323388`. The main server
 keeps its existing commands and economy writes. Release to Main requires a later
 explicit request; there is no automatic promotion switch.

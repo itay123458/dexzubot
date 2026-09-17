@@ -1,3 +1,5 @@
+import { communityArrow } from './communityMotionService.js';
+import { isBetaGuild } from '../config/beta.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, escapeMarkdown } from 'discord.js';
 import { createEmbed } from '../utils/embeds.js';
 import { createSupportPanelMessage } from '../utils/brandPanels.js';
@@ -14,14 +16,15 @@ const fail = message => { throw createError(message,ErrorTypes.VALIDATION,messag
 export async function buildServerInfoPanel(client,guild) {
   const config=await assertBetaFeature(client,guild.id,'serverInfo');
   const labels={rules:'Server Rules',support:'Get Support',applications:'Apply for Staff',giveaways:'Giveaways',community:'Community',counting:'Counting'};
-  const links=[new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Website / Dashboard').setURL('https://ik.tailce7102.ts.net/dashboard/?workspace=beta')];
+  const links=[new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Website / Dashboard').setURL(`https://ik.tailce7102.ts.net/dashboard/?workspace=${isBetaGuild(guild.id)?'beta':'main'}`)];
   for(const [key,id] of Object.entries(config.links)) if(id) {
     const channel=await guild.channels.fetch(id).catch(()=>null);
     if(channel?.guild?.id===guild.id) links.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(labels[key]).setURL(`https://discord.com/channels/${guild.id}/${id}`));
   }
+  const destinations=Object.entries(config.links).filter(([,id])=>id).map(([key,id])=>`${communityArrow(guild.id)} **${labels[key]}** — <#${id}>`).join('\n');
   const embed=createEmbed({guildId:guild.id,title:`About ${escapeMarkdown(guild.name).slice(0,200)}`,author:'DEXZUBOT / COMMUNITY',
     description:'Your community, at a glance. Use the links below to find support, events, and places to join in.',
-    fields:[{name:'Community at a glance',value:`**${guild.memberCount ?? '—'} members** · **${guild.premiumSubscriptionCount ?? 0} boosts** · Boost level **${guild.premiumTier ?? 0}**\nEstablished <t:${Math.floor(guild.createdTimestamp/1000)}:D>`},
+    fields:[...(destinations?[{name:'Explore the server',value:destinations}]:[]),{name:'Community at a glance',value:`**${guild.memberCount ?? '—'} members** · **${guild.premiumSubscriptionCount ?? 0} boosts** · Boost level **${guild.premiumTier ?? 0}**\nEstablished <t:${Math.floor(guild.createdTimestamp/1000)}:D>`},
       {name:'Community safety',value:'Follow the server rules and use private support to report a concern. Staff review applications and leave requests through DexzuBot.'}],
     footer:'DexzuBot · Statistics refreshed when this panel is published',
   });
@@ -38,6 +41,15 @@ export async function refreshCommunityTicketPanel(client,guild) {
   assertCommunityBeta(guild.id);
   await getCommunityConfig(client,guild.id);
   return refreshConfiguredPanelDesigns(client,guild.id);
+}
+export async function refreshPublishedCommunityPanels(client,guild) {
+  const config=await getCommunityConfig(client,guild.id);
+  const saved=await readCommunityValue(client,panelsKey(guild.id)) || {};
+  let refreshed=0,errors=0;
+  for(const kind of Object.keys(saved))if(config.features[kind]) {
+    try{await publishCommunityPanel(client,guild,kind);refreshed++;}catch{errors++;}
+  }
+  return {refreshed,errors};
 }
 export async function publishCommunityPanel(client,guild,kind) {
   return Mutex.runExclusive(`community-publish:${guild.id}`,async()=>{

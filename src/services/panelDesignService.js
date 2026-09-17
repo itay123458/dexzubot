@@ -9,7 +9,7 @@ import { messageHasPanelMarker } from '../utils/panelStatus.js';
 import { toContainerMessage } from '../utils/panelLayout.js';
 import { Mutex } from '../utils/mutex.js';
 import { logger } from '../utils/logger.js';
-import { isBetaGuild } from '../config/beta.js';
+import { isCommunityGuild } from '../config/community.js';
 import { embedMotionState, runWithMessageGuild } from './embedMotionService.js';
 import { cachedCommunityConfig } from './communityBetaService.js';
 
@@ -28,7 +28,7 @@ export async function refreshConfiguredPanelDesigns(client, onlyGuildId = null) 
         }
     };
     const refresh = async (guild, channelId, messageId, build, marker = null, beforeEdit = null, revision = PANEL_DESIGN_REVISION) => {
-        if (isBetaGuild(guild.id) && embedMotionState(guild.id).ready) revision += `:motion-v1-${embedMotionState(guild.id).enabled}`;
+        if (isCommunityGuild(guild.id) && embedMotionState(guild.id).ready) revision += `:motion-v1-${embedMotionState(guild.id).enabled}`;
         const community = cachedCommunityConfig(guild.id);
         if (community && marker?.buttonCustomId === 'create_ticket') revision += `:categories-${community.features.ticketCategories}-${Object.values(community.ticketButtons).join('-')}`;
         if (!channelId || !messageId) { summary.skipped += 1; return; }

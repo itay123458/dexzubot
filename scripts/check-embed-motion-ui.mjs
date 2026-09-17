@@ -6,18 +6,18 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { betaReleases } from '../src/config/releases.js';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const fixture = await (await fetch('http://127.0.0.1:13301/dashboard/api/state')).json();
+const fixture = await (await fetch(process.env.MOTION_QA_STATE_URL || 'http://127.0.0.1:13301/dashboard/api/state')).json();
 const app = express(); app.use(express.json());
-let enabled = true, fail = false; const writes = [], errors = [];
+const enabled = {main:true,beta:true}; let fail = false; const writes = [], errors = [];
 app.use('/dashboard/api', (req, res) => {
   const workspace = req.query.workspace || 'main';
   if (req.path === '/embed-motion') {
     if (req.method === 'POST') {
-      writes.push(workspace);
+      writes.push({workspace,enabled:req.body.enabled});
       if (fail) return res.status(500).json({ error: 'Save failed for this test.' });
-      enabled = req.body.enabled;
+      enabled[workspace] = req.body.enabled;
     }
-    return res.json({ enabled, ready: true, panels: { errors: 0 } });
+    return res.json({ enabled:enabled[workspace], ready: true, panels: { errors: 0 } });
   }
   if (req.path === '/roles') return res.json({ roles: [], autorole: { roleId: null } });
   if (req.path === '/releases') return res.json({ releases: betaReleases });
@@ -41,10 +41,10 @@ try {
   await page.locator('#embed-motion-enabled').uncheck();
   fail = true; await page.locator('#embed-motion-form button').click();
   await page.getByText('Save failed for this test.', { exact: true }).waitFor();
-  assert.equal(enabled, true); assert.ok(await page.evaluate(() => dirtyPages.has('operations')));
+  assert.equal(enabled.beta, true); assert.ok(await page.evaluate(() => dirtyPages.has('operations')));
   fail = false; await page.locator('#embed-motion-form button').click();
   await page.waitForFunction(() => document.querySelector('#embed-motion-status').textContent.startsWith('Message design saved'));
-  assert.equal(enabled, false); assert.equal(await page.evaluate(() => dirtyPages.has('operations')), false);
+  assert.equal(enabled.beta, false); assert.equal(await page.evaluate(() => dirtyPages.has('operations')), false);
   await page.locator('#embed-motion-enabled').check(); await page.locator('#embed-motion-form button').click();
   await page.waitForFunction(() => !document.querySelector('#embed-motion-form fieldset').disabled);
   const output = join(tmpdir(), 'dexzu-embed-motion-qa'); await mkdir(output, { recursive: true });
@@ -54,7 +54,17 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
   }
   await page.goto(`http://127.0.0.1:${server.address().port}/dashboard/#operations`);
-  assert.equal(await page.locator('#beta-embed-motion').isVisible(), false);
-  assert.ok(writes.every(workspace => workspace === 'beta')); assert.deepEqual(errors, []);
-  console.log('Motion UI passed: preview, reduced motion, failed/successful saves, drafts, mobile, beta-only controls.');
+  await page.waitForFunction(() => state?.server && !document.querySelector('#embed-motion-form fieldset').disabled);
+  await page.locator('#beta-embed-motion').waitFor({state:'visible'});
+  assert.equal(await page.locator('#embed-motion-enabled').isChecked(),true);
+  await page.locator('#embed-motion-enabled').uncheck();await page.locator('#embed-motion-form button').click();
+  await page.waitForFunction(() => document.querySelector('#embed-motion-status').textContent.startsWith('Message design saved'));
+  assert.equal(enabled.main,false);assert.equal(enabled.beta,true);
+  await page.reload();await page.waitForFunction(() => state?.server && !document.querySelector('#embed-motion-form fieldset').disabled);
+  assert.equal(await page.locator('#embed-motion-enabled').isChecked(),false);
+  await page.goto(`http://127.0.0.1:${server.address().port}/dashboard/?workspace=beta#operations`);
+  await page.waitForFunction(() => state?.server && !document.querySelector('#embed-motion-form fieldset').disabled);
+  assert.equal(await page.locator('#embed-motion-enabled').isChecked(),true);
+  assert.ok(writes.some(write=>write.workspace==='beta'&&write.enabled===false));assert.ok(writes.some(write=>write.workspace==='main'&&write.enabled===false)); assert.deepEqual(errors, []);
+  console.log('Motion UI passed: preview, reduced motion, failed/successful saves, drafts, mobile, Main and Beta controls, isolated workspace saves and persistence.');
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

@@ -1,11 +1,11 @@
-import { isBetaGuild } from '../config/beta.js';
+import { isCommunityGuild } from '../config/community.js';
 import { getCommunityConfig } from './communityBetaService.js';
 import { resetInviteRewardBaseline } from './betaInviteRewardsService.js';
 import { logger } from '../utils/logger.js';
 
 export async function runCommunityInviteEvent(operation,object) {
   const guild=object.guild;
-  if(!isBetaGuild(guild?.id)) return;
+  if(!isCommunityGuild(guild?.id)) return;
   try {
     if(!(await getCommunityConfig(guild.client,guild.id)).features.inviteRewards) {
       resetInviteRewardBaseline(guild.client,guild.id); return;

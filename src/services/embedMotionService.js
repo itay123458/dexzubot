@@ -1,8 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { getBetaGuildId, isBetaGuild } from '../config/beta.js';
+import { getCommunityGuildIds, isCommunityGuild } from '../config/community.js';
+import { getBetaGuildId } from '../config/beta.js';
 
 const messageGuild = new AsyncLocalStorage();
-let saved = null;
+const savedByGuild = new Map();
 export const embedMotionKey = guildId => `guild:${guildId}:embed-motion`;
 export const runWithMessageGuild = (guildId, callback) => messageGuild.run(guildId ?? null, callback);
 export const currentMessageGuild = () => messageGuild.getStore() ?? null;
@@ -29,25 +30,27 @@ export function uploadedMotionAssetUrl(message, kind) {
 }
 
 export async function loadEmbedMotion(client) {
-  const guildId = getBetaGuildId();
-  saved = guildId ? await client.db.get(embedMotionKey(guildId)) : null;
-  return embedMotionState(guildId);
+  savedByGuild.clear();
+  for(const guildId of getCommunityGuildIds()) savedByGuild.set(guildId,await client.db.get(embedMotionKey(guildId)));
+  return embedMotionState(getBetaGuildId());
 }
 
 export function embedMotionState(guildId) {
-  const ready = isBetaGuild(guildId) && validAsset(saved?.thumbnailUrl) && validAsset(saved?.bannerUrl);
+  const saved = savedByGuild.get(guildId);
+  const ready = isCommunityGuild(guildId) && validAsset(saved?.thumbnailUrl) && validAsset(saved?.bannerUrl);
   return { enabled: Boolean(ready && saved?.enabled !== false), ready: Boolean(ready) };
 }
 
 export function motionArtwork(guildId = currentMessageGuild()) {
+  const saved = savedByGuild.get(guildId);
   return embedMotionState(guildId).enabled ? { thumbnailUrl: saved.thumbnailUrl, bannerUrl: saved.bannerUrl } : null;
 }
 
 export async function saveEmbedMotion(client, guildId, enabled) {
-  if (!isBetaGuild(guildId)) throw new Error('Animated messages are available only in Beta.');
+  if (!isCommunityGuild(guildId)) throw new Error('Animated messages are available in the configured workspaces.');
   if (!embedMotionState(guildId).ready) throw new Error('Message artwork has not been installed yet.');
-  const next = { ...saved, enabled };
+  const next = { ...savedByGuild.get(guildId), enabled };
   if (await client.db.set(embedMotionKey(guildId), next) === false) throw new Error('Could not save message animation settings.');
-  saved = next;
+  savedByGuild.set(guildId,next);
   return embedMotionState(guildId);
 }

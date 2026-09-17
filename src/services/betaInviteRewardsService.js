@@ -1,5 +1,7 @@
 ﻿import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { pgDb } from '../utils/postgresDatabase.js';
+import { communityArrow } from './communityMotionService.js';
+import { motionArtwork } from './embedMotionService.js';
 import { createEmbed } from '../utils/embeds.js';
 import { createError, ErrorTypes, wrapServiceBoundary } from '../utils/errorHandler.js';
 import { assertBetaFeature } from './communityBetaService.js';
@@ -113,15 +115,15 @@ export const claimInviteRewards=wrapServiceBoundary((client,guild,userId)=>summa
 
 export const buildInviteRewardsPanel=wrapServiceBoundary(async(client,guild)=>{
     const config=await requireTracking(client,guild.id);
-    const embed=createEmbed({title:'Invite rewards',author:'DEXZUBOT / COMMUNITY',footer:'DexzuBot · Beta',thumbnail:client.user.displayAvatarURL(),
-        description:`Invite friends and earn coins at each milestone. Each reward can be claimed once.\n\n${config.milestones.map(item=>`**${item.invites} invites** → **${item.coins.toLocaleString()} coins**`).join('\n')}\n\nAccounts must be at least ${config.minAccountDays} days old and stay for ${config.minimumStayHours} hours. Only verified invites tracked while this feature is active count. Departures and rejoins do not count.`});
+    const embed=createEmbed({guildId:guild.id,title:'Invite rewards',author:'DEXZUBOT / COMMUNITY',footer:'DexzuBot · Community',thumbnail:motionArtwork(guild.id)?.thumbnailUrl || client.user.displayAvatarURL(),
+        description:`Invite friends and earn coins at each milestone. Each reward can be claimed once.\n\n${config.milestones.map(item=>`${communityArrow(guild.id)} **${item.invites} invites** → **${item.coins.toLocaleString()} coins**`).join('\n')}\n\nAccounts must be at least ${config.minAccountDays} days old and stay for ${config.minimumStayHours} hours. Only verified invites tracked while this feature is active count. Departures and rejoins do not count.`});
     return {embeds:[embed],components:[new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('beta_invites:balance').setLabel('Check Invite Balance').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('beta_invites:claim').setLabel('Claim Your Reward').setStyle(ButtonStyle.Primary))]};
 },boundary('panel'));
 
 export function buildInviteRewardResult(client,summary,claimed=false) {
-    return {embeds:[createEmbed({title:claimed?'Invite rewards claimed':'Your invite balance',author:'DEXZUBOT / COMMUNITY',footer:'DexzuBot · Beta',thumbnail:client.user.displayAvatarURL(),
+    return {embeds:[createEmbed({title:claimed?'Invite rewards claimed':'Your invite balance',author:'DEXZUBOT / COMMUNITY',footer:'DexzuBot · Community',
         description:claimed ? (summary.awardedCoins?`Added **${summary.awardedCoins.toLocaleString()} coins** to your wallet.`:'You have no new rewards to claim yet.') : `You have **${summary.qualifiedInvites} qualified invites** and **${summary.pendingInvites}** waiting for the minimum stay.`,
         fields:[{name:'Ready to claim',value:`${summary.claimableCoins.toLocaleString()} coins`,inline:true},{name:'Already claimed',value:`${summary.claimedCoins.toLocaleString()} coins`,inline:true}]})]};
 }

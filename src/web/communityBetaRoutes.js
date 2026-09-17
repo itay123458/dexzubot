@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ChannelType } from 'discord.js';
-import { isBetaGuild } from '../config/beta.js';
+import { isCommunityGuild } from '../config/community.js';
 import { getCommunityConfig, saveCommunityConfig, assertCommunityReviewer } from '../services/communityBetaService.js';
 import { publishCommunityPanel, refreshCommunityTicketPanel } from '../services/communityBetaPanels.js';
 import { getStaffState, performStaffAction } from '../services/betaStaffService.js';
@@ -13,7 +13,7 @@ const staffSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('activity-start'), input: z.object({ hours: z.number().int().min(1).max(336) }).strict() }).strict(),
   z.object({ action: z.literal('activity-end'), input: z.object({ id: z.string().min(1).max(100) }).strict() }).strict(),
 ]);
-const betaOnly = (req, res, next) => isBetaGuild(req.dashboardGuild?.id) ? next() : res.status(403).json({ error: 'Community tools are available in the Beta workspace.' });
+const betaOnly = (req, res, next) => isCommunityGuild(req.dashboardGuild?.id) ? next() : res.status(403).json({ error: 'Community tools are available in the configured workspace.' });
 const handled = handler => async (req, res, next) => {
   try { await handler(req, res); }
   catch (error) {

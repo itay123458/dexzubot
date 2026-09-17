@@ -152,5 +152,5 @@
       }
     } catch (error) { $('beta-release-content').textContent = error.message; }
   }
-  void refreshRoles(); void loadReleases();
+  void refreshRoles();
 })();

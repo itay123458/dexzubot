@@ -8,9 +8,9 @@ import {getCommunityConfig} from '../src/services/communityBetaService.js';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 process.env.BETA_GUILD_ID='1486680755869323388';
 let config=await getCommunityConfig({db:{get:async()=>null}},process.env.BETA_GUILD_ID);
-const fixture=await(await fetch('http://127.0.0.1:13301/dashboard/api/state')).json();
+const fixture=await(await fetch(process.env.COMMUNITY_QA_STATE_URL || 'http://127.0.0.1:13301/dashboard/api/state')).json();
 const writes=[],errors=[];let fail=false,hold,release;
-const staff={applications:[{id:'a1',userId:'111111111111111111',status:'pending',questions:[{label:'Why staff?'}],answers:['I like helping people.']}],leave:[],activityChecks:[]};
+const staff={applications:[{id:'a1',userId:'111111111111111111',status:'pending',track:'partnership-manager',questions:[{label:'Why staff?'}],answers:['I like helping people.']}],leave:[],activityChecks:[]};
 const app=express();app.use(express.json());
 app.use('/dashboard/api',async(req,res)=>{
  const workspace=req.query.workspace||'main';
@@ -40,6 +40,13 @@ try {
  const base=`http://127.0.0.1:${server.address().port}/dashboard/`;
  await page.goto(base+'?workspace=beta#operations');await page.locator('#community-inviteRewards-enabled').waitFor();
  assert.equal(await page.locator('#community-forms form').count(),7);
+ assert.match(await page.locator('#community-staff h4').first().textContent(),/partnership manager/i);
+ await page.locator('#community-applications-applicationUrl').fill('https://example.com/apply');
+ await page.locator('form[data-key="applications"] button[type="submit"]').click();
+ await page.waitForFunction(()=>document.querySelector('#community-status').textContent.includes('settings saved'));
+ assert.equal(config.applicationUrl,'https://example.com/apply');
+ await page.locator('#community-refresh').click();await page.waitForFunction(()=>!document.querySelector('#community-refresh').disabled);
+ assert.equal(await page.locator('#community-applications-applicationUrl').inputValue(),'https://example.com/apply');
  await page.locator('#community-inviteRewards-milestones').fill('2:999');
  await page.locator('#community-ticketCategories-enabled').check();await page.locator('#community-ticketCategories-report').uncheck();
  await page.locator('form[data-key="ticketCategories"] button[type="submit"]').click();
@@ -57,8 +64,20 @@ try {
  const output=join(tmpdir(),'dexzu-community-qa');await mkdir(output,{recursive:true});
  await page.locator('#community-forms').screenshot({path:join(output,'desktop.png')});
  for(const width of [390,768]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);}
- await page.locator('form[data-key="ticketCategories"]').screenshot({path:join(output,'mobile.png')});
- await page.goto(base+'#operations');assert.equal(await page.locator('#beta-community-controls').isVisible(),false);
- assert.ok(writes.every(w=>w.workspace==='beta'));assert.deepEqual(errors,[]);
- console.log('Community UI passed: seven forms, isolated drafts, save failure, discard during refresh, review DM warning, mobile, reduced motion, Main hidden.');
+ await page.setViewportSize({width:390,height:900});
+ await page.locator('form[data-key="applications"]').screenshot({path:join(output,'mobile.png')});
+ await page.goto(base+'?workspace=main#operations');await page.locator('#community-inviteRewards-enabled').waitFor();
+ assert.equal(await page.locator('#beta-community-controls').isVisible(),true);
+ assert.equal(await page.locator('#community-forms form').count(),7);
+ assert.match(await page.locator('#community-staff h4').first().textContent(),/partnership manager/i);
+ await page.locator('#community-applications-applicationUrl').fill('https://example.com/main-apply');
+ await page.locator('form[data-key="applications"] button[type="submit"]').click();
+ await page.waitForFunction(()=>document.querySelector('#community-status').textContent.includes('settings saved'));
+ assert.equal(config.applicationUrl,'https://example.com/main-apply');
+ await page.locator('#community-refresh').click();await page.waitForFunction(()=>!document.querySelector('#community-refresh').disabled);
+ assert.equal(await page.locator('#community-applications-applicationUrl').inputValue(),'https://example.com/main-apply');
+ assert.equal(await page.evaluate(()=>matchMedia('(prefers-reduced-motion: reduce)').matches),true);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+ assert.ok(writes.some(w=>w.workspace==='beta'&&w.body.applicationUrl==='https://example.com/apply'));assert.ok(writes.some(w=>w.workspace==='main'&&w.body.applicationUrl==='https://example.com/main-apply'));assert.deepEqual(errors,[]);
+ console.log('Community UI passed: seven forms, isolated drafts, save failure, discard during refresh, review DM warning, mobile, reduced motion, Main and Beta visible, website persistence, partnership review.');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

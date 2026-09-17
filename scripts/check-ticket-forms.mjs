@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+const forms = await import('../src/utils/ticket/ticketForms.js').catch(error => {
+  if (error.code === 'ERR_MODULE_NOT_FOUND') return {};
+  throw error;
+});
+assert.equal(typeof forms.createTicketFormModal, 'function', 'Category-specific ticket forms must exist');
+const { createTicketFormModal, readTicketForm, normalizeTicketForm, ticketFormEmbedFields, ticketFormText } = forms;
+const inputs = category => createTicketFormModal(category).toJSON().components.map(row => row.components[0]);
+assert.deepEqual(inputs('report').map(f => [f.custom_id, f.required]), [['member',true],['incident',true],['evidence',false],['details',false]]);
+assert.deepEqual(inputs('partnership').map(f => [f.custom_id, f.required]), [['community',true],['link',true],['members',true],['partnership',true],['details',false]]);
+for (const category of [null, 'support']) assert.deepEqual(inputs(category).map(f => f.custom_id), ['reason']);
+const fields = values => ({ fields: new Map(Object.entries(values)), getTextInputValue: id => values[id] ?? '' });
+const report = readTicketForm('report', fields({ member: 'user#1234', incident: 'Something happened', evidence: '', details: '' }));
+assert.equal(report.reason, 'Something happened');
+assert.equal(report.formFields.member, 'user#1234');
+assert.throws(() => readTicketForm('report', fields({ member:'  ', incident:'Incident' })), /required/i);
+assert.throws(() => normalizeTicketForm('report', { member:'user', incident:'x'.repeat(1001) }), /long/i);
+assert.throws(() => normalizeTicketForm('partnership', { community:'Server', link:'https://discord.gg/test', members:'100' }), /required/i);
+assert.deepEqual(readTicketForm('report', fields({ reason:'Legacy submission' })), { reason:'Legacy submission', formFields:null });
+const full = normalizeTicketForm('partnership', { community:'Community', link:'https://discord.gg/test', members:'500', partnership:'x'.repeat(1000), details:'y'.repeat(1000) });
+assert.equal(full.details.length, 1000);
+const rendered = ticketFormEmbedFields('partnership', full);
+assert.ok(rendered.every(f => f.value.length <= 1024));
+assert.ok(rendered.reduce((sum,f) => sum + f.name.length + f.value.length, 0) < 4500);
+assert.ok(ticketFormText('partnership', full).includes('y'.repeat(1000)));
+assert.equal(full.partnership.length, 1000, 'Rendering must preserve stored full details');
+console.log('PASS: ticket form requirements, legacy support, input validation, embed budgets and full details.');

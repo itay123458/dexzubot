@@ -9,7 +9,8 @@ import { checkRateLimit } from '../utils/rateLimiter.js';
 import { replyUserError, ErrorTypes, handleInteractionError, createError } from '../utils/errorHandler.js';
 import { getTicketPermissionContext } from '../utils/ticket/ticketPermissions.js';
 import { assertBetaFeature } from '../services/communityBetaService.js';
-import { isBetaGuild } from '../config/beta.js';
+import { isCommunityGuild } from '../config/community.js';
+import { createTicketFormModal, readTicketForm } from '../utils/ticket/ticketForms.js';
 
 async function ticketCategoryFor(interaction, client) {
   if (!interaction.customId.includes(':')) return null;
@@ -139,22 +140,7 @@ const createTicketHandler = {
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `You have reached the maximum number of open tickets (${maxTicketsPerUser}).\n\nPlease close your existing tickets before creating a new one.\n\n**Current Tickets:** ${currentTicketCount}/${maxTicketsPerUser}` });
       }
       
-      const modal = new ModalBuilder()
-        .setCustomId(ticketCategory ? `create_ticket_modal:beta:${ticketCategory}` : 'create_ticket_modal')
-        .setTitle(!ticketCategory ? 'Create a Ticket' : ticketCategory === 'report' ? 'Report a Member' : ticketCategory === 'partnership' ? 'Partnership Request' : 'General Support');
-
-      const reasonInput = new TextInputBuilder()
-        .setCustomId('reason')
-        .setLabel('Why are you creating this ticket?')
-        .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Describe your issue...')
-        .setRequired(true)
-        .setMaxLength(1000);
-
-      const actionRow = new ActionRowBuilder().addComponents(reasonInput);
-      modal.addComponents(actionRow);
-
-      await interaction.showModal(modal);
+      await interaction.showModal(createTicketFormModal(ticketCategory));
     } catch (error) {
       logger.error('Error creating ticket modal:', error);
       if (!interaction.replied && !interaction.deferred) {
@@ -173,8 +159,8 @@ const createTicketModalHandler = {
       const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
       if (!deferSuccess) return;
       
-      const reason = interaction.fields.getTextInputValue('reason');
       const ticketCategory = await ticketCategoryFor(interaction, client);
+      const { reason, formFields } = readTicketForm(ticketCategory, interaction.fields);
       const config = await getGuildConfig(client, interaction.guildId);
       const categoryId = config.ticketCategoryId || null;
       
@@ -184,12 +170,13 @@ const createTicketModalHandler = {
         categoryId,
         reason,
         'none',
-        ticketCategory
+        ticketCategory,
+        formFields
       );
       await interaction.editReply({
         embeds: [successEmbed(
           'Ticket Created',
-          `Your ticket has been created in ${channel}!${isBetaGuild(interaction.guildId) && dm && !dm.sent && dm.reason !== 'disabled' ? '\nYour ticket is open, but the DM update could not be delivered.' : ''}`
+          `Your ticket has been created in ${channel}!${isCommunityGuild(interaction.guildId) && dm && !dm.sent && dm.reason !== 'disabled' ? '\nYour ticket is open, but the DM update could not be delivered.' : ''}`
         )]
       });
     } catch (error) {

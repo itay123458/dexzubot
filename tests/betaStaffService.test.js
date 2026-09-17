@@ -81,3 +81,37 @@ test('closed leave submission DM reports failure while preserving request',async
  reset();dmEnabled=true;const result=await handleStaffInteraction({...answerInteraction(),customId:'beta_staff:leave-submit',fields:{getTextInputValue:name=>name==='days'?'2':'Away'}});
  assert.equal(dmAttempts,1);assert.equal(state.leave[0].status,'pending');assert.match(result.content,/DM.*could not be delivered/);
 });
+
+test('partnership start snapshots a distinct track and cross-track resume keeps it',async()=>{
+ reset();state.applications=[];const previous=guild.channels;let sent=0,edited=0;
+ const message={id:'card',author:client.user,edit:async()=>{edited++;}};
+ const channel={id:'private',guild,isTextBased:()=>true,permissionsFor:()=>({has:()=>false}),messages:{fetch:async()=>message},send:async()=>{sent++;return message;}};
+ guild.channels={fetch:async()=>channel,create:async()=>channel};
+ try {
+  await handleStaffInteraction({...answerInteraction(),customId:'beta_staff:start-partnership'});
+  const snapshot=structuredClone(state.applications[0].questions);
+  assert.equal(state.applications[0].track,'partnership-manager');assert.match(snapshot[0].label,/partnership/i);
+  const result=await handleStaffInteraction({...answerInteraction(),customId:'beta_staff:start'});
+  assert.equal(state.applications.length,1);assert.equal(state.applications[0].track,'partnership-manager');assert.deepEqual(state.applications[0].questions,snapshot);
+  assert.match(result.content,/partnership manager/i);assert.equal(sent,1);assert.equal(edited,1);
+ }finally{guild.channels=previous;}
+});
+test('review updates both the private application card and saved reviewer card',async()=>{
+ reset();Object.assign(state.applications[0],{track:'partnership-manager',channelId:'private',messageId:'card',reviewChannelId:'review',reviewMessageId:'review-card',questions:[{label:'Question'}],answers:['Private answer']});
+ const previous=guild.channels;const payloads=[];
+ guild.channels={fetch:async id=>({guild,isTextBased:()=>true,permissionsFor:()=>({has:()=>false}),messages:{fetch:async()=>({author:client.user,edit:async payload=>payloads.push({id,payload})})}})};
+ try{await review();assert.equal(payloads.length,2);for(const {payload} of payloads){assert.equal(payload.components.length,0);assert.match(JSON.stringify(payload),/approved/);assert.doesNotMatch(JSON.stringify(payload),/Private answer/);}}finally{guild.channels=previous;}
+});
+
+test('cancel removes controls from the existing card without posting another',async()=>{
+ reset();Object.assign(state.applications[0],{userId:'reviewer',status:'draft',channelId:'private',messageId:'card',questions:[{label:'Question',required:true}],answers:[]});
+ const previous=guild.channels;let payload;
+ guild.channels={fetch:async()=>({guild,isTextBased:()=>true,permissionsFor:()=>({has:()=>false}),messages:{fetch:async()=>({author:client.user,edit:async p=>{payload=p;}})},send:async()=>assert.fail('Must edit existing card')})};
+ try{await handleStaffInteraction({...answerInteraction(),customId:'beta_staff:cancel:app'});assert.equal(state.applications[0].status,'cancelled');assert.deepEqual(payload.components,[]);assert.match(payload.embeds[0].data.description,/cancelled/);}finally{guild.channels=previous;}
+});
+test('review never edits a card in a channel that has become public',async()=>{
+ reset();Object.assign(state.applications[0],{channelId:'private',messageId:'card',reviewChannelId:'review',reviewMessageId:'review-card',questions:[],answers:[]});
+ const previous=guild.channels;
+ guild.channels={fetch:async()=>({guild,isTextBased:()=>true,permissionsFor:()=>({has:()=>true}),messages:{fetch:async()=>assert.fail('Public card must not be accessed')}})};
+ try{await review();assert.equal(state.applications[0].status,'approved');}finally{guild.channels=previous;}
+});

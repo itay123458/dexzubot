@@ -1,3 +1,10 @@
+export const communityRelease = {
+ id:'2026-09-17-community-release',date:'2026-09-17',title:'Community tools are live',
+ summary:'The community tools are now available on the main server.',
+ changes:['Report and partnership tickets now ask for the right details.','Staff and partnership-manager applications use one card that updates as you answer.','Cyan arrows and Dexzu artwork animate on invite and staff panels. Message animation can be switched off.','Invite rewards, leave requests, staff activity checks and server links have dashboard controls.','Optional application, ticket and leave updates go only to the member involved.'],
+ tryIt:['Use /staff, /community guide or /invite-rewards.','Open Operations → Community tools in the selected dashboard workspace.'],
+ scope:'Each server keeps its own settings and records. Invite rewards count new tracked joins, not past invites.'
+};
 export const betaReleases = [{
   id: '2026-09-17-community', date: '2026-09-17', title: 'Community tools are ready to test',
   summary: 'Invite rewards, ticket categories, and staff tools are now available in Beta.',

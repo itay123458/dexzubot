@@ -1,3 +1,5 @@
+import { communityArrow } from './communityMotionService.js';
+import { motionArtwork } from './embedMotionService.js';
 import { randomUUID } from 'node:crypto';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { db } from '../utils/database.js';
@@ -15,7 +17,16 @@ const empty = () => ({applications:[],leave:[],activityChecks:[]});
 const fail = message => { throw createError(message,ErrorTypes.VALIDATION,message); };
 const button = (action,label,style=ButtonStyle.Primary) => new ButtonBuilder().setCustomId(`beta_staff:${action}`).setLabel(label).setStyle(style);
 const row = (...buttons) => new ActionRowBuilder().addComponents(...buttons);
-const embed = (client,guild,title,description) => createEmbed({guildId:guild.id,title:`DexzuBot · ${title}`,description,thumbnail:client.user?.displayAvatarURL({size:64}),footer:'Staff tools · Beta'});
+const embed = (client,guild,title,description) => createEmbed({guildId:guild.id,title:`DexzuBot · ${title}`,description,thumbnail:motionArtwork(guild.id)?.thumbnailUrl || client.user?.displayAvatarURL({size:64}),footer:'Staff tools'});
+const trackLabel = app => app.track==='partnership-manager' ? 'Partnership manager' : 'Staff';
+const partnershipQuestions = [
+ {label:'Why would you like to become a partnership manager?',required:true},
+ {label:'What experience do you have finding and managing community partnerships?',required:true},
+ {label:'How would you decide whether another server is a good partner?',required:true},
+ {label:'When are you available, and what is your time zone?',required:true},
+ {label:'How would you approach a potential partner and handle a declined offer?',required:true},
+ {label:'Is there anything else you would like us to know?',required:false},
+];
 const notificationNote = result => result?.sent ? ' A confirmation was sent by DM.' : result && result.reason!=='disabled' ? ' Your request is saved, but the DM update could not be delivered.' : '';
 async function load(guild) {
  if (!db.isAvailable()) fail('Persistent storage is unavailable. Please try again later.');
@@ -33,9 +44,9 @@ async function locked(guild,fn) {
 async function member(guild,actor) { return guild.members.fetch({user:actor.id || actor.user?.id,force:true}); }
 function locate(state,id) { return state.applications.find(x=>x.id===id)||state.leave.find(x=>x.id===id); }
 function questionPayload(client,guild,app) {
- if(app.status!=='draft')return {embeds:[embed(client,guild,'Staff application',`Status: **${app.status==='pending'?'Waiting for review':app.status}**\n${app.answers.length}/${app.questions.length} answers saved.`)],components:[],allowedMentions:{parse:[]}};
+ if(app.status!=='draft')return {embeds:[embed(client,guild,`${trackLabel(app)} application`,`${communityArrow(guild.id)} Status: **${app.status==='pending'?'Waiting for review':app.status}**\n${app.answers.length}/${app.questions.length} answers saved.`)],components:[],allowedMentions:{parse:[]}};
  const index=app.answers.length, q=app.questions[index];
- return {embeds:[embed(client,guild,`Question ${index+1}/${app.questions.length}`,`${q.label}\n\n${app.answers.length}/${app.questions.length} saved · ${q.required?'Required':'Optional'} · Up to 1000 characters. Your progress is saved after each answer.`)],components:[row(button(`answer:${app.id}:${index}`,'Answer'),...(!q.required?[button(`skip:${app.id}:${index}`,'Skip',ButtonStyle.Secondary)]:[]),button(`cancel:${app.id}`,'Cancel',ButtonStyle.Danger))],allowedMentions:{parse:[]}};
+ return {embeds:[embed(client,guild,`${trackLabel(app)} \u00b7 Question ${index+1}/${app.questions.length}`,`${communityArrow(guild.id)} ${q.label}\n\n${app.answers.length}/${app.questions.length} saved · ${q.required?'Required':'Optional'} · Up to 1000 characters. Your progress is saved after each answer.`)],components:[row(button(`answer:${app.id}:${index}`,'Answer'),...(!q.required?[button(`skip:${app.id}:${index}`,'Skip',ButtonStyle.Secondary)]:[]),button(`cancel:${app.id}`,'Cancel',ButtonStyle.Danger))],allowedMentions:{parse:[]}};
 }
 async function syncApplicationMessage(client,guild,config,state,app,channel) {
  assertCommunityPrivateChannel(guild,channel,config,{memberId:app.userId});
@@ -71,12 +82,23 @@ async function createApplicationChannel(client,guild,config,userId) {
  if(config.reviewerRoleId)permissions.push({id:config.reviewerRoleId,allow:[PermissionFlagsBits.ViewChannel,PermissionFlagsBits.ReadMessageHistory,PermissionFlagsBits.SendMessages]});
  return guild.channels.create({name:`application-${userId}`,type:ChannelType.GuildText,permissionOverwrites:permissions,reason:'DexzuBot private staff application'});
 }
+function reviewPayload(client,guild,request) {
+ const isLeave=!!request.days, pending=request.status==='pending';
+ return {embeds:[embed(client,guild,isLeave?'Leave request':`${trackLabel(request)} application`,`${communityArrow(guild.id)} Status: **${request.status}**\nMember: <@${request.userId}>\nID: ${request.id}\n${isLeave?`${request.days} day(s)\n${request.reason}`:'Review full answers in the dashboard: Operations / Community tools.'}`)],components:pending?[row(button(`review:${request.id}:approved`,'Approve',ButtonStyle.Success),button(`review:${request.id}:denied`,'Deny',ButtonStyle.Danger))]:[],allowedMentions:{parse:[]}};
+}
 async function postReview(client,guild,config,request) {
  try {
-  const channel=await guild.channels.fetch(config.reviewChannelId);
+  const channel=await guild.channels.fetch(request.reviewChannelId || config.reviewChannelId);
   assertCommunityPrivateChannel(guild,channel,config);
-  const isLeave=!!request.days;
-  await channel.send({embeds:[embed(client,guild,isLeave?'Leave request':'Application ready',`Member: <@${request.userId}>\nID: ${request.id}\n${isLeave?`${request.days} day(s)\n${request.reason}`:`Review full answers in the Beta dashboard: Operations → Community tools.`}`)],components:[row(button(`review:${request.id}:approved`,'Approve',ButtonStyle.Success),button(`review:${request.id}:denied`,'Deny',ButtonStyle.Danger))],allowedMentions:{parse:[]}});
+  if(request.reviewMessageId) {
+   const message=await channel.messages.fetch(request.reviewMessageId);
+   if(message.author.id!==client.user.id)return false;
+   await message.edit(reviewPayload(client,guild,request));
+  } else {
+   if(request.status!=='pending')return false;
+   const message=await channel.send(reviewPayload(client,guild,request));
+   request.reviewMessageId=message.id;request.reviewChannelId=channel.id;
+  }
   return true;
  }catch{ return false; }
 }
@@ -92,8 +114,8 @@ export async function getStaffState(client,guild) {
  });
 }
 export async function buildStaffPanel(client,guild,kind) {
- await assertBetaFeature(client,guild.id,kind);
- if(kind==='applications')return {embeds:[embed(client,guild,'Staff applications','Apply privately, one question at a time. Your answers are saved so you can return later.')],components:[row(button('start','Start / Resume application'))],allowedMentions:{parse:[]}};
+ const config=await assertBetaFeature(client,guild.id,kind);
+ if(kind==='applications')return {embeds:[embed(client,guild,'Join the team',`${communityArrow(guild.id)} Choose Staff or Partnership Manager to apply privately, one question at a time. Your progress is saved in one card. Choose either button to resume an existing application.`)],components:[row(button('start','Apply for Staff'),button('start-partnership','Apply for Partnership Manager',ButtonStyle.Secondary),...(config.applicationUrl?[new ButtonBuilder().setLabel('Apply via Website').setStyle(ButtonStyle.Link).setURL(config.applicationUrl)]:[]))],allowedMentions:{parse:[]}};
  if(kind==='leave')return {embeds:[embed(client,guild,'Leave of absence','Staff can request 1–14 days away. Approved leave is excluded from overlapping activity checks.')],components:[row(button('leave','Request leave'))],allowedMentions:{parse:[]}};
  const state=await getStaffState(client,guild),check=state.activityChecks.find(x=>x.status==='open');
  return {embeds:[embed(client,guild,'Staff activity',check?`Respond by <t:${Math.floor(check.deadline/1000)}:F>.\n${check.responses.length} response(s) recorded.`:'No activity check is open.')],components:check?[row(button(`respond:${check.id}`,'Confirm activity'))]:[],allowedMentions:{parse:[]}};
@@ -108,8 +130,10 @@ export async function performStaffAction({client,guild,actor,action,input={}}) {
    assertCommunityReviewer(guild,fresh,config);
    try{reviewRequest(request,fresh.id,input.status,input.reason);}catch(error){fail(error.message);}
    await save(guild,state);
+   if(kind==='applications' && request.channelId)try{const channel=await guild.channels.fetch(request.channelId);await syncApplicationMessage(client,guild,config,state,request,channel);}catch{}
+   await postReview(client,guild,config,request);
    if(kind==='leave')for(const check of state.activityChecks)if(check.status==='open')await syncActivityMessage(client,guild,check,state.leave);
-   const notification=await notifyCommunityMember(client,guild,request.userId,kind,embed(client,guild,'Request update',`Your ${request.days?'leave request':'staff application'} was **${request.status}**.${request.reviewReason?`\n${request.reviewReason}`:''}`));
+   const notification=await notifyCommunityMember(client,guild,request.userId,kind,embed(client,guild,'Request update',`Your ${request.days?'leave request':`${trackLabel(request).toLowerCase()} application`} was **${request.status}**.${request.reviewReason?`\n${request.reviewReason}`:''}`));
    return {request,notification};
   }
   const config=await assertBetaFeature(client,guild.id,'activity'); assertCommunityReviewer(guild,fresh,config);
@@ -159,7 +183,7 @@ export async function handleStaffInteraction(interaction) {
  if (!await InteractionHelper.safeDefer(interaction,{ephemeral:true})) return;
  return locked(guild,async()=>{
   const state=await load(guild);closeDueChecks(state);
-  if(action==='start') {
+  if(action==='start'||action==='start-partnership') {
    let app=state.applications.find(a=>a.userId===fresh.id&&['draft','pending'].includes(a.status));
    let channel,created=false;
    if(!app) {
@@ -168,14 +192,14 @@ export async function handleStaffInteraction(interaction) {
     if(previous?.channelId)channel=await guild.channels.fetch(previous.channelId).catch(()=>null);
     if(!channel){channel=await createApplicationChannel(client,guild,config,fresh.id);created=true;}
     assertCommunityPrivateChannel(guild,channel,config,{memberId:fresh.id});
-    app={id:randomUUID(),userId:fresh.id,status:'draft',channelId:channel.id,questions:structuredClone(config.questions),answers:[],createdAt:Date.now()};state.applications.push(app);
+    app={id:randomUUID(),userId:fresh.id,track:action==='start-partnership'?'partnership-manager':'staff',status:'draft',channelId:channel.id,questions:structuredClone(action==='start-partnership'?partnershipQuestions:config.questions),answers:[],createdAt:Date.now()};state.applications.push(app);
     try{await save(guild,state);}catch(error){if(created)await channel.delete('Application storage failed').catch(()=>{});throw error;}
    }
    channel ||= await guild.channels.fetch(app.channelId).catch(()=>null);
    if(!channel){channel=await createApplicationChannel(client,guild,config,fresh.id);app.channelId=channel.id;app.messageId=null;try{await save(guild,state);}catch(error){await channel.delete('Application storage failed').catch(()=>{});throw error;}}
    assertCommunityPrivateChannel(guild,channel,config,{memberId:fresh.id});
    await syncApplicationMessage(client,guild,config,state,app,channel);
-   return InteractionHelper.safeReply(interaction,{content:`Continue your application in <#${app.channelId}>.`});
+   return InteractionHelper.safeReply(interaction,{content:`Continue your ${trackLabel(app).toLowerCase()} application in <#${app.channelId}>.`});
   }
   if(action==='leave-submit') {
    const days=Number(interaction.fields.getTextInputValue('days')),reason=interaction.fields.getTextInputValue('reason').trim();
@@ -183,7 +207,7 @@ export async function handleStaffInteraction(interaction) {
    if(!reason||reason.length>1000)fail('Provide a reason of up to 1000 characters.');
    if(state.leave.some(l=>l.userId===fresh.id&&(l.status==='pending'||l.status==='approved'&&l.endAt>Date.now())))fail('You already have pending or active leave.');
    const request={id:randomUUID(),userId:fresh.id,status:'pending',days,reason,createdAt:Date.now()};state.leave.push(request);await save(guild,state);
-   const posted=await postReview(client,guild,config,request);
+   const posted=await postReview(client,guild,config,request);if(posted)await save(guild,state);
    const notification=await notifyCommunityMember(client,guild,fresh.id,'leave',embed(client,guild,'Leave request received',`Your request for **${days} day(s)** of leave has been saved and is waiting for review.\nRequest: ${request.id}`));
    return InteractionHelper.safeReply(interaction,{content:`Leave request saved for review.${posted?'':' Review-channel delivery failed; it remains available in the dashboard.'}${notificationNote(notification)}`});
   }
@@ -200,8 +224,8 @@ export async function handleStaffInteraction(interaction) {
   const channel=await guild.channels.fetch(app.channelId).catch(()=>null);
   let delivered=false;
   if(channel)try{await syncApplicationMessage(client,guild,config,state,app,channel);delivered=true;}catch{}
-  let posted=true;if(app.status==='pending')posted=await postReview(client,guild,config,app);
-  const notification=app.status==='pending'?await notifyCommunityMember(client,guild,fresh.id,'applications',embed(client,guild,'Application received',`Your staff application has been saved and is waiting for review.\nApplication: ${app.id}`)):null;
+  let posted=true;if(app.status==='pending'){posted=await postReview(client,guild,config,app);if(posted)await save(guild,state);}
+  const notification=app.status==='pending'?await notifyCommunityMember(client,guild,fresh.id,'applications',embed(client,guild,'Application received',`Your ${trackLabel(app).toLowerCase()} application has been saved and is waiting for review.\nApplication: ${app.id}`)):null;
   return InteractionHelper.safeReply(interaction,{content:`${app.status==='pending'?'Application submitted for review.':'Answer saved.'}${delivered?'':' Channel update failed; use Start / Resume to continue.'}${posted?'':' Review-channel delivery failed; the dashboard still has your application.'}${notificationNote(notification)}`,components:[]});
  });
 }

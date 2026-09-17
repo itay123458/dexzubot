@@ -47,9 +47,10 @@ try {
  const base=`http://127.0.0.1:${server.address().port}/dashboard/api/community-beta`;
  const post=(path,body,workspace='beta',origin=null)=>fetch(`${base}/${path}?workspace=${workspace}`,{method:'POST',headers:{'Content-Type':'application/json',...(origin?{Origin:origin}:{})},body:JSON.stringify(body)});
  try {
-   assert.equal((await fetch(base+'?workspace=main')).status,403);
+   assert.equal((await fetch(base+'?workspace=main')).status,200);
    assert.equal((await fetch(base+'?workspace=beta')).status,200);
-   assert.equal((await post('settings',{features:{serverInfo:true}},'main')).status,403);
+   assert.equal((await post('settings',{features:{serverInfo:true}},'main')).status,200);
+   assert.equal((await getCommunityConfig(client,id)).features.serverInfo,false,'Main changes must not alter Beta settings');
    assert.equal((await post('settings',{features:{serverInfo:true}},'beta','https://other.example')).status,403);
    assert.equal((await post('settings',{features:{serverInfo:'true'}})).status,400);
    assert.equal((await post('settings',{features:{applications:true},reviewChannelId:channel.id})).status,400,'Public review channels are rejected');

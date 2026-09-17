@@ -4,7 +4,7 @@ import { createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { buildInviteRewardsPanel, getInviteRewardSummary, claimInviteRewards, buildInviteRewardResult } from '../../services/betaInviteRewardsService.js';
 
 export default {
-    betaOnly:true, betaSlash:true,
+    communityRelease:true,
     data:new SlashCommandBuilder().setName('invite-rewards').setDescription('Check or claim your community invite rewards').setDMPermission(false)
         .addSubcommand(command=>command.setName('balance').setDescription('Check your qualified invites and rewards'))
         .addSubcommand(command=>command.setName('claim').setDescription('Claim every newly reached milestone'))

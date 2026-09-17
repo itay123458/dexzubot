@@ -1,7 +1,7 @@
 // postgresDatabase.js
 
 import pg from 'pg';
-import { isBetaGuild } from '../config/beta.js';
+import { isCommunityGuild } from '../config/community.js';
 import { saveEconomyPreservingInviteCredits } from './database/economyRewards.js';
 import { pgConfig, resolvePostgresPoolConfig } from '../config/database/postgres.js';
 import { logger } from './logger.js';
@@ -862,7 +862,7 @@ class PostgreSQLDatabase {
                         [parsedKey.userId]
                     );
                     
-                    if (isBetaGuild(parsedKey.guildId)) {
+                    if (isCommunityGuild(parsedKey.guildId)) {
                         return await saveEconomyPreservingInviteCredits(this.pool, pgConfig.tables.economy, parsedKey.guildId, parsedKey.userId, value);
                     }
                     await this.pool.query(

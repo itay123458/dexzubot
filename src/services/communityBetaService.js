@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { PermissionFlagsBits } from 'discord.js';
-import { isBetaGuild } from '../config/beta.js';
+import { isCommunityGuild } from '../config/community.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { Mutex } from '../utils/mutex.js';
 import { pgConfig } from '../config/database/postgres.js';
@@ -10,6 +10,7 @@ const idFields = names => z.object(Object.fromEntries(names.map(name => [name, s
 export const COMMUNITY_FEATURES = ['inviteRewards','ticketCategories','applications','leave','activity','serverInfo'];
 const bools = names => z.object(Object.fromEntries(names.map(name => [name,z.boolean()]))).strict();
 export const communityConfigSchema = z.object({
+  applicationUrl: z.string().url().max(500).refine(value=>value.startsWith('https://'),'Use an HTTPS application URL.').nullable(),
   features: bools(COMMUNITY_FEATURES), dmUpdates: bools(['applications','tickets','leave']),
   ticketButtons: bools(['support','report','partnership']),
   staffRoleId: snowflake, reviewerRoleId: snowflake, reviewChannelId: snowflake,
@@ -22,8 +23,9 @@ export const communityConfigSchema = z.object({
 }).strict();
 export const communityConfigKey = id => `guild:${id}:community-beta:config`;
 const cached = new Map();
-export const cachedCommunityConfig = id => isBetaGuild(id) ? cached.get(id) || defaults() : null;
+export const cachedCommunityConfig = id => isCommunityGuild(id) ? cached.get(id) || defaults() : null;
 const defaults = () => ({
+  applicationUrl:null,
   features: Object.fromEntries(COMMUNITY_FEATURES.map(name=>[name,false])),
   dmUpdates: { applications:false,tickets:false,leave:false },
   ticketButtons: {support:true,report:true,partnership:true},
@@ -56,7 +58,7 @@ export async function writeCommunityValue(client,key,value) {
   else if(await client.db.set(key,value)===false) fail('Community settings could not be saved. Please try again.',ErrorTypes.DATABASE);
 }
 export function assertCommunityBeta(guildId) {
-  if(!isBetaGuild(guildId)) fail('These community tools are available only in the DexzuBot beta server.',ErrorTypes.PERMISSION);
+  if(!isCommunityGuild(guildId)) fail('These community tools are available only in the configured DexzuBot servers.',ErrorTypes.PERMISSION);
 }
 function merge(base,patch) {
   return {...base,...patch,...Object.fromEntries(['features','dmUpdates','ticketButtons','channels','links'].map(key=>[key,{...base[key],...patch?.[key]}]))};
@@ -70,7 +72,7 @@ export async function getCommunityConfig(client,guildId) {
 }
 export async function assertBetaFeature(client,guildId,feature) {
   const config=await getCommunityConfig(client,guildId);
-  if(!config.features[feature]) fail('This feature is switched off in Beta. Staff can enable it in the dashboard.',ErrorTypes.CONFIGURATION);
+  if(!config.features[feature]) fail('This feature is switched off for this server. Staff can enable it in the dashboard.',ErrorTypes.CONFIGURATION);
   return config;
 }
 export function assertCommunityReviewer(guild,member,config) {
@@ -123,7 +125,7 @@ export async function saveCommunityConfig(client,guild,patch) {
 }
 export async function notifyCommunityMember(client,guild,userId,kind,embed) {
   try {
-  if(!isBetaGuild(guild?.id)) return {sent:false,reason:'unavailable'};
+  if(!isCommunityGuild(guild?.id)) return {sent:false,reason:'unavailable'};
   const config=await getCommunityConfig(client,guild.id);
   if(!config.dmUpdates[kind]) return {sent:false,reason:'disabled'};
   const member=await guild.members.fetch(userId).catch(()=>null);

@@ -11,7 +11,8 @@ import { initializeTimedSoftbans } from "../services/moderation/timedSoftbanServ
 import { initializeOperationsHealthChecks } from "../services/dashboardOperationsService.js";
 import { refreshConfiguredPanelDesigns } from "../services/panelDesignService.js";
 import { loadEmbedMotion } from "../services/embedMotionService.js";
-import { getBetaGuildId } from '../config/beta.js';
+import { getCommunityGuildIds } from '../config/community.js';
+import { loadCommunityMotion } from '../services/communityMotionService.js';
 import { getCommunityConfig } from '../services/communityBetaService.js';
 import { initializeInviteRewards } from '../services/betaInviteRewardsService.js';
 import { initializeStaffWorkflows } from '../services/betaStaffService.js';
@@ -23,14 +24,16 @@ export default {
   async execute(client) {
     try {
       await loadEmbedMotion(client);
-      if (getBetaGuildId() && client.guilds.cache.has(getBetaGuildId())) {
+      try { await loadCommunityMotion(client); }
+      catch(error) { logger.warn('Animated arrows unavailable; using static markers.',{error:error.message}); }
+      if (getCommunityGuildIds().length) {
         try {
-        await getCommunityConfig(client,getBetaGuildId());
+        for(const id of getCommunityGuildIds()) if(client.guilds.cache.has(id)) await getCommunityConfig(client,id);
         const inviteWarnings=await initializeInviteRewards(client);
-        if(inviteWarnings.length) logger.warn('Beta invite tracking baseline unavailable',inviteWarnings);
+        if(inviteWarnings.length) logger.warn('Invite tracking baseline unavailable',inviteWarnings);
         client.communityStaffCleanup?.();
         client.communityStaffCleanup=initializeStaffWorkflows(client);
-        } catch(error) { logger.warn('Beta community initialization failed; existing bot services will continue.',{error:error.message}); }
+        } catch(error) { logger.warn('Community initialization failed; existing bot services will continue.',{error:error.message}); }
       }
       await initializePresenceMirror(client);
       initializeYouTubeAlerts(client);

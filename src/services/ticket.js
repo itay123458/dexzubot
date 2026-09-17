@@ -18,7 +18,8 @@ import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
 import { createError, ErrorTypes } from '../utils/errorHandler.js';
 import { ensureTypedServiceError, wrapServiceBoundary } from '../utils/serviceErrorBoundary.js';
 import { PRIORITY_MAP } from '../utils/helpers.js';
-import { isBetaGuild } from '../config/beta.js';
+import { isCommunityGuild } from '../config/community.js';
+import { normalizeTicketForm, ticketFormEmbedFields, ticketFormText } from '../utils/ticket/ticketForms.js';
 import { assertBetaFeature, getCommunityConfig, notifyCommunityMember } from './communityBetaService.js';
 const TICKET_DELETE_DELAY_MS = 3000;
 const TICKET_DELETE_DELAY_SECONDS = Math.floor(TICKET_DELETE_DELAY_MS / 1000);
@@ -82,12 +83,14 @@ export const getUserTicketCount = wrapServiceBoundary(async function getUserTick
   context: {},
 });
 
-export async function createTicket(guild, member, categoryId, reason = 'No reason provided', priority = 'none', ticketCategory = null) {
+export async function createTicket(guild, member, categoryId, reason = 'No reason provided', priority = 'none', ticketCategory = null, formFields = null) {
   try {
     if (ticketCategory) {
       const community = await assertBetaFeature(guild.client, guild.id, 'ticketCategories');
       if (!['support','report','partnership'].includes(ticketCategory) || !community.ticketButtons[ticketCategory]) ticketUserError('Ticket category disabled', 'This ticket category is switched off.');
     }
+    const ticketForm = formFields == null ? null : normalizeTicketForm(ticketCategory, formFields);
+    if (ticketForm) reason = ticketForm.incident || ticketForm.partnership;
     const config = await getGuildConfig(guild.client, guild.id);
     const ticketConfig = config.tickets || {};
     
@@ -174,6 +177,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       priority: priority || 'none',
       reason,
       ...(ticketCategory ? { ticketCategory } : {}),
+      ...(ticketForm ? { formFields: ticketForm } : {}),
     };
     
     await saveTicketData(guild.id, channel.id, ticketData);
@@ -182,7 +186,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     
     const embed = createEmbed({
       title: `Ticket #${ticketNumber}`,
-      description: `${member.toString()}, thanks for creating a ticket!\n\n**Reason:** ${reason}\n**Priority:** ${priorityInfo.emoji} ${priorityInfo.label}`,
+      description: `${member.toString()}, thanks for creating a ticket!${ticketForm ? '' : `\n\n**Reason:** ${reason}`}\n**Priority:** ${priorityInfo.emoji} ${priorityInfo.label}`,
       color: priorityInfo.color,
       fields: [
         { name: 'Status', value: '🟢 Open', inline: true },
@@ -193,6 +197,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     
     const row = buildTicketControlRow();
     if (ticketCategory) embed.addFields({name:'Category',value:({support:'General Support',report:'Report a Member',partnership:'Partnership'})[ticketCategory],inline:true});
+    if (ticketForm) embed.addFields(ticketFormEmbedFields(ticketCategory, ticketForm));
     
     if (ticketConfig.enablePriority) {
       row.addComponents(
@@ -217,6 +222,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     const ticketMessage = await channel.send({ 
       content: messageContent,
       embeds: [embed],
+      ...(ticketForm ? { files: [new AttachmentBuilder(Buffer.from(ticketFormText(ticketCategory, ticketForm), 'utf8'), { name: 'ticket-form.txt' })] } : {}),
       components: [row] 
     });
 
@@ -253,8 +259,8 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
     const ticketData = requireTicket(await getTicketData(channel.guild.id, channel.id), channel);
     
     const config = await getGuildConfig(channel.client, channel.guild.id);
-    const beta = isBetaGuild(channel.guild.id);
-    const dmOnClose = beta ? (await getCommunityConfig(channel.client,channel.guild.id)).dmUpdates.tickets : config.dmOnClose !== false;
+    const communityGuild = isCommunityGuild(channel.guild.id);
+    const dmOnClose = communityGuild ? (await getCommunityConfig(channel.client,channel.guild.id)).dmUpdates.tickets : config.dmOnClose !== false;
     let dmSent = false;
     const closedCategoryId = config.ticketClosedCategoryId || null;
     let movedToClosedCategory = false;
@@ -282,11 +288,11 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
       }
     }
     
-    if (beta && dmOnClose) {
+    if (communityGuild && dmOnClose) {
       const result = await notifyCommunityMember(channel.client,channel.guild,ticketData.userId,'tickets',createEmbed({guildId:channel.guild.id,title:'Your ticket has closed',description:`Your ticket **${channel.name}** has been closed.\n**Reason:** ${reason}`,footer:'DexzuBot · Support'}));
       dmSent = result.sent;
     }
-    if (dmOnClose && !beta) {
+    if (dmOnClose && !communityGuild) {
       try {
         const ticketCreator = await channel.client.users.fetch(ticketData.userId).catch(() => null);
         if (ticketCreator) {

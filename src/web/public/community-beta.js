@@ -1,5 +1,4 @@
 (() => {
-  if (dashboardWorkspace !== 'beta') return;
   const root = $('beta-community-controls');
   if (!root) return;
   root.hidden = false;
@@ -91,6 +90,7 @@
         }
         if (key === 'applications') {
           fieldset.append(el('p', 'One question per line, up to 10. Prefix a question with ? to make it optional.'));
+          field(fieldset, 'applicationUrl', 'Public application website (optional)', 'url', config.applicationUrl || '');
           field(fieldset, 'questions', 'Application questions', 'textarea', config.questions.map(q => `${q.required ? '' : '? '}${q.label}`).join('\n')).required = true;
         }
         if (key === 'leave') fieldset.append(el('p', 'Staff can request 1–14 days away. Approved leave expires automatically and is excluded from activity audits.'));
@@ -106,6 +106,7 @@
             patch.milestones = lines.map(line => { const [invites, coins] = line.split(':').map(Number); return { invites, coins }; });
             patch.minAccountDays = Number(val(f, 'minAccountDays')); patch.minimumStayHours = Number(val(f, 'minimumStayHours'));
           }
+          if (key === 'applications') patch.applicationUrl = val(f, 'applicationUrl') || null;
           if (key === 'applications') patch.questions = val(f, 'questions').trim().split('\n').map(line => ({ label: line.replace(/^\?\s*/, '').trim(), required: !line.startsWith('?') }));
           if (key === 'serverInfo') patch.links = Object.fromEntries(['rules', 'support', 'applications', 'giveaways', 'community', 'counting'].map(id => [id, val(f, id) || null]));
           return patch;
@@ -127,7 +128,7 @@
       pending++;
       const form = el('form', undefined, { class: 'community-request', 'data-key': item.id });
       const fieldset = el('fieldset'); form.append(fieldset);
-      fieldset.append(el('h4', `${kind === 'leave' ? 'Leave' : 'Application'} · Member ${item.userId}`));
+      fieldset.append(el('h4', `${kind === 'leave' ? 'Leave' : item.track === 'partnership-manager' ? 'Partnership manager application' : 'Staff application'} · Member ${item.userId}`));
       if (kind === 'leave') fieldset.append(el('p', `${item.days} days · ${item.reason}`));
       else {
         const details = el('details'); details.append(el('summary', 'Read application answers'));

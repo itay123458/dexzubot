@@ -1,7 +1,7 @@
 import { logger } from '../logger.js';
 import { db, getFromDb } from './wrapper.js';
 import { getTicketCounterKey, getTicketKey } from './keys.js';
-import { isBetaGuild } from '../../config/beta.js';
+import { isCommunityGuild } from '../../config/community.js';
 
 export { getTicketKey, getTicketCounterKey } from './keys.js';
 
@@ -61,7 +61,7 @@ export async function saveTicketData(guildId, channelId, data) {
     }
 
     const key = getTicketKey(guildId, channelId);
-    if (await db.set(key, data) === false && isBetaGuild(guildId)) throw new Error('Ticket details could not be saved.');
+    if (await db.set(key, data) === false && isCommunityGuild(guildId)) throw new Error('Ticket details could not be saved.');
 }
 
 export async function deleteTicketData(guildId, channelId) {

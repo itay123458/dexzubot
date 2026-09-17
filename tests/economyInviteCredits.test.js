@@ -51,17 +51,37 @@ test('economy read snapshots carry the marker even before the first reward',asyn
  assert.equal((await getEconomyData({db:{get:async()=>({wallet:350,inviteRewardCredits:250})}},guild,user)).inviteRewardCredits,250);
 });
 
-test('main economy writes retain the original upsert without beta row locks or marker defaults',async()=>{
+test('unconfigured guild economy writes retain the original upsert without community row locks or marker defaults',async()=>{
  process.env.BETA_GUILD_ID='123456789012345678';
- const main='323456789012345678',user='223456789012345678';
+ process.env.GUILD_ID='423456789012345678';
+ const unconfigured='323456789012345678',user='223456789012345678';
  const {getEconomyData}=await import('../src/utils/economy.js');
- assert.equal(Object.hasOwn(await getEconomyData({db:{get:async()=>({wallet:100})}},main,user),'inviteRewardCredits'),false);
+ assert.equal(Object.hasOwn(await getEconomyData({db:{get:async()=>({wallet:100})}},unconfigured,user),'inviteRewardCredits'),false);
  const {PostgreSQLDatabase}=await import('../src/utils/postgresDatabase.js');
  const database=new PostgreSQLDatabase();const queries=[];
- database.pool={query:async(sql,params)=>{queries.push({sql,params});return {rows:[]};},connect:async()=>{throw new Error('Main must not use beta transaction');}};
+ database.pool={query:async(sql,params)=>{queries.push({sql,params});return {rows:[]};},connect:async()=>{throw new Error('Unconfigured guild must not use community transaction');}};
  const data={wallet:100,bank:20};
- assert.equal(await database.setStructuredData({type:'economy',guildId:main,userId:user},data),true);
+ assert.equal(await database.setStructuredData({type:'economy',guildId:unconfigured,userId:user},data),true);
  assert.equal(queries.length,3);
  assert.ok(queries[2].sql.includes('balance = $3, bank = $4, data = $5'));
- assert.deepEqual(queries[2].params,[main,user,100,20,data]);
+ assert.deepEqual(queries[2].params,[unconfigured,user,100,20,data]);
+});
+
+test('configured Main snapshots and writes preserve concurrent invite reward credits',async()=>{
+ process.env.BETA_GUILD_ID='123456789012345678';
+ const main=process.env.GUILD_ID='423456789012345678',user='223456789012345678';
+ const {getEconomyData}=await import('../src/utils/economy.js');
+ assert.equal((await getEconomyData({db:{get:async()=>({wallet:100})}},main,user)).inviteRewardCredits,0);
+ const {PostgreSQLDatabase}=await import('../src/utils/postgresDatabase.js');
+ const database=new PostgreSQLDatabase(),calls=[];let committed;
+ database.pool={query:async()=>({rows:[]}),connect:async()=>({query:async(sql,params)=>{
+  calls.push(sql);
+  if(sql.startsWith('SELECT'))return {rows:[{data:{wallet:350,inviteRewardCredits:250}}]};
+  if(sql.startsWith('UPDATE'))committed=params;
+  return {rows:[]};
+ },release(){calls.push('RELEASE');}})};
+ assert.equal(await database.setStructuredData({type:'economy',guildId:main,userId:user},{wallet:120,bank:5,inviteRewardCredits:0}),true);
+ assert.ok(calls.some(sql=>sql.includes('FOR UPDATE')));
+ assert.deepEqual(committed,[main,user,370,5,{wallet:370,bank:5,inviteRewardCredits:250}]);
+ assert.equal(calls.at(-2),'COMMIT');assert.equal(calls.at(-1),'RELEASE');
 });
