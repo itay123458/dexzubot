@@ -36,11 +36,11 @@ try {
   const review=await channel('staff-applications-review',staffParent,true);
   const invites=await channel('invite-rewards',communityParent);
   const applications=await channel('apply-for-staff','1534462967876161678');
-  const leave=await channel('staff-leave',staffParent,true),activity=await channel('staff-activity',staffParent,true);
+  const leave=await channel('staff-leave',staffParent,true);
   const info=await channel('server-guide',infoParent);
-  const config=await saveCommunityConfig(client,guild,{features:{inviteRewards:true,ticketCategories:true,applications:true,leave:true,activity:true,serverInfo:true},
+  const config=await saveCommunityConfig(client,guild,{features:{inviteRewards:true,ticketCategories:true,applications:true,leave:true,activity:false,serverInfo:true},
    dmUpdates:{applications:true,tickets:true,leave:true},ticketButtons:{support:true,report:true,partnership:true},staffRoleId,reviewerRoleId,reviewChannelId:review.id,
-   channels:{inviteRewards:invites.id,applications:applications.id,leave:leave.id,activity:activity.id,serverInfo:info.id},
+   channels:{inviteRewards:invites.id,applications:applications.id,leave:leave.id,activity:null,serverInfo:info.id},
    links:{rules:'1533304708381540393',support:'1534463046766821536',applications:applications.id,community:'1533088767441637401',counting:'1534036556333973666'}});
   // Share artwork files, never beta roles, channels, member records or reward ledgers.
   if(!await readCommunityValue(client,embedMotionKey(main))) {
@@ -53,9 +53,9 @@ try {
  await loadEmbedMotion(client);await loadCommunityMotion(client);
  if(mode==='panels')for(const id of [beta,main]) {
   const g=await client.guilds.fetch(id),config=await getCommunityConfig(client,id);
-  for(const kind of Object.keys(config.features))if(config.features[kind])console.log(JSON.stringify(await publishCommunityPanel(client,g,kind)));
+  for(const kind of Object.keys(config.features))if(config.features[kind] && !(id===main && kind==='activity'))console.log(JSON.stringify(await publishCommunityPanel(client,g,kind)));
  }
- if(mode==='announce')for(const [id,channelId] of [[main,'1533088767441637398'],[beta,'1549857857414111272']]) {
+ if(mode==='announce')for(const [id,channelId] of [[beta,'1549857857414111272']]) {
   const channel=await client.channels.fetch(channelId),key=`guild:${id}:release:${communityRelease.id}`;
   if(channel.guildId!==id||!channel.isTextBased())throw Error('Release channel is outside the intended server.');
   const prior=await readCommunityValue(client,key);

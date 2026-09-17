@@ -34,7 +34,10 @@ Preparation preserves existing channels, role assignments, settings on reruns,
 and ticket configuration. It creates only missing panel/review channels and
 backs up configuration before mutation. The main staff role is Mod and the
 reviewer role is Trusted Mod; native Manage Server access is also respected.
-Main and Beta announcements are compact Dexzu embeds with no mention pings.
+Discord release announcements go to Beta only, as compact Dexzu embeds with no
+mention pings. Main staff activity is disabled and its posting channel is unset;
+the release script never publishes an activity panel or release announcement there.
+Dashboard release notes remain available in both workspaces.
 
 No historical invites are credited. The default minimum account age is seven
 days and minimum stay is 24 hours. DM updates are limited to the involved member's

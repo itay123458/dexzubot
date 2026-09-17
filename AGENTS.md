@@ -13,6 +13,10 @@ DexzuBot.
 
 ## Release notes and dashboard updates
 
+- Do not post staff activity or release notes in the main Discord server
+  `1533088766821007390` (user preference, 2026-09-17). Keep main staff activity
+  disabled. Discord release notes go to Beta only; dashboard notes remain available.
+
 - Always publish Discord release notes as a **Dexzu-themed embed**, not a plain
   text post (user preference, 2026-09-16). Use the shared `createEmbed` helper,
   the existing blue/cyan palette, DexzuBot branding, a small avatar thumbnail,
