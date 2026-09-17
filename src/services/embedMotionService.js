@@ -24,7 +24,7 @@ export function uploadedMotionAssetUrl(message, kind) {
   const name = `dexzu-motion-${kind}.gif`;
   // Discord can move embed-used uploads out of the attachments array.
   const file = message.attachments?.find(item => item.filename === name);
-  const url = (file?.url || message.embeds?.[0]?.[kind === 'avatar' ? 'thumbnail' : 'image']?.url)?.split('?')[0];
+  const url = (file?.url || message.embeds?.[0]?.[kind.startsWith('avatar') ? 'thumbnail' : 'image']?.url)?.split('?')[0];
   if (!validAsset(url) || !url.endsWith(`/${name}`)) throw new Error('Artwork attachment missing or invalid.');
   return url;
 }

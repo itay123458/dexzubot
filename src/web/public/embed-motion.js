@@ -6,7 +6,7 @@
   function preview() {
     const moving = input.checked && !reduced.matches && !document.hidden;
     for (const kind of ['avatar', 'banner']) {
-      const asset = kind === 'banner' ? 'giveaway' : kind;
+      const asset = kind === 'banner' ? 'giveaway' : dashboardWorkspace === 'beta' ? 'avatar' : 'avatar-main';
       $( `embed-motion-${kind}` ).src = `/dashboard/assets/embed-motion/dexzu-motion-${asset}.${moving ? 'gif' : 'png'}`;
     }
   }

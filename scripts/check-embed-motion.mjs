@@ -10,7 +10,8 @@ const assets = { enabled: true, thumbnailUrl: 'https://cdn.discordapp.com/attach
 assert.equal(uploadedMotionAssetUrl({ attachments: [], embeds: [{ thumbnail: { url: assets.thumbnailUrl + '?ex=123' }, image: { url: assets.bannerUrl } }] }, 'avatar'), assets.thumbnailUrl);
 assert.equal(uploadedMotionAssetUrl({ attachments: [{ filename: 'dexzu-motion-giveaway.gif', url: assets.bannerUrl }], embeds: [] }, 'giveaway'), assets.bannerUrl);
 assert.throws(() => uploadedMotionAssetUrl({ attachments: [], embeds: [] }, 'avatar'));
-const mainAssets = { ...assets, thumbnailUrl: 'https://cdn.discordapp.com/attachments/123/458/dexzu-motion-avatar.gif', bannerUrl: 'https://cdn.discordapp.com/attachments/123/459/dexzu-motion-giveaway.gif' };
+const mainAssets = { ...assets, thumbnailUrl: 'https://cdn.discordapp.com/attachments/123/458/dexzu-motion-avatar-main.gif', bannerUrl: 'https://cdn.discordapp.com/attachments/123/459/dexzu-motion-giveaway.gif' };
+assert.equal(uploadedMotionAssetUrl({attachments:[],embeds:[{thumbnail:{url:mainAssets.thumbnailUrl}}]},'avatar-main'),mainAssets.thumbnailUrl);
 const store = new Map([[embedMotionKey(beta), assets], [embedMotionKey(main), mainAssets]]);
 let fail = false;
 const client = { db: { get: async key => store.get(key), set: async (key, value) => { if (fail) return false; store.set(key, value); return true; } } };
@@ -36,6 +37,8 @@ const { buildVerificationPanelMessage } = await import('../src/utils/communityPa
 const { withGiveawayArtwork } = await import('../src/services/giveawayService.js');
 const panel = JSON.stringify(buildVerificationPanelMessage({ enabled: true }, { id: beta, name: 'Beta' }));
 assert.ok(panel.includes(assets.thumbnailUrl)); assert.ok(panel.includes('verify_user'));
+const mainPanel=JSON.stringify(buildVerificationPanelMessage({enabled:true},{id:main,name:'Main'}));
+assert.ok(mainPanel.includes(mainAssets.thumbnailUrl));assert.ok(!mainPanel.includes(assets.thumbnailUrl));
 const giveaway = createEmbed({ guildId: beta, title: 'Prize' });
 const decorated = withGiveawayArtwork(giveaway, { guild: { id: beta } }, { attachments: new Map([['old', { id: 'old', name: 'dexzu-giveaway-slim.png' }], ['custom', { id: 'custom', name: 'rules.txt' }]]) });
 assert.equal(giveaway.toJSON().image.url, assets.bannerUrl);

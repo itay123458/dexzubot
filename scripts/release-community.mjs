@@ -42,10 +42,9 @@ try {
    dmUpdates:{applications:true,tickets:true,leave:true},ticketButtons:{support:true,report:true,partnership:true},staffRoleId,reviewerRoleId,reviewChannelId:review.id,
    channels:{inviteRewards:invites.id,applications:applications.id,leave:leave.id,activity:null,serverInfo:info.id},
    links:{rules:'1533304708381540393',support:'1534463046766821536',applications:applications.id,community:'1533088767441637401',counting:'1534036556333973666'}});
-  // Share artwork files, never beta roles, channels, member records or reward ledgers.
+  // Main artwork must be installed separately; never copy the Beta badge to Main.
   if(!await readCommunityValue(client,embedMotionKey(main))) {
-   const artwork=await readCommunityValue(client,embedMotionKey(beta));if(!artwork)throw Error('Install Dexzu artwork first.');
-   await writeCommunityValue(client,embedMotionKey(main),{...artwork,enabled:true});
+   throw Error('Run scripts/install-main-artwork.mjs before preparing Main.');
   }
   await writeCommunityValue(client,setupKey,{backup,channels:config.channels});
   console.log(JSON.stringify({prepared:main,backup,channels:config.channels}));

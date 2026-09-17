@@ -6,6 +6,7 @@ DexzuBot.
 ## Product identity
 
 - The canonical product name is **DexzuBot**.
+- Main uses regular DexzuBot artwork. Keep artwork with a BETA badge in Beta only.
 - Do not call this bot TitanBot or EditIL Assistant in new user-facing text,
   documentation, release notes, or deployment messages.
 - Some inherited internal identifiers may still use `titanbot`. Do not perform a

@@ -10,8 +10,9 @@ await mkdir(out, { recursive: true });
 try {
   for (const [kind, source, width, height] of [
     ['avatar', 'dexzu-beta-avatar.png', 256, 256],
+    ['avatar-main', 'dexzu-avatar.png', 256, 256],
     ['giveaway', 'dexzu-giveaway-banner-slim.png', 720, 166],
-  ]) {
+  ].filter(([kind])=>!process.argv.includes('--main-only')||kind==='avatar-main')) {
     const temp = await mkdtemp(join(tmpdir(), 'dexzu-motion-'));
     const data = (await readFile(resolve('src/assets', source))).toString('base64');
     const page = await browser.newPage();
@@ -27,7 +28,7 @@ try {
         c.save();
         // Only the perimeter moves. Mascot and lettering remain pixel-stationary.
         c.strokeStyle = '#8eeeff'; c.lineWidth = 1.5; c.shadowColor = '#17baff'; c.shadowBlur = 8;
-        if (kind === 'avatar') {
+        if (kind.startsWith('avatar')) {
           for (let i = 0; i < 2; i++) {
             c.beginPath(); c.ellipse(w / 2, h / 2, w * .46, h * .46, 0, phase + i * Math.PI, phase + i * Math.PI + .45); c.stroke();
           }
