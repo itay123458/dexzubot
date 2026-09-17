@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { initializeDatabase, db } from '../src/utils/database/wrapper.js';
 import { pgDb } from '../src/utils/postgresDatabase.js';
 import { createEmbed } from '../src/utils/embeds.js';
-import { embedMotionKey, loadEmbedMotion } from '../src/services/embedMotionService.js';
+import { embedMotionKey, loadEmbedMotion, uploadedMotionAssetUrl } from '../src/services/embedMotionService.js';
 import { betaReleases } from '../src/config/releases.js';
 const guildId = '1486680755869323388';
 if (process.env.BETA_GUILD_ID !== guildId || process.env.GUILD_ID === guildId) throw new Error('Expected the approved, isolated beta guild.');
@@ -33,13 +33,8 @@ try {
       } });
       if (await db.set(key, message.id) === false) throw new Error('Could not save artwork message ID.');
     }
-    const assetUrl = kind => {
-      const file = message.attachments.find(item => item.filename === `dexzu-motion-${kind}.gif`);
-      if (!file) throw new Error('Artwork attachment missing.');
-      return file.url.split('?')[0];
-    };
     const existing = await db.get(embedMotionKey(guildId));
-    if (await db.set(embedMotionKey(guildId), { enabled: existing?.enabled !== false, thumbnailUrl: assetUrl('avatar'), bannerUrl: assetUrl('giveaway') }) === false) throw new Error('Could not save artwork configuration.');
+    if (await db.set(embedMotionKey(guildId), { enabled: existing?.enabled !== false, thumbnailUrl: uploadedMotionAssetUrl(message, 'avatar'), bannerUrl: uploadedMotionAssetUrl(message, 'giveaway') }) === false) throw new Error('Could not save artwork configuration.');
   } else {
     const state = await loadEmbedMotion({ db });
     if (!state.ready) throw new Error('Install artwork before announcing.');

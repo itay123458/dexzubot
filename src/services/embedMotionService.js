@@ -19,6 +19,15 @@ export function createGuildCollector(source, options) {
 }
 const validAsset = value => typeof value === 'string' && /^https:\/\/cdn\.discordapp\.com\/attachments\/\d+\/\d+\/dexzu-motion-[\w-]+\.gif$/.test(value);
 
+export function uploadedMotionAssetUrl(message, kind) {
+  const name = `dexzu-motion-${kind}.gif`;
+  // Discord can move embed-used uploads out of the attachments array.
+  const file = message.attachments?.find(item => item.filename === name);
+  const url = (file?.url || message.embeds?.[0]?.[kind === 'avatar' ? 'thumbnail' : 'image']?.url)?.split('?')[0];
+  if (!validAsset(url) || !url.endsWith(`/${name}`)) throw new Error('Artwork attachment missing or invalid.');
+  return url;
+}
+
 export async function loadEmbedMotion(client) {
   const guildId = getBetaGuildId();
   saved = guildId ? await client.db.get(embedMotionKey(guildId)) : null;
