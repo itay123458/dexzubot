@@ -27,6 +27,7 @@ import { getCountingGameConfig, setCountingEditAction } from '../services/counti
 import { getPrefixSettings, savePrefixSettings } from '../services/prefixSettingsService.js';
 import { registerRoleRoutes } from './roleRoutes.js';
 import { registerEmbedMotionRoutes } from './embedMotionRoutes.js';
+import { registerCommunityBetaRoutes } from './communityBetaRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, 'public');
@@ -283,6 +284,7 @@ export function registerDashboard(app, client) {
 
   registerRoleRoutes(router, client);
   registerEmbedMotionRoutes(router, client);
+  registerCommunityBetaRoutes(router, client);
 
   router.get('/state', async (req, res) => {
     const guild = req.dashboardGuild;

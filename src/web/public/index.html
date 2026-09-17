@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/dashboard/control-pages.css">
   <link rel="stylesheet" href="/dashboard/beta-roles.css">
   <link rel="stylesheet" href="/dashboard/embed-motion.css">
+  <link rel="stylesheet" href="/dashboard/community-beta.css">
   <link rel="stylesheet" href="/dashboard/workspace.css"><link rel="stylesheet" href="/dashboard/command-center.css?v=2">
 </head>
 <body>
@@ -187,6 +188,25 @@
         <section class="page" data-panel="operations">
           <div class="feature-heading"><div><p class="eyebrow">RELIABILITY CENTER</p><h2>Operations</h2><p>Health checks, access roles, backups, and active timed punishments.</p></div><button id="run-health-check" class="secondary-button">Run health check</button></div>
           <div id="operations-summary" class="summary-grid four"></div>
+          <!-- Add stylesheet in head: /dashboard/community-beta.css; script after app.js: /dashboard/community-beta.js -->
+<section id="beta-community-controls" hidden aria-labelledby="community-heading">
+  <div class="card-head"><div><h2 id="community-heading">Community tools <span class="pill">Beta</span></h2><p>Configure panels and staff workflows for this beta server.</p></div><button type="button" id="community-refresh">Refresh</button></div>
+  <p id="community-status" role="status" aria-live="polite">Loading community settings...</p>
+  <div id="community-forms" class="community-grid"></div>
+  <article class="card community-review"><h3>Staff requests and activity</h3><p>Review submitted applications and leave requests. Activity checks use the saved staff role and exclude approved leave.</p><div id="community-staff"></div></article>
+  <details class="card community-guide"><summary>Community command guide</summary><dl>
+    <dt>/invite-rewards balance · /invite-rewards claim · /invite-rewards panel</dt><dd>Check qualifying invites, claim new milestones or publish a panel. Publishing requires Manage Server.</dd>
+    <dt>/beta-staff applications · /beta-staff leave · /beta-staff activity</dt><dd>Open the application, leave or current activity controls privately in Discord.</dd>
+    <dt>/beta-staff activity-start hours · /beta-staff activity-end id</dt><dd>Reviewers can start a check for 1–336 hours or close it by its check ID.</dd>
+    <dt>Invite rewards</dt><dd>Publish the invite rewards panel, then use its balance and claim buttons. Only attributed, retained members qualify; each milestone can be claimed once.</dd>
+    <dt>Applications</dt><dd>Use the application panel to start, resume or cancel a private application. Answer one question at a time. Review submitted answers here.</dd>
+    <dt>Leave of absence</dt><dd>Use the leave panel to request 1–14 days away. Reviewers approve or deny requests here; approved leave expires automatically.</dd>
+    <dt>Activity checks</dt><dd>Start a check below, then staff respond using its Discord button. Close a check to see responded, missing and excluded members. No reminder DMs are sent.</dd>
+    <dt>Tickets and server information</dt><dd>Category buttons open General support, Report a member or Partnership tickets using the existing ticket setup. Server information panels include current statistics and selected channel links.</dd>
+    <dt>Optional DMs</dt><dd>DM switches apply only to the involved member’s application, ticket or leave updates. Delivery can fail when DMs are closed; the saved result remains visible here.</dd>
+  </dl></details>
+</section>
+
           <article id="beta-embed-motion" class="card" hidden aria-labelledby="embed-motion-heading">
             <div class="card-head"><div><p class="eyebrow">BETA / MESSAGE DESIGN</p><h2 id="embed-motion-heading">Animated messages</h2></div></div>
             <p>Moving Dexzu artwork for command replies, support, verification, role panels, and giveaways. Text and buttons stay still.</p>
@@ -252,6 +272,7 @@
   <script src="/dashboard/prefix-settings.js" defer></script>
   <script src="/dashboard/beta-roles.js" defer></script>
   <script src="/dashboard/embed-motion.js" defer></script>
+  <script src="/dashboard/community-beta.js" defer></script>
   <script src="/dashboard/workspace.js" defer></script>
   <script src="/dashboard/control-center.js" defer></script>
 </body>

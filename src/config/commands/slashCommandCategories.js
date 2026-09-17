@@ -11,7 +11,7 @@ export const ENABLED_SLASH_COMMAND_CATEGORIES = new Set([
 ]);
 
 export function isSlashCommandCategoryEnabled(category, guildId = null) {
-    return ENABLED_SLASH_COMMAND_CATEGORIES.has(category) || (category === 'Welcome' && isBetaGuild(guildId));
+    return ENABLED_SLASH_COMMAND_CATEGORIES.has(category) || (['Welcome','Community'].includes(category) && isBetaGuild(guildId));
 }
 
 export function isSlashCommandEnabled(command, guildId = null) {

@@ -10,6 +10,7 @@ export function messageHasButtonCustomId(message, buttonCustomId) {
             const json = typeof component.toJSON === 'function' ? component.toJSON() : component;
             if (!json) continue;
             if (json.type === 2 && json.custom_id === buttonCustomId) return true;
+            if (json.type === 2 && buttonCustomId === 'create_ticket' && /^create_ticket:beta:(support|report|partnership)$/.test(json.custom_id)) return true;
             if (Array.isArray(json.components) && walk(json.components)) return true;
         }
         return false;
@@ -133,4 +134,3 @@ export async function getReactionRolePanelStatus(client, guild, panelData) {
         selectCustomId: 'reaction_roles',
     });
 }
-

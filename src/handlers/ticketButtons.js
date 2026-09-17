@@ -8,6 +8,18 @@ import { InteractionHelper } from '../utils/interactionHelper.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
 import { replyUserError, ErrorTypes, handleInteractionError, createError } from '../utils/errorHandler.js';
 import { getTicketPermissionContext } from '../utils/ticket/ticketPermissions.js';
+import { assertBetaFeature } from '../services/communityBetaService.js';
+import { isBetaGuild } from '../config/beta.js';
+
+async function ticketCategoryFor(interaction, client) {
+  if (!interaction.customId.includes(':')) return null;
+  const [,scope,category] = interaction.customId.split(':');
+  const config = await assertBetaFeature(client, interaction.guildId, 'ticketCategories');
+  if (scope !== 'beta' || !['support','report','partnership'].includes(category) || !config.ticketButtons[category]) {
+    throw createError('Ticket category disabled', ErrorTypes.VALIDATION, 'This ticket category is switched off. Please use the current support panel.');
+  }
+  return category;
+}
 
 function escapeHtml(text) {
   if (!text) return '';
@@ -108,6 +120,8 @@ const createTicketHandler = {
     try {
       if (!(await ensureGuildContext(interaction))) return;
 
+      const ticketCategory = await ticketCategoryFor(interaction, client);
+
       const rateLimitKey = `${interaction.user.id}:create_ticket`;
       const allowed = await checkRateLimit(rateLimitKey, 3, 60000);
       if (!allowed) {
@@ -126,8 +140,8 @@ const createTicketHandler = {
       }
       
       const modal = new ModalBuilder()
-        .setCustomId('create_ticket_modal')
-        .setTitle('Create a Ticket');
+        .setCustomId(ticketCategory ? `create_ticket_modal:beta:${ticketCategory}` : 'create_ticket_modal')
+        .setTitle(!ticketCategory ? 'Create a Ticket' : ticketCategory === 'report' ? 'Report a Member' : ticketCategory === 'partnership' ? 'Partnership Request' : 'General Support');
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
@@ -160,19 +174,22 @@ const createTicketModalHandler = {
       if (!deferSuccess) return;
       
       const reason = interaction.fields.getTextInputValue('reason');
+      const ticketCategory = await ticketCategoryFor(interaction, client);
       const config = await getGuildConfig(client, interaction.guildId);
       const categoryId = config.ticketCategoryId || null;
       
-      const { channel } = await createTicket(
+      const { channel, dm } = await createTicket(
         interaction.guild,
         interaction.member,
         categoryId,
-        reason
+        reason,
+        'none',
+        ticketCategory
       );
       await interaction.editReply({
         embeds: [successEmbed(
           'Ticket Created',
-          `Your ticket has been created in ${channel}!`
+          `Your ticket has been created in ${channel}!${isBetaGuild(interaction.guildId) && dm && !dm.sent && dm.reason !== 'disabled' ? '\nYour ticket is open, but the DM update could not be delivered.' : ''}`
         )]
       });
     } catch (error) {

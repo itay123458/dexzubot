@@ -369,6 +369,7 @@ class TitanBot extends Client {
       logger.info('Stopping cron jobs...');
       cron.getTasks().forEach(task => task.stop());
       clearInterval(this.operationsHealthTimer);
+      this.communityStaffCleanup?.();
       logger.info('✅ Cron jobs stopped');
 
       logger.info('Stopping music players...');

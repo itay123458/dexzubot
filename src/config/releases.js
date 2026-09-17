@@ -1,4 +1,16 @@
 export const betaReleases = [{
+  id: '2026-09-17-community', date: '2026-09-17', title: 'Community tools are ready to test',
+  summary: 'Invite rewards, ticket categories, and staff tools are now available in Beta.',
+  changes: [
+    'Turn General Support, Report a Member, and Partnership buttons on or off separately.',
+    'Invite rewards have configurable milestones, balance checks, and one-time claims for tracked members who stay.',
+    'Staff applications save each answer. Review applications and 1–14 day leave requests from Discord or the dashboard.',
+    'Activity checks show who responded, who is missing, and who is on approved leave. Server information panels have configurable channel links.',
+    'Optional DMs cover application, ticket, and leave updates. Closed DMs do not undo a saved request.',
+  ],
+  tryIt: ['Beta → Operations → Community tools has the switches, channels, questions, rewards, and reviews.', 'Try /invite-rewards, /beta-staff, or /community-beta guide.'],
+  scope: 'Beta server only. Invite tracking starts now; old or ambiguous joins are not credited. Main rollout still needs your go-ahead.',
+}, {
   id: '2026-09-17-message-motion', date: '2026-09-17', title: 'Animated message artwork',
   summary: 'Dexzu artwork now moves in beta command replies and panels.',
   changes: [

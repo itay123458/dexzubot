@@ -8,6 +8,8 @@ import { getServerCounters, updateCounter } from '../services/serverstatsService
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { createWelcomeCard } from '../services/welcomeCardService.js';
+import { trackRewardJoin } from '../services/betaInviteRewardsService.js';
+import { runCommunityInviteEvent } from '../services/communityBetaEvents.js';
 
 export default {
   name: Events.GuildMemberAdd,
@@ -16,6 +18,7 @@ export default {
   async execute(member) {
     try {
         const { guild, user } = member;
+        await runCommunityInviteEvent(trackRewardJoin,member);
         
         const config = await getGuildConfig(member.client, guild.id);
         

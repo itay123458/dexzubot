@@ -8,6 +8,8 @@ import { getGuildBirthdays, deleteBirthday } from '../utils/database.js';
 import { deleteUserLevelData } from '../services/leveling/leveling.js';
 import { logger } from '../utils/logger.js';
 import { createWelcomeCard } from '../services/welcomeCardService.js';
+import { trackRewardLeave } from '../services/betaInviteRewardsService.js';
+import { runCommunityInviteEvent } from '../services/communityBetaEvents.js';
 
 export default {
   name: Events.GuildMemberRemove,
@@ -16,6 +18,7 @@ export default {
   async execute(member) {
     try {
         const { guild, user } = member;
+        await runCommunityInviteEvent(trackRewardLeave,member);
         
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
         

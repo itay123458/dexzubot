@@ -2,6 +2,7 @@
 
 import { getColor, getEconomyKey as getEconomyStorageKey } from './database.js';
 import { BotConfig } from '../config/bot.js';
+import { isBetaGuild } from '../config/beta.js';
 import { normalizeEconomyData } from './schemas.js';
 import { logger } from './logger.js';
 import { validateDiscordId, validateNumber } from './validation.js';
@@ -69,7 +70,7 @@ export async function getEconomyData(client, guildId, userId) {
             wallet: ECONOMY_CONFIG.startingBalance ?? DEFAULT_ECONOMY_DATA.wallet,
         };
         
-        return normalizeEconomyData(data, defaults);
+        return normalizeEconomyData(data, isBetaGuild(guildId) ? { ...defaults, inviteRewardCredits: 0 } : defaults);
     } catch (error) {
         logger.error(`Error getting economy data for user ${userId}`, error);
         return normalizeEconomyData({}, DEFAULT_ECONOMY_DATA);

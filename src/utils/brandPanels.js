@@ -2,6 +2,7 @@ import { createEmbed } from './embeds.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { toContainerMessage } from './panelLayout.js';
 import { motionArtwork, currentMessageGuild } from '../services/embedMotionService.js';
+import { cachedCommunityConfig } from '../services/communityBetaService.js';
 
 export const TICKET_PANEL_MESSAGE_MAX_LENGTH = 2000;
 
@@ -31,9 +32,18 @@ export function createSupportPanelMessage(config = {}, thumbnail = null, existin
       { name: '🤝 Community requests', value: 'Have an idea or a collaboration request? Tell the team about it in your ticket.' },
     )
     .setFooter({ text: 'Choose the button below to open a private conversation with the team.' });
-  const row = new ActionRowBuilder().addComponents(new ButtonBuilder()
-    .setCustomId('create_ticket').setLabel(config.ticketButtonLabel || 'Open support ticket')
-    .setEmoji('📩').setStyle(ButtonStyle.Primary));
+  const community = cachedCommunityConfig(guildId);
+  const row = new ActionRowBuilder();
+  if (community?.features.ticketCategories) {
+    const categories = [
+      ['support','General Support','🛟',ButtonStyle.Primary],
+      ['report','Report a Member','🛡️',ButtonStyle.Danger],
+      ['partnership','Partnership','🤝',ButtonStyle.Secondary],
+    ];
+    for (const [key,label,emoji,style] of categories) if(community.ticketButtons[key]) row.addComponents(new ButtonBuilder()
+      .setCustomId(`create_ticket:beta:${key}`).setLabel(label).setEmoji(emoji).setStyle(style));
+    embed.setFooter({text:'Choose a category and describe what you need. A team member will respond in your private ticket.'});
+  } else row.addComponents(new ButtonBuilder().setCustomId('create_ticket').setLabel(config.ticketButtonLabel || 'Open support ticket').setEmoji('📩').setStyle(ButtonStyle.Primary));
   const payload = { embeds: [embed], components: [row], allowedMentions: { parse: [] } };
   try {
     return toContainerMessage(payload);

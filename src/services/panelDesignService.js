@@ -11,6 +11,7 @@ import { Mutex } from '../utils/mutex.js';
 import { logger } from '../utils/logger.js';
 import { isBetaGuild } from '../config/beta.js';
 import { embedMotionState, runWithMessageGuild } from './embedMotionService.js';
+import { cachedCommunityConfig } from './communityBetaService.js';
 
 export const PANEL_DESIGN_REVISION = 'crystal-components-v2-2026-09-16';
 export const GIVEAWAY_DESIGN_REVISION = 'compact-giveaway-banner-2026-09-16';
@@ -28,6 +29,8 @@ export async function refreshConfiguredPanelDesigns(client, onlyGuildId = null) 
     };
     const refresh = async (guild, channelId, messageId, build, marker = null, beforeEdit = null, revision = PANEL_DESIGN_REVISION) => {
         if (isBetaGuild(guild.id) && embedMotionState(guild.id).ready) revision += `:motion-v1-${embedMotionState(guild.id).enabled}`;
+        const community = cachedCommunityConfig(guild.id);
+        if (community && marker?.buttonCustomId === 'create_ticket') revision += `:categories-${community.features.ticketCategories}-${Object.values(community.ticketButtons).join('-')}`;
         if (!channelId || !messageId) { summary.skipped += 1; return; }
         const key = panelDesignKey(guild.id, messageId);
         if (await client.db.get(key) === revision) { summary.skipped += 1; return; }

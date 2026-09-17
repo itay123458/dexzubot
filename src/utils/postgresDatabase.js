@@ -1,6 +1,8 @@
 // postgresDatabase.js
 
 import pg from 'pg';
+import { isBetaGuild } from '../config/beta.js';
+import { saveEconomyPreservingInviteCredits } from './database/economyRewards.js';
 import { pgConfig, resolvePostgresPoolConfig } from '../config/database/postgres.js';
 import { logger } from './logger.js';
 import { assertAllowlistedIdentifier, quoteIdentifier } from './sqlIdentifiers.js';
@@ -860,6 +862,9 @@ class PostgreSQLDatabase {
                         [parsedKey.userId]
                     );
                     
+                    if (isBetaGuild(parsedKey.guildId)) {
+                        return await saveEconomyPreservingInviteCredits(this.pool, pgConfig.tables.economy, parsedKey.guildId, parsedKey.userId, value);
+                    }
                     await this.pool.query(
                         `INSERT INTO ${pgConfig.tables.economy} (guild_id, user_id, balance, bank, data, updated_at) 
                          VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) 
