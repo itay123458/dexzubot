@@ -113,6 +113,15 @@ display or copy the private key contents.
 
 ## Deployment workflow
 
+The user authorized an invite-only public dashboard with Discord login on
+2026-09-17. Public traffic must target the authenticated listener on host port
+3002 only. Never expose the trusted private listener on host port 3001 through
+Funnel. The private dashboard is preserved through tailnet-only Serve on 8443.
+Public writes require a saved manager grant (or bot-owner access) and current
+Discord Administrator permission; use the signed-in member for role/staff
+actions. Do not weaken those checks or trust client-supplied identity headers.
+See DEPLOYMENT-PI.md for OAuth, invitations, session and hosting instructions.
+
 Only deploy when the Pi is reachable and the user requested deployment or the
 current task explicitly includes it.
 
