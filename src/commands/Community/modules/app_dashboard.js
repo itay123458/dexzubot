@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../../services/embedMotionService.js';
 import { getColor, getDefaultApplicationQuestions, botConfig } from '../../../config/bot.js';
 import {
     ActionRowBuilder,
@@ -218,7 +219,7 @@ async function showApplicationSelector(interaction, roles, settings, guildId, cl
         components: [new ActionRowBuilder().addComponents(selectMenu)],
     });
 
-    const collector = interaction.channel.createMessageComponentCollector({
+    const collector = createGuildCollector(interaction.channel, {
         componentType: ComponentType.StringSelect,
         filter: i =>
             i.user.id === interaction.user.id && i.customId === `app_select_${guildId}`,
@@ -350,7 +351,7 @@ async function showApplicationDashboard(rootInteraction, selectedRole, settings,
 function setupCollectors(interaction, settings, roles, guildId, client, selectedRoleId) {
     const customIdPrefix = selectedRoleId ? `app_cfg_${selectedRoleId}` : `app_cfg_${guildId}`;
     
-    const collector = interaction.channel.createMessageComponentCollector({
+    const collector = createGuildCollector(interaction.channel, {
         componentType: ComponentType.StringSelect,
         filter: i =>
             i.user.id === interaction.user.id && 
@@ -425,7 +426,7 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
     });
 
     if (!selectedRoleId) {
-        const globalToggleCollector = interaction.channel.createMessageComponentCollector({
+        const globalToggleCollector = createGuildCollector(interaction.channel, {
             componentType: ComponentType.Button,
             filter: i =>
                 i.user.id === interaction.user.id &&
@@ -484,7 +485,7 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
     }
 
     if (selectedRoleId) {
-        const btnCollector = interaction.channel.createMessageComponentCollector({
+        const btnCollector = createGuildCollector(interaction.channel, {
             componentType: ComponentType.Button,
             filter: i =>
                 i.user.id === interaction.user.id &&
@@ -575,7 +576,7 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
             }
         });
 
-        const toggleCollector = interaction.channel.createMessageComponentCollector({
+        const toggleCollector = createGuildCollector(interaction.channel, {
             componentType: ComponentType.Button,
             filter: i =>
                 i.user.id === interaction.user.id &&

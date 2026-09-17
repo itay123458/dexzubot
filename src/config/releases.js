@@ -1,4 +1,14 @@
 export const betaReleases = [{
+  id: '2026-09-17-message-motion', date: '2026-09-17', title: 'Animated message artwork',
+  summary: 'Dexzu artwork now moves in beta command replies and panels.',
+  changes: [
+    'A small animated Dexzu thumbnail for replies, support, verification, and role panels.',
+    'Giveaways keep the slim banner, with a little blue light and movement around the edges.',
+    'Turn animation on or off in Beta → Operations → Animated messages. Saving updates configured panels too.',
+  ],
+  tryIt: ['Try /ping or /role list in the beta server.', 'Text and buttons stay still. Discord controls GIF playback; older command replies keep their original design.'],
+  scope: 'Beta only for now. The main server keeps its current design.',
+}, {
   id: '2026-09-16-roles', date: '2026-09-16', title: 'Role commands are ready to test',
   summary: 'You can now manage roles from Discord or the Beta dashboard.',
   changes: [

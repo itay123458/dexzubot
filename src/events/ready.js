@@ -10,6 +10,7 @@ import { initializeYouTubeAlerts } from "../services/youtubeAlertService.js";
 import { initializeTimedSoftbans } from "../services/moderation/timedSoftbanService.js";
 import { initializeOperationsHealthChecks } from "../services/dashboardOperationsService.js";
 import { refreshConfiguredPanelDesigns } from "../services/panelDesignService.js";
+import { loadEmbedMotion } from "../services/embedMotionService.js";
 
 export default {
   name: Events.ClientReady,
@@ -17,6 +18,7 @@ export default {
 
   async execute(client) {
     try {
+      await loadEmbedMotion(client);
       await initializePresenceMirror(client);
       initializeYouTubeAlerts(client);
       const restoredSoftbans = await initializeTimedSoftbans(client);

@@ -48,9 +48,9 @@ try {
   await page.locator('a[data-workspace="beta"]').click();
   await page.waitForFunction(() => state?.workspace.key === 'beta');
   await page.getByText('Role commands are ready to test', { exact: true }).waitFor();
-  await page.locator('#beta-release-content summary').click();
-  await page.waitForFunction(() => document.querySelector('#beta-release-content details').open);
-  await page.locator('#beta-release-content li').first().waitFor({ state: 'visible' });
+  await page.locator('#beta-release-content summary').last().click();
+  await page.waitForFunction(() => [...document.querySelectorAll('#beta-release-content details')].at(-1).open);
+  await page.locator('#beta-release-content details').last().locator('li').first().waitFor({ state: 'visible' });
   assert.match(await page.locator('#beta-release-content').textContent(), /100 eligible members/);
   await page.locator('#open-beta-roles').click();
   await page.waitForFunction(() => !document.querySelector('#role-autorole-form fieldset').disabled);

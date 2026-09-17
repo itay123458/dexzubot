@@ -1,3 +1,5 @@
+import { createGuildCollector } from '../../../services/embedMotionService.js';
+import { createMotionEmbed } from '../../../utils/embeds.js';
 import { buildVerificationPanelMessage } from '../../../utils/communityPanels.js';
 import { botConfig, getColor } from '../../../config/bot.js';
 import {
@@ -51,7 +53,7 @@ function buildDashboardEmbed(cfg, guild, verifiedUserCount = 0, conflictSummary 
     const buttonText = cfg.buttonText || botConfig.verification.defaultButtonText;
     const panelStatusValue = cfg.channelId ? formatPanelStatusField(panelStatus) : '`Not configured`';
 
-    const embed = new EmbedBuilder()
+    const embed = createMotionEmbed()
         .setTitle('✅ Verification System Dashboard')
         .setDescription(`Manage verification settings for **${guild.name}**.\nSelect an option below to modify a setting.`)
         .setColor(getColor('info'))
@@ -348,7 +350,7 @@ export default {
                 onTimeout: async (rootInteraction) => {
                     await InteractionHelper.safeEditReply(rootInteraction, {
                         embeds: [
-                            new EmbedBuilder()
+                            createMotionEmbed()
                                 .setTitle('Dashboard Timed Out')
                                 .setDescription('This dashboard has been closed due to inactivity. Please run the command again to continue.')
                                 .setColor(getColor('error')),
@@ -381,7 +383,7 @@ async function handleChannel(selectInteraction, rootInteraction, cfg, guildId, c
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Change Verification Channel')
                 .setDescription(
                     `**Current:** ${cfg.channelId ?`<#${cfg.channelId}>`: '`Not set`'}\n\nSelect the channel where the verification panel will be posted.\n\n> ⚠️ The existing panel will be deleted and re-posted in the new channel.`,
@@ -392,7 +394,7 @@ async function handleChannel(selectInteraction, rootInteraction, cfg, guildId, c
         flags: MessageFlags.Ephemeral,
     });
 
-    const chanCollector = rootInteraction.channel.createMessageComponentCollector({
+    const chanCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.ChannelSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'verif_cfg_channel',
@@ -466,7 +468,7 @@ async function handleRole(selectInteraction, rootInteraction, cfg, guildId, clie
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Change Verified Role')
                 .setDescription(
                     `**Current:** ${cfg.roleId ?`<@&${cfg.roleId}>`: '`Not set`'}\n\nSelect the role to assign when a user verifies.`,
@@ -477,7 +479,7 @@ async function handleRole(selectInteraction, rootInteraction, cfg, guildId, clie
         flags: MessageFlags.Ephemeral,
     });
 
-    const roleCollector = rootInteraction.channel.createMessageComponentCollector({
+    const roleCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.RoleSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'verif_cfg_role',

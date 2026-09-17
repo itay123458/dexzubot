@@ -1,0 +1,62 @@
+import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
+import express from 'express';
+process.env.BETA_GUILD_ID = '1486680755869323388';
+const { loadEmbedMotion, saveEmbedMotion, motionArtwork, runWithMessageGuild, embedMotionKey, createGuildCollector } = await import('../src/services/embedMotionService.js');
+const { createEmbed } = await import('../src/utils/embeds.js');
+const beta = process.env.BETA_GUILD_ID, main = '1533088766821007390';
+const assets = { enabled: true, thumbnailUrl: 'https://cdn.discordapp.com/attachments/123/456/dexzu-motion-avatar.gif', bannerUrl: 'https://cdn.discordapp.com/attachments/123/457/dexzu-motion-giveaway.gif' };
+const store = new Map([[embedMotionKey(beta), assets]]);
+let fail = false;
+const client = { db: { get: async key => store.get(key), set: async (key, value) => { if (fail) return false; store.set(key, value); return true; } } };
+await loadEmbedMotion(client);
+assert.equal(motionArtwork(main), null);
+assert.equal(motionArtwork(null), null);
+assert.equal(motionArtwork(beta).thumbnailUrl, assets.thumbnailUrl);
+const [a, b] = await Promise.all([
+  runWithMessageGuild(beta, async () => { await new Promise(r => setTimeout(r, 10)); return createEmbed({ title: 'Beta' }).toJSON(); }),
+  runWithMessageGuild(main, async () => createEmbed({ title: 'Main' }).toJSON()),
+]);
+assert.equal(a.thumbnail.url, assets.thumbnailUrl);
+assert.notEqual(b.thumbnail?.url, assets.thumbnailUrl);
+assert.notEqual(createEmbed({ title: 'DM' }).toJSON().thumbnail?.url, assets.thumbnailUrl);
+const collector = createGuildCollector({ guildId: beta, createMessageComponentCollector: () => new EventEmitter() }, {});
+let collected;
+collector.on('collect', () => { collected = createEmbed({ title: 'Next page' }).toJSON(); });
+runWithMessageGuild(main, () => collector.emit('collect', {}));
+assert.equal(collected.thumbnail.url, assets.thumbnailUrl, 'Collectors must retain their own guild across event dispatch');
+const { buildVerificationPanelMessage } = await import('../src/utils/communityPanels.js');
+const { withGiveawayArtwork } = await import('../src/services/giveawayService.js');
+const panel = JSON.stringify(buildVerificationPanelMessage({ enabled: true }, { id: beta, name: 'Beta' }));
+assert.ok(panel.includes(assets.thumbnailUrl)); assert.ok(panel.includes('verify_user'));
+const giveaway = createEmbed({ guildId: beta, title: 'Prize' });
+const decorated = withGiveawayArtwork(giveaway, { guild: { id: beta } }, { attachments: new Map([['old', { id: 'old', name: 'dexzu-giveaway-slim.png' }], ['custom', { id: 'custom', name: 'rules.txt' }]]) });
+assert.equal(giveaway.toJSON().image.url, assets.bannerUrl);
+assert.equal(giveaway.toJSON().thumbnail, undefined);
+assert.deepEqual(decorated.attachments, [{ id: 'custom' }]);
+assert.equal(createEmbed({ guildId: beta, thumbnail: 'https://example.com/user.png' }).toJSON().thumbnail.url, 'https://example.com/user.png');
+fail = true;
+await assert.rejects(saveEmbedMotion(client, beta, false));
+assert.equal(motionArtwork(beta).thumbnailUrl, assets.thumbnailUrl, 'Failed save must not change runtime state');
+fail = false;
+await saveEmbedMotion(client, beta, false);
+assert.equal(motionArtwork(beta), null);
+await assert.rejects(saveEmbedMotion(client, main, true));
+assert.ok(!store.has(embedMotionKey(main)));
+const { registerEmbedMotionRoutes } = await import('../src/web/embedMotionRoutes.js');
+const app = express(), router = express.Router(); app.use(express.json());
+router.use((req, res, next) => { req.dashboardGuild = { id: req.query.main ? main : beta }; next(); });
+client.guilds = { cache: new Map() };
+registerEmbedMotionRoutes(router, client); app.use(router);
+app.use((error, req, res, next) => res.status(500).json({ error: error.message }));
+const server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+const url = `http://127.0.0.1:${server.address().port}/embed-motion`;
+const post = (body, suffix = '') => fetch(url + suffix, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+try {
+  assert.equal((await fetch(url + '?main=1')).status, 403);
+  assert.equal((await post({ enabled: true }, '?main=1')).status, 403);
+  assert.equal((await post({ enabled: 'yes' })).status, 400);
+  fail = true; assert.equal((await post({ enabled: true })).status, 500); assert.equal(motionArtwork(beta), null);
+  fail = false; assert.equal((await post({ enabled: true })).status, 200); assert.ok(motionArtwork(beta));
+} finally { await new Promise(resolve => server.close(resolve)); }
+console.log('Embed motion: beta isolation, concurrent context, custom media, and save failures passed.');

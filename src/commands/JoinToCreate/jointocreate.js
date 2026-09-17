@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../services/embedMotionService.js';
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, LabelBuilder } from 'discord.js';
 import { createEmbed, successEmbed, warningEmbed  } from '../../utils/embeds.js';
@@ -293,7 +294,7 @@ async function handleConfigSubcommand(interaction, client) {
             );
         }
 
-        const collector = message.createMessageComponentCollector({
+        const collector = createGuildCollector(message, {
             componentType: ComponentType.Button,
             time: 300000
         });
@@ -606,7 +607,7 @@ async function handleChannelDeletion(interaction, triggerChannel, currentConfig,
         });
 
         const message = await interaction.fetchReply();
-        const deleteCollector = message.createMessageComponentCollector({
+        const deleteCollector = createGuildCollector(message, {
             componentType: ComponentType.Button,
             filter: (i) => i.user.id === interaction.user.id && 
                           (i.customId === `jtc_delete_confirm_${triggerChannel.id}` || 

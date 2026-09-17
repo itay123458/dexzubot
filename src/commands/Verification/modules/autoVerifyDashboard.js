@@ -1,3 +1,5 @@
+import { createGuildCollector } from '../../../services/embedMotionService.js';
+import { createMotionEmbed } from '../../../utils/embeds.js';
 import { botConfig, getColor } from '../../../config/bot.js';
 import {
     ActionRowBuilder,
@@ -43,7 +45,7 @@ function buildDashboardEmbed(cfg, guild, conflictSummary = '') {
         }
     }
 
-    const embed = new EmbedBuilder()
+    const embed = createMotionEmbed()
         .setTitle('🤖 Auto-Verification Dashboard')
         .setDescription(`Manage auto-verification settings for **${guild.name}**.\nSelect an option below to modify a setting.`)
         .setColor(getColor('info'))
@@ -159,7 +161,7 @@ export default {
 
                 return await InteractionHelper.safeReply(interaction, {
                     embeds: [
-                        new EmbedBuilder()
+                        createMotionEmbed()
                             .setTitle('🤖 Auto-Verification Dashboard')
                             .setDescription(`Auto-verification is not yet configured.${blockingText}\n\nUse \`/autoverify setup\` to configure it.`)
                             .setColor(getColor('warning'))
@@ -201,7 +203,7 @@ export default {
                 flags: MessageFlags.Ephemeral,
             });
 
-            const collector = interaction.channel.createMessageComponentCollector({
+            const collector = createGuildCollector(interaction.channel, {
                 componentType: ComponentType.StringSelect,
                 filter: i =>
                     i.user.id === interaction.user.id && i.customId === `autoverify_cfg_${guildId}`,
@@ -242,7 +244,7 @@ export default {
                 }
             });
 
-            const btnCollector = interaction.channel.createMessageComponentCollector({
+            const btnCollector = createGuildCollector(interaction.channel, {
                 componentType: ComponentType.Button,
                 filter: i =>
                     i.user.id === interaction.user.id && 
@@ -280,7 +282,7 @@ export default {
                 if (reason === 'time') {
                     btnCollector.stop();
                     try {
-                        const timeoutEmbed = new EmbedBuilder()
+                        const timeoutEmbed = createMotionEmbed()
                             .setTitle('Dashboard Timed Out')
                             .setDescription('This dashboard has been closed due to inactivity. Please run the command again to continue.')
                             .setColor(getColor('error'));
@@ -312,7 +314,7 @@ async function handleCriteria(selectInteraction, rootInteraction, guildConfig, g
         await selectInteraction.deferUpdate().catch(() => null);
     }
     
-    const criteriaEmbed = new EmbedBuilder()
+    const criteriaEmbed = createMotionEmbed()
         .setTitle('Select Verification Criteria')
         .setDescription('Choose the criteria for automatic verification')
         .setColor(getColor('info'));
@@ -337,7 +339,7 @@ async function handleCriteria(selectInteraction, rootInteraction, guildConfig, g
         flags: MessageFlags.Ephemeral,
     });
 
-    const criteriaCollector = rootInteraction.channel.createMessageComponentCollector({
+    const criteriaCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.StringSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'autoverify_criteria_select',
@@ -397,7 +399,7 @@ async function handleRole(selectInteraction, rootInteraction, guildConfig, guild
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Auto-Verification Role')
                 .setDescription('Select the role to assign to auto-verified users.')
                 .setColor(getColor('info')),
@@ -406,7 +408,7 @@ async function handleRole(selectInteraction, rootInteraction, guildConfig, guild
         flags: MessageFlags.Ephemeral,
     });
 
-    const roleCollector = rootInteraction.channel.createMessageComponentCollector({
+    const roleCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.RoleSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'autoverify_role_select',

@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../services/embedMotionService.js';
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
@@ -116,7 +117,7 @@ export default {
         });
 
         const filter = (i) => i.customId === `randomuser_${interaction.user.id}_again` && i.user.id === interaction.user.id;
-        const collector = response.createMessageComponentCollector({ filter, time: 300000 });
+        const collector = createGuildCollector(response, { filter, time: 300000 });
 
         collector.on('collect', async (i) => {
             try {

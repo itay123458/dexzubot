@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../services/embedMotionService.js';
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { getPrefixSettings, savePrefixSettings, canManagePrefix } from '../../services/prefixSettingsService.js';
@@ -41,7 +42,7 @@ export default {
     const message = await interaction.fetchReply();
     let busy = false;
     const expiresAt = Date.now() + 600_000;
-    const collector = message.createMessageComponentCollector({ time: 600_000, filter: component => {
+    const collector = createGuildCollector(message, { time: 600_000, filter: component => {
       if (!component.customId.startsWith(session)) return false;
       if (component.user.id !== interaction.user.id) {
         void component.reply({ content: 'Open your own configuration panel.', flags: MessageFlags.Ephemeral }).catch(() => {});

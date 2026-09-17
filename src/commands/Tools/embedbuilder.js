@@ -1,3 +1,5 @@
+import { createGuildCollector } from '../../services/embedMotionService.js';
+import { createMotionEmbed } from '../../utils/embeds.js';
 import {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -120,7 +122,7 @@ function buildDashboardEmbed(state) {
         `**Fields** › ${state.fields.length} / ${MAX_FIELDS}`,
     ];
 
-    return new EmbedBuilder()
+    return createMotionEmbed()
         .setTitle('Embed Builder — Control Panel')
         .setDescription(lines.join('\n'))
         .setColor(getColor('info'))
@@ -270,7 +272,7 @@ async function handleSetColor(selectInteraction, rootInteraction, state) {
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Set Color')
                 .setDescription(
                     'Select a preset color or choose **Custom Hex** to enter your own `#RRGGBB` value.',
@@ -281,7 +283,7 @@ async function handleSetColor(selectInteraction, rootInteraction, state) {
         flags: MessageFlags.Ephemeral,
     });
 
-    const colorCollector = rootInteraction.channel.createMessageComponentCollector({
+    const colorCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.StringSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'eb_color_pick',
@@ -504,7 +506,7 @@ async function handleSetImages(selectInteraction, rootInteraction, state) {
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Set Images')
                 .setDescription('Choose which image to set or remove.')
                 .addFields(
@@ -517,7 +519,7 @@ async function handleSetImages(selectInteraction, rootInteraction, state) {
         flags: MessageFlags.Ephemeral,
     });
 
-    const imgMenuCollector = rootInteraction.channel.createMessageComponentCollector({
+    const imgMenuCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.StringSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'eb_image_pick',
@@ -684,7 +686,7 @@ async function handleEditField(selectInteraction, rootInteraction, state) {
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Edit Field')
                 .setDescription('Select the field you want to modify.')
                 .setColor(getColor('info')),
@@ -693,7 +695,7 @@ async function handleEditField(selectInteraction, rootInteraction, state) {
         flags: MessageFlags.Ephemeral,
     });
 
-    const pickCollector = rootInteraction.channel.createMessageComponentCollector({
+    const pickCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.StringSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'eb_edit_field_pick',
@@ -801,7 +803,7 @@ async function handleRemoveField(selectInteraction, rootInteraction, state) {
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Remove Field')
                 .setDescription('Select the field you want to delete.')
                 .setColor(getColor('warning')),
@@ -810,7 +812,7 @@ async function handleRemoveField(selectInteraction, rootInteraction, state) {
         flags: MessageFlags.Ephemeral,
     });
 
-    const removeCollector = rootInteraction.channel.createMessageComponentCollector({
+    const removeCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.StringSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'eb_remove_field_pick',
@@ -846,7 +848,7 @@ async function handleReorderFields(selectInteraction, rootInteraction, state) {
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Reorder Fields')
                 .setDescription('Select a field, then use the arrows to move it up or down.')
                 .setColor(getColor('info')),
@@ -855,7 +857,7 @@ async function handleReorderFields(selectInteraction, rootInteraction, state) {
         flags: MessageFlags.Ephemeral,
     });
 
-    const pickCollector = rootInteraction.channel.createMessageComponentCollector({
+    const pickCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.StringSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'eb_reorder_pick',
@@ -888,7 +890,7 @@ async function handleReorderFields(selectInteraction, rootInteraction, state) {
 
         await pickInter.followUp({
             embeds: [
-                new EmbedBuilder()
+                createMotionEmbed()
                     .setTitle('Move Field')
                     .setDescription(
                         `Moving **${state.fields[sourceIdx].name}** — currently at position **${sourceIdx + 1}** of **${state.fields.length}**.`,
@@ -899,7 +901,7 @@ async function handleReorderFields(selectInteraction, rootInteraction, state) {
             flags: MessageFlags.Ephemeral,
         });
 
-        const dirCollector = rootInteraction.channel.createMessageComponentCollector({
+        const dirCollector = createGuildCollector(rootInteraction.channel, {
             componentType: ComponentType.Button,
             filter: i =>
                 i.user.id === selectInteraction.user.id &&
@@ -950,7 +952,7 @@ async function handlePostEmbed(selectInteraction, rootInteraction, state, guild)
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Post Embed')
                 .setDescription('Select the channel where this embed will be sent.')
                 .setColor(getColor('info')),
@@ -959,7 +961,7 @@ async function handlePostEmbed(selectInteraction, rootInteraction, state, guild)
         flags: MessageFlags.Ephemeral,
     });
 
-    const chanCollector = rootInteraction.channel.createMessageComponentCollector({
+    const chanCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.ChannelSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'eb_post_channel',
@@ -1012,7 +1014,7 @@ async function handleJsonExport(selectInteraction, rootInteraction, state) {
     if (json.length <= 3980) {
         await selectInteraction.followUp({
             embeds: [
-                new EmbedBuilder()
+                createMotionEmbed()
                     .setTitle('Embed JSON')
                     .setDescription(`\`\`\`json\n${json}\n\`\`\``)
                     .setColor(getColor('info')),
@@ -1022,7 +1024,7 @@ async function handleJsonExport(selectInteraction, rootInteraction, state) {
     } else {
         await selectInteraction.followUp({
             embeds: [
-                new EmbedBuilder()
+                createMotionEmbed()
                     .setTitle('Embed JSON')
                     .setDescription('The JSON is too long to display inline — see the attached file.')
                     .setColor(getColor('info')),
@@ -1068,7 +1070,7 @@ export default {
 
             await refreshDashboard(interaction, state);
 
-            const collector = interaction.channel.createMessageComponentCollector({
+            const collector = createGuildCollector(interaction.channel, {
                 componentType: ComponentType.Button,
                 filter: i =>
                     i.user.id === interaction.user.id && i.customId.startsWith('eb_main_'),

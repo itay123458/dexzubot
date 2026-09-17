@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../services/embedMotionService.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { getModerationCases } from '../../utils/moderation.js';
@@ -127,7 +128,7 @@ export default {
                 components: [createNavigationRow(currentPage)]
             });
 
-            const collector = message.createMessageComponentCollector({
+            const collector = createGuildCollector(message, {
                 componentType: ComponentType.Button,
 time: 120000
             });

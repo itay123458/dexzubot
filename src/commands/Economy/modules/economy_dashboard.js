@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../../services/embedMotionService.js';
 import {
     ActionRowBuilder,
     StringSelectMenuBuilder,
@@ -151,7 +152,7 @@ export default {
                 components: [selectRow],
             });
 
-            const collector = interaction.channel.createMessageComponentCollector({
+            const collector = createGuildCollector(interaction.channel, {
                 componentType: ComponentType.StringSelect,
                 filter: i =>
                     i.user.id === interaction.user.id && i.customId === `economy_dashboard_${guild.id}`,

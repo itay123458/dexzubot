@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../../services/embedMotionService.js';
 import { getColor } from '../../../config/bot.js';
 import {
     ActionRowBuilder,
@@ -95,7 +96,7 @@ export default {
             logger.error('Failed to edit reply in config_setup:', error);
         });
 
-        const collector = interaction.channel.createMessageComponentCollector({
+        const collector = createGuildCollector(interaction.channel, {
             componentType: ComponentType.StringSelect,
             filter: (i) => i.user.id === interaction.user.id && i.customId === `jointocreate_config_${triggerChannel.id}`,
 time: 60000
@@ -435,7 +436,7 @@ async function handleRemoveTrigger(interaction, triggerChannel, currentConfig, c
         flags: MessageFlags.Ephemeral 
     });
 
-    const collector = interaction.channel.createMessageComponentCollector({
+    const collector = createGuildCollector(interaction.channel, {
         componentType: ComponentType.Button,
         filter: (i) => i.user.id === interaction.user.id && 
                      (i.customId === `confirm_remove_${triggerChannel.id}` || i.customId === `cancel_remove_${triggerChannel.id}`),

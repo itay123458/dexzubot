@@ -1,0 +1,10 @@
+#beta-embed-motion { margin-bottom: 20px; }
+.embed-motion-preview { display: flex; align-items: center; gap: 16px; margin: 16px 0; }
+.embed-motion-preview img { border-radius: 14px; flex: 0 0 72px; }
+.embed-motion-preview p { margin: 5px 0; }
+.embed-motion-banner { display: block; width: min(100%, 480px); height: auto; border-radius: 8px; margin-bottom: 16px; }
+#embed-motion-form fieldset { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; border: 0; padding: 0; margin: 0; }
+#embed-motion-form label { display: flex; align-items: center; gap: 8px; }
+#embed-motion-enabled { width: 18px; height: 18px; accent-color: #69d5ff; }
+#embed-motion-status { min-height: 1.5em; }
+#embed-motion-status[data-error="true"] { color: #ffb3b9; }

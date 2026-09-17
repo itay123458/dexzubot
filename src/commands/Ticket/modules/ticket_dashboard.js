@@ -1,3 +1,5 @@
+import { createGuildCollector } from '../../../services/embedMotionService.js';
+import { createMotionEmbed } from '../../../utils/embeds.js';
 import { createSupportPanelMessage, TICKET_PANEL_MESSAGE_MAX_LENGTH } from '../../../utils/brandPanels.js';
 import { getColor } from '../../../config/bot.js';
 import {
@@ -132,7 +134,7 @@ function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = nu
         ? `${ticketStats.avgRating}/5 (${ticketStats.feedbackCount} rating${ticketStats.feedbackCount !== 1 ? 's' : ''})`
         : '`No ratings yet`';
 
-    return new EmbedBuilder()
+    return createMotionEmbed()
         .setTitle('🎫 Ticket System Dashboard')
         .setDescription(`Manage ticket system settings for **${guild.name}**.\nSelect an option below to modify a setting.`)
         .setColor(getColor('info'))
@@ -450,7 +452,7 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('🛡️ Change Staff Roles')
                 .setDescription(
                     `**Current:** ${getTicketStaffRoleIds(guildConfig).map(roleId => `<@&${roleId}>`).join(', ') || '`Not set`'}\n\nSelect all roles that should have staff access to manage tickets. This selection replaces the current list.`,
@@ -461,7 +463,7 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
         flags: MessageFlags.Ephemeral,
     });
 
-    const roleCollector = rootInteraction.channel.createMessageComponentCollector({
+    const roleCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.RoleSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_staff_role',
@@ -515,7 +517,7 @@ async function handleOpenCategory(selectInteraction, rootInteraction, guildConfi
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('📁 Change Open Tickets Category')
                 .setDescription(
                     `**Current:** ${guildConfig.ticketCategoryId ? `<#${guildConfig.ticketCategoryId}>` : '`Not set`'}\n\nSelect the category where new tickets will be created.`,
@@ -526,7 +528,7 @@ async function handleOpenCategory(selectInteraction, rootInteraction, guildConfi
         flags: MessageFlags.Ephemeral,
     });
 
-    const catCollector = rootInteraction.channel.createMessageComponentCollector({
+    const catCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.ChannelSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_open_cat',
@@ -575,7 +577,7 @@ async function handleClosedCategory(selectInteraction, rootInteraction, guildCon
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('📂 Change Closed Tickets Category')
                 .setDescription(
                     `**Current:** ${guildConfig.ticketClosedCategoryId ? `<#${guildConfig.ticketClosedCategoryId}>` : '`Not set`'}\n\nSelect the category where closed tickets will be moved.`,
@@ -586,7 +588,7 @@ async function handleClosedCategory(selectInteraction, rootInteraction, guildCon
         flags: MessageFlags.Ephemeral,
     });
 
-    const catCollector = rootInteraction.channel.createMessageComponentCollector({
+    const catCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.ChannelSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_closed_cat',
@@ -712,7 +714,7 @@ async function handleLogsChannel(selectInteraction, rootInteraction, guildConfig
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('🎫 Select Ticket Logs Channel')
                 .setDescription('Choose where ticket feedback, lifecycle events (open, close, claim, etc.), and other logs will be sent.')
                 .setColor(getColor('info')),
@@ -721,7 +723,7 @@ async function handleLogsChannel(selectInteraction, rootInteraction, guildConfig
         flags: MessageFlags.Ephemeral,
     });
 
-    const collector = rootInteraction.channel.createMessageComponentCollector({
+    const collector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.ChannelSelect,
         filter: i => i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_logs_channel',
         time: 60_000,
@@ -764,7 +766,7 @@ async function handleTranscriptChannel(selectInteraction, rootInteraction, guild
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('📜 Select Transcript Channel')
                 .setDescription('Choose where auto-generated transcripts will be sent when tickets are deleted.')
                 .setColor(getColor('info'))
@@ -773,7 +775,7 @@ async function handleTranscriptChannel(selectInteraction, rootInteraction, guild
         flags: MessageFlags.Ephemeral
     });
 
-    const collector = rootInteraction.channel.createMessageComponentCollector({
+    const collector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.ChannelSelect,
         filter: i => i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_transcript_channel',
         time: 60_000,
@@ -817,7 +819,7 @@ async function handleCheckUser(selectInteraction, rootInteraction, guildConfig, 
 
     await selectInteraction.followUp({
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Check User Tickets')
                 .setDescription('Select a user to view their current open ticket count.')
                 .setColor(getColor('info')),
@@ -826,7 +828,7 @@ async function handleCheckUser(selectInteraction, rootInteraction, guildConfig, 
         flags: MessageFlags.Ephemeral,
     });
 
-    const userCollector = rootInteraction.channel.createMessageComponentCollector({
+    const userCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.UserSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_check_user',
@@ -843,7 +845,7 @@ async function handleCheckUser(selectInteraction, rootInteraction, guildConfig, 
 
         await userInteraction.followUp({
             embeds: [
-                new EmbedBuilder()
+                createMotionEmbed()
                     .setTitle(`Ticket Check — ${targetUser.username}`)
                     .setDescription(
                         `**Open Tickets:** ${openCount} / ${maxTickets}\n` +
@@ -1006,7 +1008,7 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
 
     await InteractionHelper.safeEditReply(rootInteraction, {
         embeds: [
-            new EmbedBuilder()
+            createMotionEmbed()
                 .setTitle('Ticket System Deleted')
                 .setDescription('The ticket system configuration has been cleared.')
                 .setColor(getColor('error'))

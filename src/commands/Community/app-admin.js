@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../services/embedMotionService.js';
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ComponentType, LabelBuilder, RoleSelectMenuBuilder } from 'discord.js';
 import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { getColor, getApplicationStatusColor } from '../../config/bot.js';
@@ -319,7 +320,7 @@ async function handleReview(interaction) {
         flags: ["Ephemeral"],
     });
 
-    const collector = interaction.channel.createMessageComponentCollector({
+    const collector = createGuildCollector(interaction.channel, {
         componentType: ComponentType.Button,
         filter: i =>
             i.user.id === interaction.user.id &&

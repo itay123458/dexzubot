@@ -1,3 +1,4 @@
+import { createMotionEmbed } from '../../../utils/embeds.js';
 import { EmbedBuilder, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { getTicketData, saveTicketData } from '../../../utils/database.js';
 import { logger } from '../../../utils/logger.js';
@@ -23,7 +24,7 @@ const feedbackHandler = {
         if (!guildId || !channelId || !ratingStr) {
             await InteractionHelper.safeReply(interaction, {
                 embeds: [
-                    new EmbedBuilder()
+                    createMotionEmbed()
                         .setTitle('⚠️ Invalid Feedback Link')
                         .setDescription('This feedback link appears to be malformed.')
                         .setColor(getColor('error')),
@@ -50,7 +51,7 @@ const feedbackHandler = {
         if (!ticketData) {
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
-                    new EmbedBuilder()
+                    createMotionEmbed()
                         .setTitle('⚠️ Ticket Not Found')
                         .setDescription('Could not find the ticket associated with this survey.')
                         .setColor(getColor('error')),
@@ -63,7 +64,7 @@ const feedbackHandler = {
         if (interaction.user.id !== ticketData.userId) {
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
-                    new EmbedBuilder()
+                    createMotionEmbed()
                         .setTitle('❌ Not Allowed')
                         .setDescription('Only the ticket creator can submit feedback for this ticket.')
                         .setColor(getColor('error')),
@@ -76,7 +77,7 @@ const feedbackHandler = {
         if (ticketData.feedback?.rating) {
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
-                    new EmbedBuilder()
+                    createMotionEmbed()
                         .setTitle('✅ Already Submitted')
                         .setDescription(`You already rated this ticket **${STAR_LABELS[String(ticketData.feedback.rating)]}**.\nThank you for your feedback!`)
                         .setColor(getColor('success')),
@@ -114,7 +115,7 @@ const feedbackHandler = {
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [
-                new EmbedBuilder()
+                createMotionEmbed()
                     .setTitle('✅ Thanks for your feedback!')
                     .setDescription(`You rated your support experience **${ratingLabel}**.\n\nYour feedback has been recorded and helps us improve!`)
                     .setColor(getColor('success'))
@@ -142,7 +143,7 @@ const commentHandler = {
         if (!guildId || !channelId) {
             await interaction.update({
                 embeds: [
-                    new EmbedBuilder()
+                    createMotionEmbed()
                         .setTitle('⚠️ Invalid Feedback Link')
                         .setDescription('This feedback action appears to be malformed.')
                         .setColor(getColor('error')),
@@ -176,7 +177,7 @@ const declineHandler = {
     async execute(interaction) {
         await interaction.update({
             embeds: [
-                new EmbedBuilder()
+                createMotionEmbed()
                     .setTitle('👋 No problem!')
                     .setDescription('You can always reach out again if you need further support.')
                     .setColor(getColor('default')),

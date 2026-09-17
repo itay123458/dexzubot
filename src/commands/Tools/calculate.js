@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../services/embedMotionService.js';
 import { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
@@ -159,7 +160,7 @@ export default {
                 i.user.id === interaction.user.id;
             const BUTTON_TIMEOUT = 300000;
             const collector =
-                interaction.channel.createMessageComponentCollector({
+                createGuildCollector(interaction.channel, {
                     filter,
                     time: BUTTON_TIMEOUT,
                 });

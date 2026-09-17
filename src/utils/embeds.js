@@ -2,6 +2,15 @@
 
 import { EmbedBuilder } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
+import { motionArtwork, currentMessageGuild } from '../services/embedMotionService.js';
+
+// Legacy builders keep their exact styling; only beta's default artwork changes.
+export function createMotionEmbed(guildId = currentMessageGuild()) {
+  const embed = new EmbedBuilder();
+  const artwork = motionArtwork(guildId);
+  if (artwork) embed.setThumbnail(artwork.thumbnailUrl);
+  return embed;
+}
 
 // Theme defaults belong here; Discord builders preserve caller content and metadata.
 export function createEmbed({
@@ -13,6 +22,7 @@ export function createEmbed({
   footer = null,
   thumbnail = null,
   image = null,
+  guildId = currentMessageGuild(),
   timestamp = false,
   url = null
 } = {}) {
@@ -86,6 +96,8 @@ export function createEmbed({
     } catch (error) {
       
     }
+  } else if (motionArtwork(guildId)?.thumbnailUrl) {
+    embed.setThumbnail(motionArtwork(guildId).thumbnailUrl);
   } else if (botConfig.embeds?.thumbnail) {
     embed.setThumbnail(botConfig.embeds.thumbnail);
   }

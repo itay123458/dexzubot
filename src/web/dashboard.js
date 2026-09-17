@@ -26,6 +26,7 @@ import { listTimedSoftbans, releaseTimedSoftban } from '../services/moderation/t
 import { getCountingGameConfig, setCountingEditAction } from '../services/countingGameService.js';
 import { getPrefixSettings, savePrefixSettings } from '../services/prefixSettingsService.js';
 import { registerRoleRoutes } from './roleRoutes.js';
+import { registerEmbedMotionRoutes } from './embedMotionRoutes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, 'public');
@@ -281,6 +282,7 @@ export function registerDashboard(app, client) {
   });
 
   registerRoleRoutes(router, client);
+  registerEmbedMotionRoutes(router, client);
 
   router.get('/state', async (req, res) => {
     const guild = req.dashboardGuild;

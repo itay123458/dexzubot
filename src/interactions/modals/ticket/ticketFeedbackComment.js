@@ -1,3 +1,4 @@
+import { createMotionEmbed } from '../../../utils/embeds.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getTicketData, saveTicketData } from '../../../utils/database.js';
 import { logger } from '../../../utils/logger.js';
@@ -6,7 +7,7 @@ import { logTicketFeedback } from '../../../utils/ticket/ticketLogging.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 
 function buildEmbed(title, description, color) {
-    return new EmbedBuilder()
+    return createMotionEmbed()
         .setTitle(title)
         .setDescription(description)
         .setColor(color);

@@ -1,5 +1,6 @@
 import { toContainerMessage } from '../utils/panelLayout.js';
 import { createEmbed } from '../utils/embeds.js';
+import { motionArtwork } from './embedMotionService.js';
 import { fileURLToPath } from 'node:url';
 // giveawayService.js
 
@@ -174,6 +175,14 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
 
 export function withGiveawayArtwork(embed, channel, message = null) {
     const payload = { embeds: [embed], compact: true };
+    const artwork = motionArtwork(channel?.guild?.id);
+    if (artwork) {
+        embed.setImage(artwork.bannerUrl);
+        if (embed.data.thumbnail?.url === artwork.thumbnailUrl) embed.setThumbnail(null);
+        if (message?.attachments) payload.attachments = [...message.attachments.values()]
+            .filter(file => !['dexzu-giveaway-slim.png', 'dexzu-giveaway-v2.png'].includes(file.name)).map(file => ({ id: file.id }));
+        return payload;
+    }
     const name = 'dexzu-giveaway-slim.png';
     const attachments = [...(message?.attachments?.values?.() || [])];
     const existing = attachments.some(file => file.name === name);

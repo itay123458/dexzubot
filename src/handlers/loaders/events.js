@@ -3,6 +3,7 @@ import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { logger } from '../../utils/logger.js';
+import { runWithMessageGuild } from '../../services/embedMotionService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,7 +26,8 @@ export default async function loadEvents(client) {
 
             const safeExecute = async (...args) => {
                 try {
-                    await event.execute(...args, client);
+                    const guildId = args.find(arg => arg?.guildId || arg?.guild?.id);
+                    await runWithMessageGuild(guildId?.guildId || guildId?.guild?.id, () => event.execute(...args, client));
                 } catch (error) {
                     logger.error(`Error executing event ${event.name}:`, error);
                 }

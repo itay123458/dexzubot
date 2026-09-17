@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../services/embedMotionService.js';
 import {
     SlashCommandBuilder,
     PermissionFlagsBits,
@@ -640,7 +641,7 @@ export default {
                 componentInteraction.user.id === interaction.user.id &&
                 componentInteraction.customId.includes(`:${interaction.guildId}`);
 
-            const componentCollector = replyMessage.createMessageComponentCollector({
+            const componentCollector = createGuildCollector(replyMessage, {
                 filter: collectorFilter,
                 time: 600_000,
             });

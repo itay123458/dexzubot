@@ -1,16 +1,18 @@
 import { createEmbed } from './embeds.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { toContainerMessage } from './panelLayout.js';
+import { motionArtwork, currentMessageGuild } from '../services/embedMotionService.js';
 
 export const TICKET_PANEL_MESSAGE_MAX_LENGTH = 2000;
 
 // Reuse the same support presentation for setup, edits, and reposts.
-export function createSupportPanelEmbed(config = {}, thumbnail = null) {
+export function createSupportPanelEmbed(config = {}, thumbnail = null, guildId = currentMessageGuild()) {
   return createEmbed({
     title: 'Support Tickets',
     description: config.ticketPanelMessage || 'Welcome to DexzuBot support. Open a private ticket and our team will help you.',
     color: 'primary',
-    thumbnail,
+    guildId,
+    thumbnail: motionArtwork(guildId)?.thumbnailUrl || thumbnail,
     fields: [
       { name: 'Community support', value: 'Questions, access issues, or help finding your way around the dungeon.' },
       { name: 'Reports & concerns', value: 'Share the details and any relevant evidence privately with the team.' },
@@ -20,8 +22,8 @@ export function createSupportPanelEmbed(config = {}, thumbnail = null) {
   });
 }
 
-export function createSupportPanelMessage(config = {}, thumbnail = null, existingMessage = null) {
-  const embed = createSupportPanelEmbed(config, thumbnail)
+export function createSupportPanelMessage(config = {}, thumbnail = null, existingMessage = null, guildId = existingMessage?.guildId || currentMessageGuild()) {
+  const embed = createSupportPanelEmbed(config, thumbnail, guildId)
     .setTitle('💎 Community Support')
     .setFields(
       { name: '🛟 General support', value: 'Questions, server help, access issues, or anything you need a hand with.' },

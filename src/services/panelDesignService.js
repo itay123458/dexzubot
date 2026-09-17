@@ -9,13 +9,15 @@ import { messageHasPanelMarker } from '../utils/panelStatus.js';
 import { toContainerMessage } from '../utils/panelLayout.js';
 import { Mutex } from '../utils/mutex.js';
 import { logger } from '../utils/logger.js';
+import { isBetaGuild } from '../config/beta.js';
+import { embedMotionState, runWithMessageGuild } from './embedMotionService.js';
 
 export const PANEL_DESIGN_REVISION = 'crystal-components-v2-2026-09-16';
 export const GIVEAWAY_DESIGN_REVISION = 'compact-giveaway-banner-2026-09-16';
 export const panelDesignKey = (guildId, messageId) => `guild:${guildId}:panel-design:${messageId}`;
 
 /** Restyle only existing, explicitly configured messages; never send a replacement. */
-export async function refreshConfiguredPanelDesigns(client) {
+export async function refreshConfiguredPanelDesigns(client, onlyGuildId = null) {
     const summary = { refreshed: 0, skipped: 0, errors: 0, urls: [] };
     const attempt = async task => {
         try { await task(); }
@@ -25,6 +27,7 @@ export async function refreshConfiguredPanelDesigns(client) {
         }
     };
     const refresh = async (guild, channelId, messageId, build, marker = null, beforeEdit = null, revision = PANEL_DESIGN_REVISION) => {
+        if (isBetaGuild(guild.id) && embedMotionState(guild.id).ready) revision += `:motion-v1-${embedMotionState(guild.id).enabled}`;
         if (!channelId || !messageId) { summary.skipped += 1; return; }
         const key = panelDesignKey(guild.id, messageId);
         if (await client.db.get(key) === revision) { summary.skipped += 1; return; }
@@ -36,13 +39,14 @@ export async function refreshConfiguredPanelDesigns(client) {
             return;
         }
         if (beforeEdit) await beforeEdit(message);
-        await message.edit(build(message, channel));
+        await message.edit(runWithMessageGuild(guild.id, () => build(message, channel)));
         if (await client.db.set(key, revision) === false) throw new Error('Panel design revision could not be saved');
         summary.refreshed += 1;
         if (message.url) summary.urls.push(message.url);
     };
 
     for (const guild of client.guilds.cache.values()) {
+        if (onlyGuildId && guild.id !== onlyGuildId) continue;
         await attempt(async () => {
             const config = await getGuildConfig(client, guild.id);
             await attempt(() => refresh(guild, config.ticketPanelChannelId, config.ticketPanelMessageId,

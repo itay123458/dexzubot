@@ -1,3 +1,4 @@
+import { createMotionEmbed } from '../../../utils/embeds.js';
 import { EmbedBuilder } from 'discord.js';
 import { getTicketData, saveTicketData } from '../../../utils/database.js';
 import { logger } from '../../../utils/logger.js';
@@ -22,7 +23,7 @@ export default {
         if (!guildId || !channelId) {
             await interaction.update({
                 embeds: [
-                    new EmbedBuilder()
+                    createMotionEmbed()
                         .setTitle('⚠️ Invalid Feedback Link')
                         .setDescription('This feedback link appears to be malformed.')
                         .setColor(getColor('error')),
@@ -42,7 +43,7 @@ export default {
         if (!ticketData) {
             await interaction.update({
                 embeds: [
-                    new EmbedBuilder()
+                    createMotionEmbed()
                         .setTitle('⚠️ Ticket Not Found')
                         .setDescription('Could not find the ticket associated with this survey.')
                         .setColor(getColor('error')),
@@ -55,7 +56,7 @@ export default {
         if (interaction.user.id !== ticketData.userId) {
             await interaction.reply({
                 embeds: [
-                    new EmbedBuilder()
+                    createMotionEmbed()
                         .setTitle('❌ Not Allowed')
                         .setDescription('Only the ticket creator can submit feedback for this ticket.')
                         .setColor(getColor('error')),
@@ -68,7 +69,7 @@ export default {
         if (ticketData.feedback?.rating) {
             await interaction.update({
                 embeds: [
-                    new EmbedBuilder()
+                    createMotionEmbed()
                         .setTitle('✅ Already Submitted')
                         .setDescription(`You already rated this ticket **${STAR_LABELS[String(ticketData.feedback.rating)]}**.\nThank you for your feedback!`)
                         .setColor(getColor('success')),
@@ -104,7 +105,7 @@ export default {
             logger.warn('ticketFeedback: failed to send log', { guildId, channelId, error: err.message });
         }
 
-        const thankYouEmbed = new EmbedBuilder()
+        const thankYouEmbed = createMotionEmbed()
             .setTitle('✅ Thanks for your feedback!')
             .setDescription(`You rated your support experience **${ratingLabel}**.\n\nYour feedback has been recorded and helps us improve!`)
             .setColor(getColor('success'))

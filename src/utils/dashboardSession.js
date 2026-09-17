@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../services/embedMotionService.js';
 import { ComponentType, EmbedBuilder } from 'discord.js';
 import { getColor } from '../config/bot.js';
 import { TitanBotError, ErrorTypes, replyUserError } from './errorHandler.js';
@@ -67,7 +68,7 @@ export async function startDashboardSession({
     const collectors = [];
 
     if (selectMenuId && onSelect) {
-        const selectCollector = interaction.channel.createMessageComponentCollector({
+        const selectCollector = createGuildCollector(interaction.channel, {
             componentType: ComponentType.StringSelect,
             filter: (i) => belongsToDashboard(i) && i.customId === selectMenuId,
             time: timeoutMs,
@@ -78,7 +79,7 @@ export async function startDashboardSession({
     }
 
     if (buttonMatcher && onButton) {
-        const buttonCollector = interaction.channel.createMessageComponentCollector({
+        const buttonCollector = createGuildCollector(interaction.channel, {
             componentType: ComponentType.Button,
             filter: (i) => belongsToDashboard(i) && matchesCustomId(i.customId, buttonMatcher),
             time: timeoutMs,

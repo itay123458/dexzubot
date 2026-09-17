@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../services/embedMotionService.js';
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,
@@ -294,7 +295,7 @@ export default {
         return;
       }
 
-      const collector = replyMessage.createMessageComponentCollector({
+      const collector = createGuildCollector(replyMessage, {
         filter: createDashboardCollectorFilter(interaction.user.id, interaction.guildId),
         time: DASHBOARD_TIMEOUT_MS,
       });

@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../../services/embedMotionService.js';
 import { createEmbed } from '../../../utils/embeds.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, MessageFlags } from 'discord.js';
 import { shopItems } from '../../../config/shop/items.js';
@@ -55,7 +56,7 @@ export default {
                 flags: 0,
             });
 
-            const collector = message.createMessageComponentCollector({
+            const collector = createGuildCollector(message, {
                 componentType: ComponentType.Button,
                 time: 300000,
             });

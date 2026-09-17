@@ -5,6 +5,7 @@ import { toContainerMessage } from './panelLayout.js';
 
 export function buildVerificationPanelMessage(config, guild) {
     const embed = createEmbed({
+        guildId: guild.id,
         title: 'Server Verification',
         description: config.message || botConfig.verification.defaultMessage,
         footer: `${guild.name} • Secure community access`,
@@ -30,6 +31,7 @@ export function preserveReactionRolePanelText(panelData, message) {
 export function buildReactionRolePanelMessage(panelData, guild) {
     const roles = (panelData.roles || []).map(id => guild.roles.cache.get(id)).filter(Boolean).slice(0, 25);
     const embed = createEmbed({
+        guildId: guild.id,
         title: panelData.title || 'Reaction Roles',
         description: panelData.description || 'Select your roles using the menu below.',
         fields: [{ name: 'Available Roles', value: roles.length ? roles.map(role => `• <@&${role.id}>`).join('\n') : 'No roles are currently available.' }],

@@ -1,3 +1,4 @@
+import { createGuildCollector } from '../../../services/embedMotionService.js';
 import { getColor } from '../../../config/bot.js';
 import {
     ActionRowBuilder,
@@ -198,7 +199,7 @@ export default {
                 ],
             });
 
-            const collector = interaction.channel.createMessageComponentCollector({
+            const collector = createGuildCollector(interaction.channel, {
                 componentType: ComponentType.StringSelect,
                 filter: i =>
                     i.user.id === interaction.user.id && i.customId === `greet_cfg_${guildId}`,
@@ -251,7 +252,7 @@ export default {
                 }
             });
 
-            const btnCollector = interaction.channel.createMessageComponentCollector({
+            const btnCollector = createGuildCollector(interaction.channel, {
                 componentType: ComponentType.Button,
                 filter: i =>
                     i.user.id === interaction.user.id &&
@@ -375,7 +376,7 @@ async function handleWelcomeChannel(selectInteraction, rootInteraction, cfg, gui
         components: [new ActionRowBuilder().addComponents(channelSelect)],
     });
 
-    const chanCollector = rootInteraction.channel.createMessageComponentCollector({
+    const chanCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.ChannelSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'greet_cfg_welcome_channel',
@@ -578,7 +579,7 @@ async function handleGoodbyeChannel(selectInteraction, rootInteraction, cfg, gui
         components: [new ActionRowBuilder().addComponents(channelSelect)],
     });
 
-    const chanCollector = rootInteraction.channel.createMessageComponentCollector({
+    const chanCollector = createGuildCollector(rootInteraction.channel, {
         componentType: ComponentType.ChannelSelect,
         filter: i =>
             i.user.id === selectInteraction.user.id && i.customId === 'greet_cfg_goodbye_channel',

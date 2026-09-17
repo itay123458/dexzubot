@@ -1,3 +1,4 @@
+import { createGuildCollector } from './embedMotionService.js';
 import { toContainerMessage, disablePanelControls } from '../utils/panelLayout.js';
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, StringSelectMenuBuilder, PermissionFlagsBits } from 'discord.js';
 import { getCommandAccessSnapshot, isCommandEnabledInConfig } from './commandAccessService.js';
@@ -70,7 +71,7 @@ export async function openPrefixHelp(interaction, _config, client, mode = 'prefi
   const message = await interaction.fetchReply();
   const editMenu = view => { lastView = view; return mode === 'slash' ? interaction.editReply(view) : message.edit(view); };
   let busy = false;
-  const collector = message.createMessageComponentCollector({ time: 300_000, filter: item => item.customId.startsWith(session) });
+  const collector = createGuildCollector(message, { time: 300_000, filter: item => item.customId.startsWith(session) });
   collector.on('collect', async item => {
     if (item.user.id !== interaction.user.id) { await item.reply({ content: 'Open your own help menu.', flags: MessageFlags.Ephemeral }).catch(() => {}); return; }
     if (busy) { await item.deferUpdate().catch(() => {}); return; }
