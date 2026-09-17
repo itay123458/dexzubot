@@ -8,13 +8,18 @@
 - [x] Separate public app: expose dashboard only, no health/root API, validate every API request against invited workspace and current membership; manager requires native Administrator. Use authenticated member for role/staff operations. Never trust identity headers.
 - [x] Dashboard access UI: owner-only invite creation/revocation, recipient ID, workspace, viewer/manager, expiry; session/logout/read-only feedback. Reuse existing styles.
 - [x] Security checks: invalid/expired/reused invites, wrong account, OAuth state/cookie mismatch/replay, forged headers, cross-origin writes, unauthenticated APIs/assets, viewer mutations, workspace escape, revoked grants, missing configuration/storage. Browser smoke test.
-- [ ] Documentation/env/Compose/release notes; local build/audit/checks; validate existing OAuth secret and callback, deploy on Pi after inspection, test listener before Funnel. Verify public denial and private service health, preserve EditIL.
+- [x] Documentation/env/Compose/release notes; local build/audit/checks; validate existing OAuth secret and callback, deploy on Pi after inspection, test listener before Funnel. Verify public denial and private service health, preserve EditIL.
 
 Owner can log in without an invitation solely to bootstrap administration. Invitations grant dashboard access, not Discord permissions. Viewer access includes private dashboard records, explicitly disclosed in UI. Managers need Administrator as the existing control center spans all server settings.
 
 Deployment checkpoint: application deployed at 10f84e3; local/Pi builds, audit,
 focused security suites, desktop/mobile UI suites, live HTTPS denials and OAuth
 redirect, PostgreSQL invitation creation/list/revocation and bot health passed.
-Pi routes 443 to protected port 3002 and private 8443 to port 3001. Tailscale
-requires the account owner to enable Funnel before internet publication; that
-approval is pending. Beta Discord release publication waits for public access.
+Pi routes public Funnel 443 to protected port 3002 and private Serve 8443 to
+port 3001. The user approved Funnel activation. Public DNS and HTTPS through
+the public Funnel relay were verified: robots200, dashboard302, protected
+APIs401, health404. Beta release message 1550060910595539089 was published as
+a themed embed; no Main announcement was sent. EditIL start times unchanged.
+Production OAuth credentials and redirect are verified; account sign-in itself
+is exercised with a mocked Discord response in the security suite, not by
+logging into the user's Discord account.
