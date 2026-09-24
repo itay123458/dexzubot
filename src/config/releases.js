@@ -17,12 +17,12 @@ export const faithRelease = {
   summary: 'Faith channels and a daily Bible verse are ready in Beta.',
   changes: ['Read and react in daily-bible, then discuss the verse in Bible-Talk.', 'Choose the posting channel, time and timezone in the Faith dashboard. Posts have no automatic pings.', 'Delivery history survives restarts; uncertain sends are checked before retrying.'],
   tryIt: ['Try /bible today or /bible guide.', 'Administrators: Beta → Faith, or /bible setup and /bible disable.'],
-  scope: 'Beta only. English World English Bible, with 26 verified verses rotating daily. Main is unchanged.',
+  scope: 'Beta only. English World English Bible, with 365 verified verses rotating daily.',
 };
 export const foodRelease = {
   id: '2026-09-24-food', date: '2026-09-24', title: 'Eat and collect foods',
   summary: 'Try /eat for a mystery meal, a reaction, and a new food to collect.',
-  changes: ['Discover 24 foods, from everyday snacks to legendary dungeon meals.', 'New foods get a discovery badge; duplicates increase your eaten count. Collections and cooldowns stay saved after restarts.', 'Default cooldown is 30 seconds. No coins are spent.'],
+  changes: ['Discover 120 foods, from everyday snacks to legendary dungeon meals.', 'New foods get a discovery badge; duplicates increase your eaten count. Existing discoveries stay saved as the collection grows.', 'Default cooldown is 30 seconds. No coins are spent.'],
   tryIt: ['Use /eat, then press My collection or use /eat action:collection.', 'Administrators: Beta → Operations → Food collection controls meals and cooldown.'],
   scope: 'Beta first. Common 70% · Rare 22% · Epic 7% · Legendary 1%.',
 };

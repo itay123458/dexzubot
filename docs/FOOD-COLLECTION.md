@@ -4,7 +4,7 @@ Beta-only first release. Use `/eat` to receive a random food, reaction and rarit
 
 Use `/eat action:collection` or the **My collection** button to view your own collection privately. The button always reads the clicking member's collection. `/eat action:guide` explains the game. Discord's optional `action` choice preserves bare `/eat`; there is no dot prefix and no required subcommand.
 
-The catalogue has 24 foods: 12 common, 6 rare, 4 epic and 2 legendary. Rarity odds per meal are 70%, 22%, 7% and 1%, respectively; each food within a rarity is equally likely. A new discovery is marked; duplicates increase its eaten count. Undiscovered foods appear as a remaining count in each rarity. Fictional dungeon foods are game items.
+The catalogue has 120 foods: 48 common, 36 rare, 24 epic and 12 legendary. Rarity odds per meal are 70%, 22%, 7% and 1%, respectively; each food within a rarity is equally likely. A new discovery is marked; duplicates increase its eaten count. Undiscovered foods appear as a remaining count in each rarity. Fictional dungeon foods are game items. Original food IDs are preserved. Larger collections split across fields within Discord's embed limits.
 
 Progress is separate for each member and guild. PostgreSQL stores discoveries, counts, the last meal timestamp and the last 200 interaction receipts. State is saved before reporting success. A mutex and PostgreSQL session lock serialize updates; queries reuse the held database session so simultaneous players cannot exhaust the pool by borrowing extra connections. Storage failure awards no food. Duplicate delivery of a recorded interaction returns its existing result.
 

@@ -23,7 +23,7 @@ try {
   assert.equal((await post({ enabled: false, cooldownSeconds: 45 })).status, 200);
   const data = await (await fetch(base + '?workspace=beta')).json();
   assert.deepEqual(data.settings, { enabled: false, cooldownSeconds: 45 });
-  assert.equal(data.totalFoods, 24);
+  assert.equal(data.totalFoods, 120);
   assert.equal(data.rarities.reduce((sum, item) => sum + item.chance, 0), 100);
   console.log('Eat routes passed: Beta scope, auth ordering, origin, settings validation and persistence.');
 } finally { await new Promise(resolve => server.close(resolve)); }
