@@ -19,10 +19,17 @@ export default {
             return;
         }
 
-        const result = await playQuery(client, interaction, interaction.options.getString('query'), {
-            chooseTrack: tracks => selectSearchTrack(interaction, tracks),
-        });
-        if (result.cancelled) return;
-        await InteractionHelper.safeEditReply(interaction, { content: '', components: [], embeds: [result.embed], allowedMentions: { parse: [] } });
+        try {
+            const result = await playQuery(client, interaction, interaction.options.getString('query'), {
+                chooseTrack: tracks => selectSearchTrack(interaction, tracks),
+            });
+            if (result.cancelled) return;
+            await InteractionHelper.safeEditReply(interaction, { content: '', components: [], embeds: [result.embed], allowedMentions: { parse: [] } });
+        } catch (error) {
+            await InteractionHelper.safeEditReply(interaction, {
+                content: 'The play request could not be completed. See the error details below.', embeds: [], components: [],
+            });
+            throw error; // Preserve the shared command error boundary.
+        }
     },
 };
