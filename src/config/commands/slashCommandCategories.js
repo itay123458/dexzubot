@@ -7,6 +7,7 @@ export const ENABLED_SLASH_COMMAND_CATEGORIES = new Set([
     'Economy',
     'Leveling',
     'Moderation',
+    'Music',
     'ServerStats',
     'Ticket',
 ]);
