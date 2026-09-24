@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/dashboard/embed-motion.css">
   <link rel="stylesheet" href="/dashboard/community-beta.css">
   <link rel="stylesheet" href="/dashboard/faith.css">
+  <link rel="stylesheet" href="/dashboard/food-collection.css">
   <link rel="stylesheet" href="/dashboard/dashboard-access.css">
   <link rel="stylesheet" href="/dashboard/workspace.css"><link rel="stylesheet" href="/dashboard/command-center.css?v=2">
 </head>
@@ -230,6 +231,18 @@
           </article>
           <div class="feature-heading"><div><p class="eyebrow">RELIABILITY CENTER</p><h2>Operations</h2><p>Health checks, access roles, backups, and active timed punishments.</p></div><button id="run-health-check" class="secondary-button">Run health check</button></div>
           <div id="operations-summary" class="summary-grid four"></div>
+          <article id="food-collection-controls" class="card" hidden>
+            <p class="eyebrow">FUN · BETA</p><h2>Food collection</h2><p>Turn mystery meals into a collection. New discoveries get a badge; duplicates increase the eaten count.</p>
+            <form id="food-settings-form"><fieldset id="food-settings-fields" disabled>
+              <label class="food-toggle"><input id="food-enabled" type="checkbox"> Enable /eat meals</label>
+              <label for="food-cooldown">Cooldown in seconds</label><input id="food-cooldown" type="number" min="5" max="3600" step="1" required value="30" aria-describedby="food-cooldown-help">
+              <p id="food-cooldown-help">Default: 30 seconds. Pausing meals keeps every collection saved and viewable.</p>
+              <button type="submit">Save food settings</button>
+            </fieldset></form>
+            <p id="food-settings-status" role="status" aria-live="polite">Loading food settings…</p>
+            <div id="food-rarities" class="food-rarities" aria-label="Food rarity odds"></div>
+            <details><summary>Food command guide</summary><p><code>/eat</code> gives you a random food and reaction. Use <code>/eat action:collection</code> or the <strong>My collection</strong> button to view your own discoveries privately.</p><p><code>/eat action:guide</code> shows the rules. Progress and cooldowns survive restarts. No coins are spent.</p></details>
+          </article>
           <!-- Add stylesheet in head: /dashboard/community-beta.css; script after app.js: /dashboard/community-beta.js -->
 <section id="beta-community-controls" hidden aria-labelledby="community-heading">
   <div class="card-head"><div><h2 id="community-heading">Community tools</h2><p>Configure panels and staff workflows for the selected server.</p></div><button type="button" id="community-refresh">Refresh</button></div>
@@ -317,6 +330,7 @@
   <script src="/dashboard/embed-motion.js" defer></script>
   <script src="/dashboard/community-beta.js" defer></script>
   <script src="/dashboard/faith.js" defer></script>
+  <script src="/dashboard/food-collection.js" defer></script>
   <script src="/dashboard/community-releases.js" defer></script>
   <script src="/dashboard/workspace.js" defer></script>
   <script src="/dashboard/control-center.js" defer></script>

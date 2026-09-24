@@ -1,0 +1,14 @@
+#food-collection-controls { padding:24px; margin:20px 0; min-width:0; }
+#food-collection-controls p { color:var(--muted); line-height:1.6; }
+#food-settings-fields { border:0; padding:0; margin:18px 0 0; display:grid; gap:10px; max-width:480px; min-width:0; }
+#food-settings-fields input[type=number] { width:100%; min-height:44px; padding:10px 12px; }
+.food-toggle { display:flex; align-items:center; gap:10px; min-height:44px; }
+#food-collection-controls button,#food-collection-controls summary { min-height:44px; }
+.food-rarities { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:18px 0; }
+.food-rarities p { padding:12px; border:1px solid var(--line); border-radius:8px; margin:0; }
+.food-rarities strong,.food-rarities span { display:block; }
+.food-rarities strong { color:var(--cyan); }
+#food-settings-status { min-height:28px; }
+#food-settings-status[data-error=true] { color:var(--danger); }
+#food-collection-controls :is(input,button,summary):focus-visible { outline:2px solid var(--cyan); outline-offset:3px; }
+@media(max-width:760px) { #food-collection-controls { padding:18px; } .food-rarities { grid-template-columns:repeat(2,minmax(0,1fr)); } }

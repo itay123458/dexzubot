@@ -19,7 +19,14 @@ export const faithRelease = {
   tryIt: ['Try /bible today or /bible guide.', 'Administrators: Beta → Faith, or /bible setup and /bible disable.'],
   scope: 'Beta only. English World English Bible, with 26 verified verses rotating daily. Main is unchanged.',
 };
-export const betaReleases = [faithRelease, {
+export const foodRelease = {
+  id: '2026-09-24-food', date: '2026-09-24', title: 'Eat and collect foods',
+  summary: 'Try /eat for a mystery meal, a reaction, and a new food to collect.',
+  changes: ['Discover 24 foods, from everyday snacks to legendary dungeon meals.', 'New foods get a discovery badge; duplicates increase your eaten count. Collections and cooldowns stay saved after restarts.', 'Default cooldown is 30 seconds. No coins are spent.'],
+  tryIt: ['Use /eat, then press My collection or use /eat action:collection.', 'Administrators: Beta → Operations → Food collection controls meals and cooldown.'],
+  scope: 'Beta first. Common 70% · Rare 22% · Epic 7% · Legendary 1%.',
+};
+export const betaReleases = [foodRelease, faithRelease, {
   id: '2026-09-17-community', date: '2026-09-17', title: 'Community tools are ready to test',
   summary: 'Invite rewards, ticket categories, and staff tools are now available in Beta.',
   changes: [
