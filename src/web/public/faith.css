@@ -1,0 +1,21 @@
+.faith-intro,.faith-grid>.card,.faith-history,.faith-guide { padding:24px; min-width:0; }
+.faith-intro p,.faith-guide p,.faith-guide dd { color:var(--muted); line-height:1.65; }
+.faith-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+#faith-fields { border:0; padding:0; margin:18px 0 0; display:grid; gap:10px; min-width:0; }
+#faith-fields input:not([type=checkbox]),#faith-fields select { width:100%; min-height:44px; padding:10px 12px; }
+.faith-toggle { display:flex; align-items:center; gap:10px; min-height:44px; }
+.faith-schedule { display:grid; grid-template-columns:1fr 2fr; gap:14px; }
+.faith-schedule label { display:block; margin-bottom:8px; }
+.faith-actions { display:flex; flex-wrap:wrap; gap:12px; }
+.faith-actions button { min-height:44px; }
+.faith-preview blockquote { margin:24px 0; padding:0 0 0 18px; border-left:3px solid var(--cyan); font-size:20px; line-height:1.7; }
+.faith-preview a,.faith-history a { color:var(--cyan); text-decoration:underline; }
+.faith-history,.faith-guide { margin-top:20px; }
+.faith-history ul { padding-left:20px; line-height:2; }
+.faith-guide dt { color:var(--cyan); margin-top:12px; font-weight:600; }
+.faith-guide dd { margin:4px 0 0; }
+#faith-status { min-height:46px; padding:12px 0; }
+#faith-status[data-error=true] { color:var(--danger); }
+[data-panel=faith] :is(input,select,button,a):focus-visible { outline:2px solid var(--cyan); outline-offset:3px; }
+[data-panel=faith] { overflow-wrap:anywhere; }
+@media(max-width:760px) { .faith-grid,.faith-schedule { grid-template-columns:1fr; } .faith-intro,.faith-grid>.card,.faith-history,.faith-guide { padding:18px; } }

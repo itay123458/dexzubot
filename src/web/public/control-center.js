@@ -8,6 +8,7 @@
   function renderResults() {
     const query = input.value.trim().toLowerCase();
     const matches = destinations.filter(button => {
+      if (button.hidden) return false;
       const details = pageDetails[button.dataset.page];
       return `${button.title} ${details?.join(' ')}`.toLowerCase().includes(query);
     });

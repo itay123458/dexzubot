@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/dashboard/beta-roles.css">
   <link rel="stylesheet" href="/dashboard/embed-motion.css">
   <link rel="stylesheet" href="/dashboard/community-beta.css">
+  <link rel="stylesheet" href="/dashboard/faith.css">
   <link rel="stylesheet" href="/dashboard/dashboard-access.css">
   <link rel="stylesheet" href="/dashboard/workspace.css"><link rel="stylesheet" href="/dashboard/command-center.css?v=2">
 </head>
@@ -34,6 +35,7 @@
         <button class="nav-item active" data-page="overview" title="Overview"><span class="nav-icon">⌂</span><span>Overview</span></button>
         <button class="nav-item" data-page="safety" title="Safety"><span class="nav-icon">◇</span><span>Safety</span></button>
         <p class="nav-label nav-group">Server</p>
+        <button id="faith-nav" class="nav-item" data-page="faith" title="Faith" hidden><span class="nav-icon"></span><span>Faith</span></button>
         <button class="nav-item" data-page="greetings" title="Greetings"><span class="nav-icon">✦</span><span>Greetings</span></button>
         <button class="nav-item" data-page="leveling" title="Leveling"><span class="nav-icon">↗</span><span>Leveling</span></button>
         <button class="nav-item" data-page="logging" title="Logging"><span class="nav-icon">≡</span><span>Logging</span></button>
@@ -156,6 +158,29 @@
           <div id="logging-save-bar" class="logging-save-bar"><span><b>● Unsaved changes</b><small id="logging-bar-count">0 events enabled</small></span><button id="logging-discard" class="secondary-button">Discard</button><button id="save-logging">✓ Save Changes</button></div>
         </section>
 
+        <section class="page" data-panel="faith">
+          <article class="card faith-intro"><p class="eyebrow">FAITH · BETA</p><h2>A verse to begin the day</h2><p>A daily Bible verse for your community. Read, reflect, and continue the conversation in Bible-Talk.</p><p id="faith-scope">Available in the Beta workspace.</p></article>
+          <div id="faith-controls" hidden>
+            <p id="faith-status" role="status" aria-live="polite">Loading Faith settings…</p>
+            <div class="faith-grid">
+              <form id="faith-form" class="card">
+                <h2>Daily Bible</h2>
+                <fieldset id="faith-fields" disabled>
+                  <label class="faith-toggle"><input id="faith-enabled" type="checkbox"> Enable daily posts</label>
+                  <label for="faith-channel">Daily verse channel</label><select id="faith-channel"></select>
+                  <label for="faith-discussion">Discussion channel (optional)</label><select id="faith-discussion"></select>
+                  <div class="faith-schedule"><div><label for="faith-time">Posting time</label><input id="faith-time" type="time" required value="09:00"></div><div><label for="faith-timezone">Timezone</label><input id="faith-timezone" type="text" required maxlength="80" value="Asia/Jerusalem" list="faith-timezones"><datalist id="faith-timezones"><option value="Asia/Jerusalem"><option value="Europe/London"><option value="America/New_York"><option value="UTC"></datalist></div></div>
+                  <label for="faith-translation">Translation</label><select id="faith-translation"><option value="WEB">English · World English Bible</option></select>
+                  <p class="muted">One post each day. No automatic pings. After downtime, only today’s missed verse is posted.</p>
+                  <div class="faith-actions"><button type="submit">Save settings</button><button id="faith-refresh" type="button" class="secondary-button">Refresh status</button></div>
+                </fieldset>
+              </form>
+              <article class="card faith-preview"><p class="eyebrow">TODAY’S PREVIEW</p><h2>Bible Verse of the Day</h2><blockquote id="faith-verse"></blockquote><p><strong id="faith-reference"></strong></p><a id="faith-source" target="_blank" rel="noopener noreferrer">Read the chapter · World English Bible</a><p id="faith-preview-date" class="muted"></p><p class="muted">Preview uses the saved timezone. Save changes to update it.</p></article>
+            </div>
+            <article class="card faith-history"><h2>Delivery status</h2><p id="faith-delivery-error" role="status"></p><ul id="faith-history"></ul></article>
+            <article class="card faith-guide"><h2>Your Faith channels</h2><dl><dt>My-Faith</dt><dd>Share your beliefs or faith journey if you want to.</dd><dt>Religious-Talk / Talk-for-Religion</dt><dd>Respectful questions, text discussion and voice conversation.</dd><dt>Bible-Talk / Quran-Talk</dt><dd>Discuss the respective texts. Bible-Talk is the place for daily verse discussion.</dd><dt>daily-bible</dt><dd>Read and react to the daily verse.</dd></dl><p>Respect people of every belief, including no belief. No harassment, slurs, or pressure to convert.</p><p><code>/bible today</code> · <code>/bible status</code> · <code>/bible guide</code><br>Administrators: <code>/bible setup</code> · <code>/bible disable</code></p><p id="faith-collection" class="muted"></p></article>
+          </div>
+        </section>
         <section class="page" data-panel="youtube">
           <div id="youtube-control" class="youtube-control">
             <article id="youtube-hero" class="card youtube-hero">
@@ -291,6 +316,7 @@
   <script src="/dashboard/beta-roles.js" defer></script>
   <script src="/dashboard/embed-motion.js" defer></script>
   <script src="/dashboard/community-beta.js" defer></script>
+  <script src="/dashboard/faith.js" defer></script>
   <script src="/dashboard/community-releases.js" defer></script>
   <script src="/dashboard/workspace.js" defer></script>
   <script src="/dashboard/control-center.js" defer></script>

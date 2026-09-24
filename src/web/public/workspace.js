@@ -47,6 +47,7 @@
   document.getElementById('refresh-dashboard').innerHTML = icon('<path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 6a8 8 0 0 1 13 3M5 15a8 8 0 0 0 13 3"/>');
   const navigationIcons = { overview: icons.chart, safety: icons.shield, greetings: icons.members,
     leveling: icons.trend, logging: icons.command, youtube: icon('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3Z"/>'),
+    faith: icon('<path d="M12 5v15M3 4h5a4 4 0 0 1 4 2 4 4 0 0 1 4-2h5v15h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3Z"/>'),
     operations: icons.shield, 'module-counting': icons.hash, 'module-economy': icons.wallet,
     'module-moderation': icons.shield, 'module-ticket': icons.ticket, 'module-serverstats': icons.chart };
   navigation.querySelectorAll('[data-page]').forEach(button => {

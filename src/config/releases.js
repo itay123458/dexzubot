@@ -12,7 +12,14 @@ export const communityRelease = {
  tryIt:['Use /staff, /community guide or /invite-rewards.','Open Operations → Community tools in the selected dashboard workspace.'],
  scope:'Each server keeps its own settings and records. Invite rewards count new tracked joins, not past invites.'
 };
-export const betaReleases = [{
+export const faithRelease = {
+  id: '2026-09-24-faith', date: '2026-09-24', title: 'Faith and daily Bible verses',
+  summary: 'Faith channels and a daily Bible verse are ready in Beta.',
+  changes: ['Read and react in daily-bible, then discuss the verse in Bible-Talk.', 'Choose the posting channel, time and timezone in the Faith dashboard. Posts have no automatic pings.', 'Delivery history survives restarts; uncertain sends are checked before retrying.'],
+  tryIt: ['Try /bible today or /bible guide.', 'Administrators: Beta → Faith, or /bible setup and /bible disable.'],
+  scope: 'Beta only. English World English Bible, with 26 verified verses rotating daily. Main is unchanged.',
+};
+export const betaReleases = [faithRelease, {
   id: '2026-09-17-community', date: '2026-09-17', title: 'Community tools are ready to test',
   summary: 'Invite rewards, ticket categories, and staff tools are now available in Beta.',
   changes: [
