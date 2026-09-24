@@ -133,6 +133,8 @@ export async function ensurePlayer(client, interaction) {
     const guildData = getGuildMusicData(guildId);
     let player = getPlayer(client, guildId);
 
+    if (player) assertCanControl(interaction.member, player);
+
     if (!player) {
         player = client.riffy.createConnection({
             guildId,
@@ -195,7 +197,7 @@ export async function joinVoiceChannel(client, interaction) {
     );
 }
 
-export async function playQuery(client, interaction, query) {
+export async function playQuery(client, interaction, query, { chooseTrack } = {}) {
     if (YOUTUBE_URL_PATTERN.test(query)) {
         throw new TitanBotError(
             'YouTube URL blocked',
@@ -204,14 +206,29 @@ export async function playQuery(client, interaction, query) {
         );
     }
 
-    const { player, guildData } = await ensurePlayer(client, interaction);
+    assertRiffyAvailable(client);
+    assertLavalinkNodeAvailable(client);
+    assertInVoice(interaction.member);
 
     const result = await client.riffy.resolve({
         query,
         requester: interaction.user,
     });
 
-    const { loadType, tracks, playlistInfo } = result;
+    let { loadType, tracks, playlistInfo } = result;
+    if (!tracks?.length) {
+        throw new TitanBotError('No results', ErrorTypes.USER_INPUT, 'No results found. Try the song name and artist.');
+    }
+    if (loadType === 'search' || loadType === 'SEARCH_RESULT') {
+        if (!chooseTrack) throw new TitanBotError('Selection required', ErrorTypes.USER_INPUT, 'Run /play and choose a recording from the results.');
+        const selected = await chooseTrack(tracks);
+        if (!selected) return { cancelled: true };
+        if (!tracks.includes(selected)) throw new TitanBotError('Invalid selection', ErrorTypes.USER_INPUT, 'Run /play again to choose a song.');
+        tracks = [selected];
+        loadType = 'track';
+    }
+    // Recheck voice membership after the member has chosen a recording.
+    const { player } = await ensurePlayer(client, interaction);
 
     if (loadType === 'playlist' || loadType === 'PLAYLIST_LOADED') {
         let added = 0;

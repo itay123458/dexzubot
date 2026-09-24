@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { playQuery, replyMusicSuccess } from '../../services/music/musicActions.js';
+import { playQuery } from '../../services/music/musicActions.js';
+import { selectSearchTrack } from '../../services/music/searchSelection.js';
 
 export default {
     slashOnly: true,
@@ -9,7 +10,7 @@ export default {
         .setName('play')
         .setDescription('Play a song or add it to the queue')
         .addStringOption((opt) =>
-            opt.setName('query').setDescription('Song name or URL').setRequired(true),
+            opt.setName('query').setDescription('Song name and artist (choose a result), or supported URL').setRequired(true),
         ),
 
     async execute(interaction, config, client) {
@@ -18,7 +19,10 @@ export default {
             return;
         }
 
-        const result = await playQuery(client, interaction, interaction.options.getString('query'));
-        await replyMusicSuccess(interaction, result.embed);
+        const result = await playQuery(client, interaction, interaction.options.getString('query'), {
+            chooseTrack: tracks => selectSearchTrack(interaction, tracks),
+        });
+        if (result.cancelled) return;
+        await InteractionHelper.safeEditReply(interaction, { content: '', components: [], embeds: [result.embed], allowedMentions: { parse: [] } });
     },
 };
