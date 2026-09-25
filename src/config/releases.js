@@ -1,10 +1,3 @@
-export const musicSearchRelease = {
-  id: '2026-09-24-music-search', date: '2026-09-24', title: 'Choose the right song',
-  summary: '/play now lets you choose a recording instead of automatically playing the first search result.',
-  changes: ['Song-name searches show up to 10 results with titles, artists and durations.', 'Only the requester can choose. Unanswered menus expire after 60 seconds without adding a track.', 'Supported direct links and playlists keep their existing behavior.'],
-  tryIt: ['Join a voice channel, use /play query:nevada vicetone, then choose your recording.', 'Include the artist if the version you want is missing from the results.'],
-  scope: 'Available in Main and Beta. Search results depend on the music provider; the menu does not label any recording as an official original.',
-};
 export const dashboardAccessRelease = {
  id:'2026-09-17-dashboard-access',date:'2026-09-17',title:'Dashboard invites',
  summary:'Invited members can open the dashboard without Tailscale and sign in with Discord.',
