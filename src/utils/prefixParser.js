@@ -48,7 +48,7 @@ function parseArguments(input) {
         current += char;
       }
     } else {
-      if (char === '"' || char === "'") {
+      if ((char === '"' || char === "'") && !current.trim()) {
         
         if (current.trim()) {
           args.push(current.trim());
@@ -150,6 +150,11 @@ export function mapArgumentsToOptions(args, commandData) {
     const value = currentArgs[i];
     
     options[optionDef.name] = value;
+  }
+
+  // /play has one free-text query: keep the entire song name and artist.
+  if (cmdData.name === 'play' && optionDefs.length === 1 && optionDefs[0].name === 'query') {
+    options.query = currentArgs.join(' ');
   }
 
   const missing = [];

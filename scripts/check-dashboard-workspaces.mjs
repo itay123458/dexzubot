@@ -21,7 +21,7 @@ try {
   const betaReleases = await fetch(`${base}/releases?workspace=beta`);
   assert.equal(betaReleases.status, 200);
   assert.ok((await betaReleases.json()).releases.some(release => release.id === '2026-09-16-roles'));
-  assert.deepEqual((await (await fetch(`${base}/releases`)).json()).releases.map(release=>release.id), ['2026-09-17-dashboard-access','2026-09-17-community-release']);
+  assert.deepEqual((await (await fetch(`${base}/releases`)).json()).releases.map(release=>release.id), ['2026-09-25-music-prefix','2026-09-17-dashboard-access','2026-09-17-community-release']);
   assert.equal((await save('', '!')).status, 200);
   assert.equal((await save('?workspace=beta', '?')).status, 200);
   assert.equal((await (await fetch(`${base}/prefix`)).json()).settings.prefix, '!', 'Beta writes must not change main settings');

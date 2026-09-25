@@ -1,9 +1,8 @@
-import { SlashCommandBuilder, MessageFlags } from 'discord.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { SlashCommandBuilder } from 'discord.js';
+import { deferMusicCommand } from '../../services/music/prefixSupport.js';
 import { playQuery, replyMusicSuccess } from '../../services/music/musicActions.js';
 
 export default {
-    slashOnly: true,
     category: 'Music',
     data: new SlashCommandBuilder()
         .setName('play')
@@ -13,7 +12,7 @@ export default {
         ),
 
     async execute(interaction, config, client) {
-        const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+        const deferred = await deferMusicCommand(interaction);
         if (!deferred) {
             return;
         }

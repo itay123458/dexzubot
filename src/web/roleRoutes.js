@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PermissionFlagsBits } from 'discord.js';
 import { isBetaGuild } from '../config/beta.js';
-import { betaReleases, communityRelease, dashboardAccessRelease } from '../config/releases.js';
+import { betaReleases, communityRelease, dashboardAccessRelease, musicPrefixRelease } from '../config/releases.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { isCommandEnabledInConfig } from '../services/commandAccessService.js';
 import { executeRoleOperation } from '../services/roleOperationService.js';
@@ -31,7 +31,7 @@ const handled = handler => async (req, res, next) => {
 };
 
 export function registerRoleRoutes(router, client) {
-  router.get('/releases', (req, res) => res.json({ releases: isBetaGuild(req.dashboardGuild.id) ? [dashboardAccessRelease,communityRelease,...betaReleases] : [dashboardAccessRelease,communityRelease] }));
+  router.get('/releases', (req, res) => res.json({ releases: isBetaGuild(req.dashboardGuild.id) ? [musicPrefixRelease,dashboardAccessRelease,communityRelease,...betaReleases] : [musicPrefixRelease,dashboardAccessRelease,communityRelease] }));
   router.get('/roles', betaOnly, handled(async (req, res) => {
     const guild = req.dashboardGuild;
     await guild.roles.fetch();

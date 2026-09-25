@@ -1,3 +1,10 @@
+export const musicPrefixRelease = {
+  id: '2026-09-25-music-prefix', date: '2026-09-25', title: 'Music commands with your prefix',
+  summary: 'Music commands now work with the server prefix as well as slash commands.',
+  changes: ['Use play, queue, join, nowplaying and every music subcommand with your configured prefix.', 'Song names and artists can contain spaces. Playback and search behavior stay the same.'],
+  tryIt: ['With the current ! prefix: !play nevada vicetone, !queue, !np, !music loop track, !music shuffle.', 'Existing shortcuts include !pause, !resume, !skip, !stop, !volume 50 and !leave.', 'Dashboard: Operations > Prefix Commands controls the prefix and allowed channels/roles.'],
+  scope: 'Main and Beta. Existing prefix staff/access rules still apply; this does not change audio-server availability.',
+};
 export const dashboardAccessRelease = {
  id:'2026-09-17-dashboard-access',date:'2026-09-17',title:'Dashboard invites',
  summary:'Invited members can open the dashboard without Tailscale and sign in with Discord.',
