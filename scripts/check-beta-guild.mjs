@@ -83,7 +83,7 @@ test('prefix execution rejects beta outside its guild even for staff', async () 
   }
   assert.equal(executions, 1);
   assert.equal(replies.length, 1);
-  assert.match(replies[0].content, /only in the DexzuBot beta server/);
+  assert.match(replies[0].content, /only to the bot owner in Main/);
 });
 
 test('slash dispatch and autocomplete reject stale beta commands outside beta', async () => {
@@ -99,7 +99,7 @@ test('slash dispatch and autocomplete reject stale beta commands outside beta', 
   await interactionCreate.execute(interaction, client);
   assert.equal(executions, 0);
   assert.equal(replies.length, 1);
-  assert.match(JSON.stringify(replies[0]), /only in the DexzuBot beta server/);
+  assert.match(JSON.stringify(replies[0]), /only to the bot owner in Main/);
   let choices;
   await interactionCreate.execute({ ...interaction, _responseCoordinator: undefined,
     isChatInputCommand: () => false, isAutocomplete: () => true,

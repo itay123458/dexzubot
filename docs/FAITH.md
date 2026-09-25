@@ -1,6 +1,6 @@
 # Faith and daily Bible verses
 
-Initial availability: the configured Beta guild only. Main channels and settings are unchanged.
+Available in the configured Beta guild, and to configured bot owners through commands in Main. Main channels and schedules are not changed by deployment. An owner may explicitly use `/bible setup` in Main; saved authorization is rechecked against the current bot-owner list before scheduled delivery. Dashboard controls remain in Beta.
 
 ## Members
 

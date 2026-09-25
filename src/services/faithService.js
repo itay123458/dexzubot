@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ChannelType, PermissionFlagsBits } from 'discord.js';
 import { createHash } from 'node:crypto';
 import { FAITH_VERSES } from '../config/faithVerses.js';
-import { isBetaGuild } from '../config/beta.js';
+import { isBetaGuild, isMainGuild, canUseBetaFeatures, getBetaActorId, runWithBetaAccess } from '../config/beta.js';
 import { readCommunityValue, writeCommunityValue } from './communityBetaService.js';
 import { Mutex } from '../utils/mutex.js';
 import { createEmbed } from '../utils/embeds.js';
@@ -21,10 +21,11 @@ export const faithSettingsSchema = z.object({
 export const defaultFaithSettings = () => ({ enabled: false, channelId: null, discussionChannelId: null,
   time: '09:00', timezone: 'Asia/Jerusalem', translation: 'WEB' });
 const configKey = id => `guild:${id}:faith:config`;
+const ownerGrantKey = id => `guild:${id}:faith:owner-grant`;
 const ledgerKey = id => `guild:${id}:faith:delivery`;
 const fail = (message, type = ErrorTypes.VALIDATION) => { throw new TitanBotError(message, type, message); };
 export function assertFaithGuild(id) {
-  if (!isBetaGuild(id)) fail('Faith tools are available in Beta first.', ErrorTypes.PERMISSION);
+  if (!canUseBetaFeatures(id)) fail('Faith tools are available in Beta, or to the bot owner in Main.', ErrorTypes.PERMISSION);
 }
 export function localDay(now, timezone) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: timezone,
@@ -56,6 +57,9 @@ export async function saveFaithSettings(client, guild, input) {
   if (config.enabled) await validateFaithChannel(guild, config.channelId);
   if (config.enabled && config.discussionChannelId) await validateFaithChannel(guild, config.discussionChannelId, { delivery: false });
   await writeCommunityValue(client, configKey(guild.id), config);
+  if (isMainGuild(guild.id) && !isBetaGuild(guild.id)) {
+    await writeCommunityValue(client, ownerGrantKey(guild.id), { userId: getBetaActorId() });
+  }
   return config;
 }
 const marker = date => `Daily Bible · ${date} · WEB`;
@@ -104,7 +108,15 @@ async function withDeliveryLock(client, id, action) {
   });
 }
 export async function deliverDailyBible(client, guild, now = new Date()) {
-  if (!isBetaGuild(guild.id)) return;
+  if (!isBetaGuild(guild.id)) {
+    if (!isMainGuild(guild.id)) return;
+    const grant = await readCommunityValue(client, ownerGrantKey(guild.id));
+    if (!grant?.userId || !canUseBetaFeatures(guild.id, grant.userId)) return;
+    return runWithBetaAccess(grant.userId, guild.id, () => deliverAuthorizedDailyBible(client, guild, now));
+  }
+  return deliverAuthorizedDailyBible(client, guild, now);
+}
+async function deliverAuthorizedDailyBible(client, guild, now) {
   return withDeliveryLock(client, guild.id, async () => {
     const config = await getFaithSettings(client, guild.id);
     const day = localDay(now, config.timezone);
@@ -150,7 +162,7 @@ export function initializeFaith(client) {
     polling.add(client);
     try {
       for (const guild of client.guilds.cache.values()) {
-        if (!isBetaGuild(guild.id)) continue;
+        if (!isBetaGuild(guild.id) && !isMainGuild(guild.id)) continue;
         await deliverDailyBible(client, guild).catch(error => logger.error('Daily Bible delivery failed', { error: error.message, guildId: guild.id }));
       }
     } finally { polling.delete(client); }

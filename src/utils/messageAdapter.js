@@ -7,7 +7,7 @@ import { logger } from './logger.js';
 import { InteractionHelper } from './interactionHelper.js';
 import { SLASH_ONLY_COMMANDS } from '../config/commands/prefixRestrictions.js';
 import { getCommandPrefix } from '../config/bot.js';
-import { canUseBetaCommand } from '../config/beta.js';
+import { canUseBetaCommand, runWithBetaAccess } from '../config/beta.js';
 import { ResponseCoordinator, buildPrefixUsage } from './responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from './permissionGuard.js';
 import { canUsePrefixCommand } from '../services/prefixSettingsService.js';
@@ -208,13 +208,16 @@ export function supportsPrefixExecution(command) {
 }
 
 export async function executePrefixCommand(command, message, args, client, prefixOverride = null, guildConfig = null) {
+  return runWithBetaAccess(message.author?.id, message.guild?.id, () => executeScopedPrefixCommand(command, message, args, client, prefixOverride, guildConfig));
+}
+async function executeScopedPrefixCommand(command, message, args, client, prefixOverride, guildConfig) {
   const mockInteraction = createMockInteraction(message, command.data, args);
   const coordinator = mockInteraction._responseCoordinator;
   const prefix = prefixOverride || getCommandPrefix();
 
   try {
     if (!canUseBetaCommand(command, message.guild?.id)) {
-      await mockInteraction.reply({ content: 'This command is available only in the DexzuBot beta server.', allowedMentions: { parse: [] } });
+      await mockInteraction.reply({ content: 'This command is available in Beta, or only to the bot owner in Main.', allowedMentions: { parse: [] } });
       return;
     }
     if (!canUsePrefixCommand(command, message.member, guildConfig)) {

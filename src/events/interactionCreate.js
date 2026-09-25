@@ -8,7 +8,7 @@ import {
   isMaintenanceMode,
 } from '../config/bot.js';
 import botConfig from '../config/bot.js';
-import { canUseBetaCommand } from '../config/beta.js';
+import { canUseBetaCommand, runWithBetaAccess } from '../config/beta.js';
 import { handleApplicationModal } from '../commands/Community/apply.js';
 import { handleInteractionError, createError, ErrorTypes, ErrorCodes } from '../utils/errorHandler.js';
 import { InteractionHelper } from '../utils/interactionHelper.js';
@@ -54,7 +54,7 @@ export default {
     interaction.traceContext = interactionTraceContext;
     interaction.traceId = interactionTraceContext.traceId;
 
-    return runWithTraceContext(interactionTraceContext, async () => {
+    return runWithBetaAccess(interaction.user?.id, interaction.guildId, () => runWithTraceContext(interactionTraceContext, async () => {
       try {
         InteractionHelper.patchInteractionResponses(interaction);
         ResponseCoordinator.attach(interaction);
@@ -85,11 +85,11 @@ export default {
               );
             }
 
-            if (!canUseBetaCommand(command, interaction.guildId)) {
+            if (!canUseBetaCommand(command, interaction.guildId, interaction.user?.id, true)) {
               throw createError(
                 `Beta command denied outside the configured beta guild: ${interaction.commandName}`,
                 ErrorTypes.PERMISSION,
-                'This command is available only in the DexzuBot beta server.',
+                'This command is available in Beta, or only to the bot owner in Main.',
                 withTraceContext({ commandName: interaction.commandName }, interactionTraceContext)
               );
             }
@@ -198,7 +198,7 @@ export default {
           }
         } else if (interaction.isAutocomplete()) {
           const autocompleteCommand = client.commands.get(interaction.commandName);
-          if (!canUseBetaCommand(autocompleteCommand, interaction.guildId)) {
+          if (!canUseBetaCommand(autocompleteCommand, interaction.guildId, interaction.user?.id, true)) {
             await interaction.respond([]).catch(() => {});
             return;
           }
@@ -499,6 +499,6 @@ export default {
           });
         }
       }
-    });
+    }));
   }
 };

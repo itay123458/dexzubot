@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import { FOODS, FOOD_BY_ID, FOOD_RARITIES } from '../config/foods.js';
-import { isBetaGuild } from '../config/beta.js';
+import { canUseBetaFeatures } from '../config/beta.js';
 import { readCommunityValue, writeCommunityValue } from './communityBetaService.js';
 import { Mutex } from '../utils/mutex.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
@@ -12,7 +12,7 @@ const settingsKey = guildId => `guild:${guildId}:food:settings`;
 const collectionKey = (guildId, userId) => `guild:${guildId}:food:member:${userId}`;
 const emptyCollection = () => ({ counts: {}, totalEaten: 0, lastEatenAt: null, receipts: [] });
 export function assertFoodGuild(guildId) {
-  if (!isBetaGuild(guildId)) throw new TitanBotError('Food collection is available in Beta first.', ErrorTypes.PERMISSION, 'Food collection is available in Beta first.');
+  if (!canUseBetaFeatures(guildId)) throw new TitanBotError('Food collection is restricted.', ErrorTypes.PERMISSION, 'Food collection is available in Beta, or to the bot owner in Main.');
 }
 export function chooseFood(random = randomInt) {
   const roll = random(10000);

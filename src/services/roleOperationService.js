@@ -1,6 +1,6 @@
 import { escapeMarkdown } from 'discord.js';
 import { TitanBotError, ErrorTypes, wrapServiceBoundary } from '../utils/errorHandler.js';
-import { isBetaGuild } from '../config/beta.js';
+import { canUseBetaFeatures } from '../config/beta.js';
 import { getGuildConfig } from './config/guildConfig.js';
 import { isCommandEnabledInConfig } from './commandAccessService.js';
 import { assertRoleManager, assertRoleEditable, canChangeMember, parseRoleColor,
@@ -13,7 +13,7 @@ function validName(value) {
   return name;
 }
 export const executeRoleOperation = wrapServiceBoundary(async ({ guild, options, actorId, client, reply, auditSource = null }) => {
-    if (!guild || !isBetaGuild(guild.id)) fail('Role management is currently available in the DexzuBot beta server.');
+    if (!guild || !canUseBetaFeatures(guild.id)) fail('Role management is available in Beta, or to the bot owner in Main.');
     await guild.roles.fetch();
     await guild.members.fetchMe({ force: true });
     const actor = await guild.members.fetch({ user: actorId, force: true });

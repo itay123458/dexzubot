@@ -1,6 +1,6 @@
 # Food collection
 
-Beta-only first release. Use `/eat` to receive a random food, reaction and rarity. No coins are spent and no economy rewards are issued.
+Available in Beta and to configured bot owners in Main. Use `/eat` to receive a random food, reaction and rarity. No coins are spent and no economy rewards are issued. Main collection buttons also enforce bot-owner access; the dashboard remains Beta-only.
 
 Use `/eat action:collection` or the **My collection** button to view your own collection privately. The button always reads the clicking member's collection. `/eat action:guide` explains the game. Discord's optional `action` choice preserves bare `/eat`; there is no dot prefix and no required subcommand.
 

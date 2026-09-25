@@ -6,7 +6,7 @@ import { isSlashCommandCategoryEnabled, isSlashCommandEnabled } from '../config/
 import { getPrefixRestriction } from '../config/commands/prefixRestrictions.js';
 import { resolveSubcommandAlias } from '../config/commands/commandAliases.js';
 import { isBotOwner, isCommandCategoryEnabled } from '../config/bot.js';
-import { canUseBetaCommand } from '../config/beta.js';
+import { canUseBetaCommand, runWithBetaAccess } from '../config/beta.js';
 import { supportsPrefixExecution } from '../utils/messageAdapter.js';
 import { getCommandDefaultPermissions, memberMeetsCommandPermissions } from '../utils/permissionGuard.js';
 import { getGuildConfig } from './config/guildConfig.js';
@@ -14,6 +14,9 @@ import { getPrefixSettings, prefixAllowed, canManagePrefix, canUsePrefixCommand 
 import { createEmbed } from '../utils/embeds.js';
 
 export function listPrefixHelp(client, config, member, channelId, mode = 'prefix', guildId = member?.guild?.id) {
+  return runWithBetaAccess(member?.id, guildId, () => listScopedHelp(client, config, member, channelId, mode, guildId));
+}
+function listScopedHelp(client, config, member, channelId, mode, guildId) {
   const entries = [];
   for (const category of getCommandAccessSnapshot(client, config, guildId).categories) {
     if (!(mode === 'slash' ? isSlashCommandCategoryEnabled(category.folder, guildId) : isCommandCategoryEnabled(category.folder)) || category.categoryDisabled) continue;
@@ -21,7 +24,7 @@ export function listPrefixHelp(client, config, member, channelId, mode = 'prefix
       const [base, ...args] = entry.name.split(' ');
       const command = client.commands.get(base);
       if (mode === 'slash' && !isSlashCommandEnabled(command, guildId)) continue;
-      if (!canUseBetaCommand(command, guildId)) continue;
+      if (!canUseBetaCommand(command, guildId, member?.id, mode === 'slash')) continue;
       if (mode === 'prefix' && !canUsePrefixCommand(command, member, config)) continue;
       if (mode === 'prefix' && (!supportsPrefixExecution(command) || getPrefixRestriction(command, args, resolveSubcommandAlias).blocked)) continue;
       if (!entry.isSubcommand && command.data.toJSON().options?.some(option => [1, 2].includes(option.type))) continue;

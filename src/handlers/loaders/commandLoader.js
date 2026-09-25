@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { Collection } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import botConfig from '../../config/bot.js';
-import { canUseBetaCommand } from '../../config/beta.js';
+import { canRegisterBetaCommand } from '../../config/beta.js';
 import { isSlashCommandEnabled } from '../../config/commands/slashCommandCategories.js';
 import { isCommandEnabledInConfig } from '../../services/commandAccessService.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
@@ -161,7 +161,7 @@ function collectCommandPayloads(client, guildConfig = null, guildId = null) {
     const registeredNames = new Set();
 
     for (const command of client.commands.values()) {
-        if (!canUseBetaCommand(command, guildId)) continue;
+        if (!canRegisterBetaCommand(command, guildId)) continue;
         if (!command.data || typeof command.data.toJSON !== 'function') {
             logger.warn(`Command missing data or toJSON method: ${command}`);
             continue;

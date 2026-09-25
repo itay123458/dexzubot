@@ -1,3 +1,10 @@
+export const betaOwnerRelease = {
+  id: '2026-09-25-beta-owner-main', date: '2026-09-25', title: 'Owner access to Beta commands in Main',
+  summary: 'Configured bot owners can now use Beta commands in Main. Beta-server access stays the same.',
+  changes: ['Main blocks everyone else, including administrators, from Beta-only commands and their protected interactions.', 'Existing role permissions and command switches still apply. Main and Beta keep separate records.'],
+  tryIt: ['Bot owner in Main: /beta, /eat, /bible today or /role list.', 'Use /help to view the commands available to your account. Beta dashboard controls remain in the Beta workspace.'],
+  scope: 'The exception uses configured bot-owner IDs. Discord may show commands to other members, but execution is denied.',
+};
 export const musicPrefixRelease = {
   id: '2026-09-25-music-prefix', date: '2026-09-25', title: 'Music commands with your prefix',
   summary: 'Music commands now work with the server prefix as well as slash commands.',
