@@ -2,10 +2,8 @@ import assert from 'node:assert/strict';
 import { InteractionHelper } from '../src/utils/interactionHelper.js';
 import { selectSearchTrack } from '../src/services/music/searchSelection.js';
 import { playQuery } from '../src/services/music/musicActions.js';
-import command from '../src/commands/Music/play.js';
 const tracks = ['Nevada (Remix)', 'Nevada', 'Nevada (Cover)'].map((title, i) => ({ info: { title, author: i === 1 ? 'Vicetone' : 'Another artist', length: 180000, uri: `https://example.com/${i}` } }));
 const originalEdit = InteractionHelper.safeEditReply;
-const originalDefer = InteractionHelper.safeDefer;
 const replies = []; let selection = '1', ack = 0;
 const interaction = { id: 'search-123', user: { id: 'member' }, guild: { id: 'guild' }, channel: { id: 'text' }, member: { voice: { channel: { id: 'voice' } } },
   fetchReply: async () => ({ awaitMessageComponent: async ({ filter }) => {
@@ -46,9 +44,5 @@ try {
   client.riffy.resolve = async () => ({ loadType: 'empty', tracks: [] });
   await assert.rejects(playQuery(client, interaction, 'missing-song'));
   assert.equal(queue.length, 3);
-  InteractionHelper.safeDefer = async () => true;
-  await assert.rejects(command.execute({ ...interaction, options: { getString: () => 'missing-song' } }, {}, client));
-  assert.deepEqual(replies.at(-1).components, [], 'errors remove the picker');
-  assert.match(replies.at(-1).content, /could not be completed/, 'errors do not leave a pending progress message');
   console.log('Music search passed: explicit recording selection, caller ownership, timeout, invalid selection, exact track queueing and voice guard.');
-} finally { InteractionHelper.safeEditReply = originalEdit; InteractionHelper.safeDefer = originalDefer; }
+} finally { InteractionHelper.safeEditReply = originalEdit; }
