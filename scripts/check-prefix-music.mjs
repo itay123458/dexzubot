@@ -16,7 +16,12 @@ assert.equal(mapArgumentsToOptions(parsePrefixCommand('!play "nevada vicetone"',
 assert.equal(mapArgumentsToOptions([], play.data).validateRequired().valid, false);
 for (const sub of music.data.toJSON().options) {
   assert.equal(getPrefixRestriction(music, [sub.name], resolveSubcommandAlias).blocked, false, `${sub.name} prefix enabled`);
+  for (const name of [sub.name, sub.name.toUpperCase()]) {
+    assert.equal(mapArgumentsToOptions([name], music.data).getSubcommand(), sub.name, `${name} resolves to its actual music subcommand`);
+  }
 }
+assert.equal(mapArgumentsToOptions(['rm', '2'], music.data).getSubcommand(), 'remove');
+assert.equal(mapArgumentsToOptions(['stop'], { name: 'giveaway', options: [{ type: 1, name: 'end' }] }).getSubcommand(), 'end', 'aliases still work when no exact subcommand exists');
 for (const [args, getter, name, value] of [
   [['loop','track'],'getString','mode','track'], [['volume','50'],'getInteger','level',50],
   [['seek','60'],'getInteger','seconds',60], [['remove','2'],'getInteger','position',2],
@@ -43,6 +48,16 @@ const message = { id: 'message', author: { id: member.id }, member: { ...member,
 await executePrefixCommand(play, message, ['nevada','vicetone'], client, '!', {});
 assert.equal(searched, 'nevada vicetone', 'actual prefix execution searches the full query');
 assert.equal(tracks.length, 1);
+let stopped = false;
+let destroyed = false;
+tracks.clear = () => { tracks.length = 0; };
+player.voiceChannel = 'voice';
+player.stop = () => { stopped = true; };
+player.destroy = () => { destroyed = true; };
+await executePrefixCommand(music, message, ['stop'], client, '!', {});
+assert.equal(stopped, true, 'prefix music stop reaches playback control instead of Wrong Usage');
+assert.equal(destroyed, true);
+assert.equal(tracks.length, 0);
 assert.ok(replies.length > 0);
 assert.ok(replies.every(payload => !(payload.flags & 64)), 'prefix replies are never ephemeral');
 console.log('Prefix music passed: command availability, full song queries, apostrophes, subcommands, numeric/boolean arguments, defer flags and help.');

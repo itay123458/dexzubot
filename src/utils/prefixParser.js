@@ -3,6 +3,12 @@
 import { resolveSubcommandAlias } from '../config/commands/commandAliases.js';
 import { logger } from './logger.js';
 
+function resolveAvailableSubcommand(name, definitions = []) {
+  const normalized = name.toLowerCase();
+  return definitions.find((sub) => sub.name === normalized)
+    || definitions.find((sub) => sub.name === resolveSubcommandAlias(normalized));
+}
+
 export function parsePrefixCommand(content, prefix) {
   if (!content || !content.startsWith(prefix)) {
     return null;
@@ -127,11 +133,11 @@ export function mapArgumentsToOptions(args, commandData) {
     }
   } else if (hasSubcommands) {
     if (args.length > 0) {
-      const resolvedSubcommand = resolveSubcommandAlias(args[0]);
+      const sub = resolveAvailableSubcommand(args[0], subcommands);
+      const resolvedSubcommand = sub?.name || args[0].toLowerCase();
       logger.debug(
         `Looking for subcommand: ${resolvedSubcommand}, available: ${subcommands.map((s) => s.name).join(', ')}`,
       );
-      const sub = subcommands.find((s) => s.name === resolvedSubcommand);
       if (sub) {
         subcommandName = resolvedSubcommand;
         optionDefs = sub.options?.filter((opt) => opt.type !== 1 && opt.type !== 2) || [];
