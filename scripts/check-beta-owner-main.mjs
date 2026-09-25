@@ -34,12 +34,12 @@ try {
       assert.equal((await eatFood(client, main, owner, 'owner-meal')).kind, 'meal');
     }),
     runWithBetaAccess(member, main, async () => {
-      assert.equal(canUseBetaFeatures(main), false);
-      await assert.rejects(eatFood(client, main, member, 'member-meal'));
+      assert.equal(canUseBetaFeatures(main), true);
+      assert.equal((await eatFood(client, main, member, 'member-meal')).kind, 'meal');
     }),
   ]);
-  assert.equal(canUseBetaFeatures(main), false, 'owner scope must not leak');
-  await runWithBetaAccess(owner, '123456789012345678', async () => assert.equal(canUseBetaFeatures(main), false));
+  assert.equal(canUseBetaCommand(command, main, member), false, 'unreleased command owner scope must not leak');
+  await runWithBetaAccess(owner, '123456789012345678', async () => assert.equal(canUseBetaCommand(command, main), false));
   const probe = { betaOnly: true, category: 'Core', data: new SlashCommandBuilder().setName('beta-test').setDescription('Owner access test'),
     execute: async () => { assertFoodGuild(main); runs++; }, autocomplete: async () => { runs++; } };
   let runs = 0, registered;
@@ -75,6 +75,6 @@ try {
   assert.equal(sends, 1, 'explicit owner schedule survives without interaction context');
   botConfig.commands.owners = [];
   await deliverDailyBible(client, guild, new Date('2026-09-26T12:00:00Z'));
-  assert.equal(sends, 1, 'removing the owner revokes Main delivery authority');
+  assert.equal(sends, 2, 'released Main schedule persists independently of bot-owner membership');
   console.log('Beta owner Main checks passed: registration, owner-only runtime, other guild denial, independent async requests and real food service.');
 } finally { botConfig.commands.owners = owners; }

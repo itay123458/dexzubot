@@ -1,3 +1,10 @@
+export const mainToolsRelease = {
+  id: '2026-09-25-main-tools', date: '2026-09-25', title: 'Food, Bible and role tools in Main',
+  summary: 'The tested food, Bible, role and autorole commands are available in Main under their normal permissions.',
+  changes: ['Use /eat for the 120-food collection and /bible today for the 365-verse collection.', 'Role permissions, hierarchy checks and confirmations still apply. Existing server settings, channels, roles and artwork are preserved.'],
+  tryIt: ['/eat, /bible today, /bible guide, /role list and /autorole.', 'Dashboard: Faith and Operations contain the corresponding controls. Daily Bible posts require explicit setup.'],
+  scope: 'Main and Beta retain separate data. Unreleased experiments remain owner-only in Main.',
+};
 export const betaOwnerRelease = {
   id: '2026-09-25-beta-owner-main', date: '2026-09-25', title: 'Owner access to Beta commands in Main',
   summary: 'Configured bot owners can now use Beta commands in Main. Beta-server access stays the same.',

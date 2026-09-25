@@ -35,7 +35,7 @@ for (const action of ['confirm', 'cancel']) data.addSubcommand(sub => sub.setNam
   .addStringOption(option => option.setName('code').setDescription('Code from your preview').setRequired(true)));
 
 export default {
-  data, betaOnly: true,
+  data, betaOnly: true, releasedToMain: true,
   async execute(interaction) {
     if (!await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral })) return;
     return executeRoleOperation({ guild: interaction.guild, options: interaction.options,

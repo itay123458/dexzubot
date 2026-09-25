@@ -17,6 +17,7 @@ function createAutoroleInfoEmbed(description) {
 
 export default {
     betaSlash: true,
+    releasedToMain: true,
     data: new SlashCommandBuilder()
         .setName('autorole')
         .setDescription('Manage roles that are automatically assigned to new members')

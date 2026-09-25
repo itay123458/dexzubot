@@ -4,7 +4,7 @@ import { assertFoodGuild, eatFood, getFoodCollection } from '../../services/food
 import { foodCollectionButton, foodResultEmbed, foodCollectionEmbed, foodGuideEmbed } from '../../services/foodCollectionUi.js';
 
 export default {
-  slashOnly: true, betaOnly: true,
+  slashOnly: true, betaOnly: true, releasedToMain: true,
   data: new SlashCommandBuilder().setName('eat').setDescription('Eat a mystery food and grow your collection').setDMPermission(false)
     .addStringOption(option => option.setName('action').setDescription('Eat, view your collection, or read the guide')
       .addChoices({ name: 'Eat a random food', value: 'eat' }, { name: 'My collection', value: 'collection' }, { name: 'Guide', value: 'guide' })),

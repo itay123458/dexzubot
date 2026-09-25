@@ -1,10 +1,10 @@
 import { ChannelType } from 'discord.js';
-import { isBetaGuild } from '../config/beta.js';
+import { canUseBetaFeatures, runWithBetaAccess } from '../config/beta.js';
 import { getFaithState, saveFaithSettings } from '../services/faithService.js';
 
 export function registerFaithRoutes(router, client) {
   const handled = action => async (req, res, next) => {
-    if (!isBetaGuild(req.dashboardGuild.id)) return res.status(403).json({ error: 'Faith tools are available in Beta first.' });
+    if (!canUseBetaFeatures(req.dashboardGuild.id)) return res.status(403).json({ error: 'Faith tools are available in Main and Beta.' });
     try { await action(req, res); }
     catch (error) {
       if (error.name === 'ZodError') return res.status(400).json({ error: 'Choose valid Faith settings: channel, HH:MM time, IANA timezone and WEB translation.' });
@@ -21,6 +21,6 @@ export function registerFaithRoutes(router, client) {
   }));
   // Mounted after the existing workspace authorization and same-origin middleware.
   router.post('/faith', handled(async (req, res) => {
-    res.json({ ok: true, config: await saveFaithSettings(client, req.dashboardGuild, req.body) });
+    res.json({ ok: true, config: await runWithBetaAccess(req.dashboardMember?.id || client.user.id, req.dashboardGuild.id, () => saveFaithSettings(client, req.dashboardGuild, req.body)) });
   }));
 }

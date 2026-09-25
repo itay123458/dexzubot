@@ -1,3 +1,7 @@
+## Main release (2026-09-25)
+
+This feature is now available to eligible members in Main and Beta. Existing permissions and server settings are preserved. Earlier Beta-only/owner-only notes below describe the testing period.
+
 # Faith and daily Bible verses
 
 Available in the configured Beta guild, and to configured bot owners through commands in Main. Main channels and schedules are not changed by deployment. An owner may explicitly use `/bible setup` in Main; saved authorization is rechecked against the current bot-owner list before scheduled delivery. Dashboard controls remain in Beta.

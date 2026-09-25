@@ -93,14 +93,14 @@ test('bulk execution reports partial failures and rechecks revoked permissions',
   assert.equal(stopped.stopped, true);
   assert.equal(stopped.changed, 0);
 });
-test('new role commands and autorole slash entry stay in beta', () => {
+test('role commands and autorole are released to Main and Beta', () => {
   assert.ok(command, 'Role command must exist');
-  process.env.BETA_GUILD_ID = '1486680755869323388';
-  assert.equal(canUseBetaCommand(command, '1533088766821007390'), false);
+  process.env.BETA_GUILD_ID = '1486680755869323388'; process.env.GUILD_ID = '1533088766821007390';
+  assert.equal(canUseBetaCommand(command, '1533088766821007390'), true);
   assert.equal(canUseBetaCommand(command, process.env.BETA_GUILD_ID), true);
   assert.equal(typeof slashVisibility.isSlashCommandEnabled, 'function');
   assert.equal(slashVisibility.isSlashCommandEnabled({ ...autorole, category: 'Welcome' }, process.env.BETA_GUILD_ID), true);
-  assert.equal(slashVisibility.isSlashCommandEnabled({ ...autorole, category: 'Welcome' }, '1533088766821007390'), false);
+  assert.equal(slashVisibility.isSlashCommandEnabled({ ...autorole, category: 'Welcome' }, '1533088766821007390'), true);
 });
 function commandFixture(subcommand, values = {}) {
   const f = fixture(), replies = [];
@@ -127,7 +127,7 @@ test('role add performs one change and only replies successfully after Discord a
   await assert.rejects(command.execute(f.interaction));
   assert.equal(f.replies.length, 0);
 });
-test('registration and slash help expose autorole only in beta without enabling other welcome commands', async () => {
+test('registration and slash help expose released autorole without enabling other welcome commands', async () => {
   const writes = [];
   const commands = new Collection([
     ['role', { ...command, category: 'Moderation' }], ['autorole', { ...autorole, category: 'Welcome' }],
@@ -136,7 +136,7 @@ test('registration and slash help expose autorole only in beta without enabling 
   const client = { commands, rest: { put: async (_route, payload) => writes.push(payload.body) } };
   await registerCommands(client, { clientId: '123456789012345678', guildId: '1533088766821007390' });
   await registerCommands(client, { clientId: '123456789012345678', guildId: '1486680755869323388' });
-  assert.deepEqual(writes[0], []);
+  assert.deepEqual(writes[0].map(item => item.name), ['role', 'autorole']);
   assert.deepEqual(writes[1].map(item => item.name), ['role', 'autorole']);
   const { actor } = fixture(); actor.permissions = new PermissionsBitField(PermissionsBitField.All);
   const entries = listPrefixHelp(client, {}, actor, 'channel', 'slash', '1486680755869323388').map(entry => entry.name);

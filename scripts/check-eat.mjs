@@ -34,7 +34,7 @@ readsFail = false;
 await saveFoodSettings(client, guild, { enabled: false, cooldownSeconds: 30 });
 assert.equal((await eatFood(client, guild, user, 'interaction-8', { now: now + 90000, pick })).kind, 'disabled');
 assert.equal((await getFoodCollection(client, guild, user)).totalEaten, 3, 'disabled game preserves collection access');
-await assert.rejects(eatFood(client, '1533088766821007390', user, 'interaction-9', { now, pick }));
+await assert.rejects(eatFood(client, '999999999999999999', user, 'interaction-9', { now, pick }));
 const pgValues = new Map(); let released = false;
 const connection = { release: () => { released = true; }, query: async (sql, params) => {
   if (sql.includes('pg_advisory_')) return { rows: [] };

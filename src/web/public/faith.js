@@ -1,5 +1,5 @@
 (() => {
-  if (dashboardWorkspace !== 'beta') return;
+  if (!['main', 'beta'].includes(dashboardWorkspace)) return;
   $('faith-nav').hidden = false;
   $('faith-controls').hidden = false;
   $('faith-scope').textContent = 'Beta first · each server keeps its own settings.';
@@ -26,7 +26,7 @@
     $('faith-reference').textContent = data.verse.reference;
     $('faith-source').href = data.verse.source;
     $('faith-preview-date').textContent = `${data.today} · ${config.time} (${config.timezone})`;
-    $('faith-collection').textContent = `${data.collectionSize} verified verses rotate daily. English / World English Bible is the supported translation in this Beta release.`;
+    $('faith-collection').textContent = `${data.collectionSize} verified verses rotate daily. English / World English Bible is the supported translation in this release.`;
     $('faith-delivery-error').textContent = data.delivery.lastError || 'No delivery errors recorded.';
     const history = $('faith-history'); history.replaceChildren();
     for (const entry of [...data.delivery.entries].reverse().slice(0, 10)) {

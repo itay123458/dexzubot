@@ -12,7 +12,7 @@ const settingsKey = guildId => `guild:${guildId}:food:settings`;
 const collectionKey = (guildId, userId) => `guild:${guildId}:food:member:${userId}`;
 const emptyCollection = () => ({ counts: {}, totalEaten: 0, lastEatenAt: null, receipts: [] });
 export function assertFoodGuild(guildId) {
-  if (!canUseBetaFeatures(guildId)) throw new TitanBotError('Food collection is restricted.', ErrorTypes.PERMISSION, 'Food collection is available in Beta, or to the bot owner in Main.');
+  if (!canUseBetaFeatures(guildId)) throw new TitanBotError('Food collection is restricted.', ErrorTypes.PERMISSION, 'Food collection is available in Main and Beta.');
 }
 export function chooseFood(random = randomInt) {
   const roll = random(10000);

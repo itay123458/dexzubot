@@ -27,11 +27,11 @@ const base = `http://127.0.0.1:${server.address().port}/dashboard/api`;
 const post = (path, body, workspace = 'beta', headers = {}) => fetch(`${base}/${path}?workspace=${workspace}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 try {
   assert.equal((await fetch(`${base}/roles?workspace=beta`)).status, 200);
-  assert.equal((await fetch(`${base}/roles`)).status, 403);
+  assert.equal((await fetch(`${base}/roles`)).status, 200);
   const roles = await (await fetch(`${base}/roles?workspace=beta`)).json();
   assert.equal(roles.roles.find(item => item.id === selected.id).manageable, true);
   assert.equal(roles.roles.find(item => item.id === top.id).manageable, false);
-  assert.equal((await post('roles/action', { action: 'add', role: selected.id, member: target.id }, 'main')).status, 403);
+  assert.equal((await post('roles/action', { action: 'add', role: selected.id, member: target.id }, 'main')).status, 400);
   assert.equal((await post('roles/action', { action: 'add', role: selected.id, member: target.id }, 'beta', { Origin: 'https://other.example' })).status, 403);
   assert.equal((await post('roles/action', { action: 'edit', role: selected.id, hoist: 'false' })).status, 400);
   assert.equal((await post('roles/action', { action: 'add', role: '999999999999999999', member: target.id })).status, 400);

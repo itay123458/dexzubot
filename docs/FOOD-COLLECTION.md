@@ -1,3 +1,7 @@
+## Main release (2026-09-25)
+
+This feature is now available to eligible members in Main and Beta. Existing permissions and server settings are preserved. Earlier Beta-only/owner-only notes below describe the testing period.
+
 # Food collection
 
 Available in Beta and to configured bot owners in Main. Use `/eat` to receive a random food, reaction and rarity. No coins are spent and no economy rewards are issued. Main collection buttons also enforce bot-owner access; the dashboard remains Beta-only.

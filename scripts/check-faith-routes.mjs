@@ -7,7 +7,7 @@ const { registerDashboard } = await import('../src/web/dashboard.js');
 const store = new Map();
 const channel = { id: '1549857857414111272', guildId: process.env.BETA_GUILD_ID, type: 0, name: 'daily-bible', permissionsFor: () => ({ has: () => true }) };
 const guild = { id: process.env.BETA_GUILD_ID, members: { me: {} }, channels: { cache: new Collection([[channel.id, channel]]), fetch: async id => id ? channel : new Collection([[channel.id, channel]]) } };
-const client = { guilds: { cache: new Collection([[guild.id, guild], [process.env.GUILD_ID, { ...guild, id: process.env.GUILD_ID }]]) }, db: {
+const client = { user: { id: '123456789012345679' }, guilds: { cache: new Collection([[guild.id, guild], [process.env.GUILD_ID, { ...guild, id: process.env.GUILD_ID }]]) }, db: {
   get: async key => structuredClone(store.get(key)), set: async (key, value) => { store.set(key, structuredClone(value)); return true; },
 } };
 const app = express(); app.use(express.json());
@@ -19,7 +19,8 @@ const input = { enabled: true, channelId: channel.id, discussionChannelId: null,
 const post = (body, headers = {}) => fetch(base + '?workspace=beta', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 try {
   assert.equal((await fetch(base + '?workspace=beta')).status, 200);
-  assert.equal((await fetch(base)).status, 403, 'Main must fail closed');
+  assert.equal((await fetch(base)).status, 200, 'Main has released Faith controls');
+  assert.equal(store.size, 0, 'viewing Main must not save settings');
   assert.equal((await post(input, { 'x-test-viewer': 'true' })).status, 403);
   assert.equal((await post(input, { origin: 'https://evil.example' })).status, 403);
   assert.equal((await post({ ...input, timezone: 'bad' })).status, 400);

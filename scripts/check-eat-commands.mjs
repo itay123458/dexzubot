@@ -26,7 +26,7 @@ try {
   assert.ok(reply.embeds[0].toJSON().description.includes(`1/${FOODS.length} discovered`));
   await button.execute({ ...interaction, user: { id: '123456789012345678' }, customId: `eat_collection:${userId}` }, client, [userId]);
   assert.ok(reply.embeds[0].toJSON().description.includes(`0/${FOODS.length} discovered`), 'button ignores forged target and reads clicking member');
-  await assert.rejects(button.execute({ ...interaction, guildId: '1533088766821007390' }, client));
+  await assert.rejects(button.execute({ ...interaction, guildId: '999999999999999999' }, client));
   const full = foodCollectionEmbed(client, guildId, { totalEaten: 2400000, counts: Object.fromEntries(FOODS.map(food => [food.id, 100000])) }).toJSON();
   assert.ok(full.fields.every(field => field.value.length <= 1024), 'complete collection fits Discord fields');
   assert.ok(full.fields.length <= 25);

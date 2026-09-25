@@ -15,7 +15,7 @@ const base = `http://127.0.0.1:${server.address().port}/dashboard/api/food`;
 const post = (body, headers = {}) => fetch(base + '?workspace=beta', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 try {
   assert.equal((await fetch(base + '?workspace=beta')).status, 200);
-  assert.equal((await fetch(base)).status, 403);
+  assert.equal((await fetch(base)).status, 200);
   assert.equal((await post({ enabled: false, cooldownSeconds: 30 }, { 'x-test-viewer': 'true' })).status, 403);
   assert.equal((await post({ enabled: false, cooldownSeconds: 30 }, { origin: 'https://evil.example' })).status, 403);
   assert.equal((await post({ enabled: true, cooldownSeconds: 0 })).status, 400);

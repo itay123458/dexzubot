@@ -10,6 +10,9 @@ export function runWithBetaAccess(userId, guildId, callback) {
   return access.run({ userId, guildId }, callback);
 }
 export function canUseBetaFeatures(guildId, userId) {
+  return isBetaGuild(guildId) || isMainGuild(guildId);
+}
+function canUseUnreleasedBeta(guildId, userId) {
   if (isBetaGuild(guildId)) return true;
   const scope = access.getStore();
   const actor = userId ?? (scope?.guildId === guildId ? scope.userId : null);
@@ -17,7 +20,7 @@ export function canUseBetaFeatures(guildId, userId) {
 }
 export function getBetaActorId() { return access.getStore()?.userId; }
 export function canRegisterBetaCommand(command, guildId) {
-  return !command?.betaOnly || isBetaGuild(guildId) || Boolean(getBetaGuildId() && isMainGuild(guildId) && getBotOwners().length);
+  return !command?.betaOnly || isBetaGuild(guildId) || Boolean(isMainGuild(guildId) && (command?.releasedToMain || (getBetaGuildId() && getBotOwners().length)));
 }
 export function getBetaGuildId() {
   const guildId = process.env.BETA_GUILD_ID?.trim();
@@ -30,5 +33,7 @@ export function isBetaGuild(guildId) {
 }
 
 export function canUseBetaCommand(command, guildId, userId, slash = false) {
-  return !(command?.betaOnly || (slash && command?.betaSlash)) || canUseBetaFeatures(guildId, userId);
+  return !(command?.betaOnly || (slash && command?.betaSlash))
+    || Boolean(command?.releasedToMain && isMainGuild(guildId))
+    || canUseUnreleasedBeta(guildId, userId);
 }

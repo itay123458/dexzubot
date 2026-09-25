@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PermissionFlagsBits } from 'discord.js';
-import { isBetaGuild } from '../config/beta.js';
-import { betaReleases, communityRelease, dashboardAccessRelease, musicPrefixRelease, betaOwnerRelease } from '../config/releases.js';
+import { canUseBetaFeatures } from '../config/beta.js';
+import { mainToolsRelease, betaReleases, communityRelease, dashboardAccessRelease, musicPrefixRelease, betaOwnerRelease } from '../config/releases.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { isCommandEnabledInConfig } from '../services/commandAccessService.js';
 import { executeRoleOperation } from '../services/roleOperationService.js';
@@ -21,7 +21,7 @@ const actionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('delete'), role: id }).strict(),
   ...['confirm', 'cancel'].map(action => z.object({ action: z.literal(action), code: z.string().regex(/^[a-f0-9]{12}$/) }).strict()),
 ]);
-const betaOnly = (req, res, next) => isBetaGuild(req.dashboardGuild?.id) ? next() : res.status(403).json({ error: 'Role controls are available in the Beta workspace.' });
+const betaOnly = (req, res, next) => canUseBetaFeatures(req.dashboardGuild?.id) ? next() : res.status(403).json({ error: 'Role controls are available in Main and Beta.' });
 const handled = handler => async (req, res, next) => {
   try { await handler(req, res); }
   catch (error) {
@@ -31,7 +31,7 @@ const handled = handler => async (req, res, next) => {
 };
 
 export function registerRoleRoutes(router, client) {
-  router.get('/releases', (req, res) => res.json({ releases: isBetaGuild(req.dashboardGuild.id) ? [betaOwnerRelease,musicPrefixRelease,dashboardAccessRelease,communityRelease,...betaReleases] : [betaOwnerRelease,musicPrefixRelease,dashboardAccessRelease,communityRelease] }));
+  router.get('/releases', (req, res) => res.json({ releases: canUseBetaFeatures(req.dashboardGuild.id) ? [mainToolsRelease,betaOwnerRelease,musicPrefixRelease,dashboardAccessRelease,communityRelease,...betaReleases] : [mainToolsRelease,betaOwnerRelease,musicPrefixRelease,dashboardAccessRelease,communityRelease] }));
   router.get('/roles', betaOnly, handled(async (req, res) => {
     const guild = req.dashboardGuild;
     await guild.roles.fetch();
@@ -52,7 +52,7 @@ export function registerRoleRoutes(router, client) {
     const input = parsed.data, guild = req.dashboardGuild;
     const config = await getGuildConfig(client, guild.id);
     if (input.action !== 'cancel' && !isCommandEnabledInConfig(config, `role ${input.action}`, 'Moderation')) {
-      return res.status(403).json({ error: 'This role command is disabled for the beta server.' });
+      return res.status(403).json({ error: 'This role command is disabled for this server.' });
     }
     await guild.roles.fetch();
     for (const field of ['role', 'source']) if (input[field] && !guild.roles.cache.has(input[field])) {
@@ -62,14 +62,14 @@ export function registerRoleRoutes(router, client) {
     // The trusted private listener retains its existing administrative behavior.
     const me = req.dashboardMember || await guild.members.fetchMe({ force: true });
     let result;
-    await executeRoleOperation({ guild, client, actorId: me.id, auditSource: req.dashboardMember ? 'authenticated dashboard' : 'private Beta dashboard',
+    await executeRoleOperation({ guild, client, actorId: me.id, auditSource: req.dashboardMember ? 'authenticated dashboard' : 'private dashboard',
       options: { getSubcommand: () => input.action, get: key => input[key] ?? null,
         getString: key => input[key] ?? null, getBoolean: key => input[key] ?? null,
         getRole: key => guild.roles.cache.get(input[key]) ?? null,
         getUser: key => input[key] ? { id: input[key] } : null },
       reply: (title, description, metadata = {}) => { result = { title, description, ...metadata }; },
     });
-    await recordRecentActivity(client, guild.id, 'dashboard.roles', { title: result.title, description: `Role ${input.action} from the private Beta dashboard` });
+    await recordRecentActivity(client, guild.id, 'dashboard.roles', { title: result.title, description: `Role ${input.action} from the private dashboard` });
     res.json({ ok: true, ...result });
   }));
   router.post('/roles/autorole', betaOnly, handled(async (req, res) => {

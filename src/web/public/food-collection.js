@@ -1,5 +1,5 @@
 (() => {
-  if (dashboardWorkspace !== 'beta') return;
+  if (!['main', 'beta'].includes(dashboardWorkspace)) return;
   const root = $('food-collection-controls'), form = $('food-settings-form'), fields = $('food-settings-fields');
   root.hidden = false;
   let data, dirty = false, busy = false;

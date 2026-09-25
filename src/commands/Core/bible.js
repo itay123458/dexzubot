@@ -4,8 +4,8 @@ import { createEmbed } from '../../utils/embeds.js';
 import { assertFaithGuild, bibleEmbed, getFaithState, saveFaithSettings } from '../../services/faithService.js';
 
 export default {
-  slashOnly: true, betaOnly: true,
-  data: new SlashCommandBuilder().setName('bible').setDescription('Daily Bible verses and Faith settings (Beta)').setDMPermission(false)
+  slashOnly: true, betaOnly: true, releasedToMain: true,
+  data: new SlashCommandBuilder().setName('bible').setDescription('Daily Bible verses and Faith settings').setDMPermission(false)
     .addSubcommand(sub => sub.setName('today').setDescription('Read today’s Bible verse'))
     .addSubcommand(sub => sub.setName('status').setDescription('Show the daily verse schedule'))
     .addSubcommand(sub => sub.setName('guide').setDescription('How to use the Faith channels and daily verses'))
@@ -30,7 +30,7 @@ export default {
       guildId: interaction.guildId, title: 'Faith guide', description:
         '**My-Faith:** share your beliefs if you want to.\n**Religious-Talk:** respectful questions and discussion.\n**Talk-for-Religion:** voice conversation.\n**Bible-Talk / Quran-Talk:** discuss the respective texts.\n**daily-bible:** today’s verse; read and react.\n\nRespect people of every belief, including no belief. No harassment, slurs, or pressure to convert.',
       fields: [{ name: 'Commands', value: '`/bible today` · `/bible status`\nAdministrators: `/bible setup` · `/bible disable`' },
-        { name: 'Dashboard', value: 'Beta → Faith: schedule, destination, preview and delivery status. English / World English Bible only in this release.' }],
+        { name: 'Dashboard', value: 'Dashboard → Faith: schedule, destination, preview and delivery status. English / World English Bible only in this release.' }],
     })] });
     if (sub === 'setup' || sub === 'disable') {
       try {

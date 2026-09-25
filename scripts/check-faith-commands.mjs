@@ -28,7 +28,7 @@ try {
   assert.equal((await getFaithSettings(client, guildId)).enabled, true, 'ordinary members cannot disable');
   admin = true; await command.execute(interaction, {}, client);
   assert.equal((await getFaithSettings(client, guildId)).enabled, false);
-  await assert.rejects(command.execute({ ...interaction, guildId: '1533088766821007390' }, {}, client));
+  await assert.rejects(command.execute({ ...interaction, guildId: '999999999999999999' }, {}, client));
   command.data.toJSON();
   console.log('Faith commands passed: member read access, administrator setup/disable, and Beta boundary.');
 } finally { InteractionHelper.safeDefer = defer; InteractionHelper.safeEditReply = edit; }

@@ -13,7 +13,7 @@ function validName(value) {
   return name;
 }
 export const executeRoleOperation = wrapServiceBoundary(async ({ guild, options, actorId, client, reply, auditSource = null }) => {
-    if (!guild || !canUseBetaFeatures(guild.id)) fail('Role management is available in Beta, or to the bot owner in Main.');
+    if (!guild || !canUseBetaFeatures(guild.id)) fail('Role management is available in Main and Beta.');
     await guild.roles.fetch();
     await guild.members.fetchMe({ force: true });
     const actor = await guild.members.fetch({ user: actorId, force: true });

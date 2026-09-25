@@ -1,5 +1,5 @@
 (() => {
-  if (dashboardWorkspace !== 'beta') return;
+  if (!['main', 'beta'].includes(dashboardWorkspace)) return;
   const controls = $('beta-role-controls'), releaseCard = $('beta-release-notes');
   controls.hidden = false; releaseCard.hidden = false;
   $('open-beta-roles').addEventListener('click', () => showPage('operations'));

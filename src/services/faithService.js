@@ -25,7 +25,7 @@ const ownerGrantKey = id => `guild:${id}:faith:owner-grant`;
 const ledgerKey = id => `guild:${id}:faith:delivery`;
 const fail = (message, type = ErrorTypes.VALIDATION) => { throw new TitanBotError(message, type, message); };
 export function assertFaithGuild(id) {
-  if (!canUseBetaFeatures(id)) fail('Faith tools are available in Beta, or to the bot owner in Main.', ErrorTypes.PERMISSION);
+  if (!canUseBetaFeatures(id)) fail('Faith tools are available in Main and Beta.', ErrorTypes.PERMISSION);
 }
 export function localDay(now, timezone) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: timezone,

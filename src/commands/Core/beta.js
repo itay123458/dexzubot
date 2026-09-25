@@ -14,11 +14,11 @@ export default {
       flags: MessageFlags.Ephemeral,
       embeds: [createEmbed({
         title: 'DexzuBot Beta',
-        description: 'Beta features are available in the testing server. Configured bot owners can also use them in Main.',
+        description: 'Beta features are available in the testing server. Food, Bible and role tools have been released to Main.',
         fields: [
           { name: '🧪 Available now', value: 'Role management is ready to test: /role add, remove, create, edit, delete, info, list, bulk-add and bulk-remove. /autorole is also available here. Bulk changes and deletion need confirmation.' },
           { name: '💎 Same DexzuBot', value: 'This server uses the same bot application and running process as the main server. It is not a separate deployment.' },
-          { name: '🔒 Testing scope', value: 'Beta commands are owner-only in Main. Administrator or server-owner status does not grant that exception. Existing command and role permissions still apply.' },
+          { name: '🔒 Testing scope', value: 'Unreleased Beta commands remain owner-only in Main. Released tools follow their normal permissions. Existing command and role permissions still apply.' },
         ],
         footer: 'DexzuBot • Beta workspace',
       })],

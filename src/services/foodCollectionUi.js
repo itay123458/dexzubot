@@ -40,7 +40,7 @@ export function foodGuideEmbed(guildId) {
   return createEmbed({ guildId, title: 'Food collection guide', description:
     '**`/eat`** — get a random food and reaction.\n**`/eat action:collection`** — see your discoveries and eaten counts.\nThe **My collection** button opens your own collection privately.\n\nDuplicates increase your count. New foods get a discovery badge. Collections and cooldowns survive restarts. No coins are spent.',
     fields: [{ name: 'Rarity odds', value: FOOD_RARITIES.map(item => `${item.label}: ${item.chance}%`).join(' · ') },
-      { name: 'Cooldown', value: '30 seconds by default. Administrators can change it in Beta → Operations → Food collection.' }],
-    footer: `DexzuBot · ${FOODS.length} foods · Beta`,
+      { name: 'Cooldown', value: '30 seconds by default. Administrators can change it in Dashboard → Operations → Food collection.' }],
+    footer: `DexzuBot · ${FOODS.length} foods`,
   });
 }
